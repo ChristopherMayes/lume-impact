@@ -22,9 +22,9 @@ def write_impact_particles_h5(h5, particle_data, name=None, speciesType='electro
     g['position'].attrs['unitDimension']=(1., 0., 0., 0., 0., 0., 0.) # m
 
     # momenta
-    g['momentum/px']=particle_data['GBx'] # gamma*beta_x
-    g['momentum/py']=particle_data['GBy'] # gamma*beta_y
-    g['momentum/pz']=particle_data['GBz'] # gamma*beta_z
+    g['momentum/x']=particle_data['GBx'] # gamma*beta_x
+    g['momentum/y']=particle_data['GBy'] # gamma*beta_y
+    g['momentum/z']=particle_data['GBz'] # gamma*beta_z
     g['momentum'].attrs['unitSI']= 2.73092449e-22 # m_e *c in kg*m / s
     g['momentum'].attrs['unitDimension']=(1., 1., -1., 0., 0., 0., 0.) # kg*m / s
 
