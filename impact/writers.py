@@ -1,6 +1,6 @@
 #import numpy as np
 
-def write_impact_particles_h5(h5, particle_data, name=None, speciesType='electron'):
+def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, speciesType='electron'):
     # Write particle data at a screen in openPMD BeamPhysics format
     # https://github.com/DavidSagan/openPMD-standard/blob/EXT_BeamPhysics/EXT_BeamPhysics.md
 
@@ -13,6 +13,8 @@ def write_impact_particles_h5(h5, particle_data, name=None, speciesType='electro
 
     #macrocharge = screen_data['q']*screen_data['nmacro']
     #g.attrs['totalCharge'] = np.sum(macrocharge)
+
+    n_particle = len(particle_data['x'])
 
     # Position
     g['position/x']=particle_data['x'] # in meters
@@ -27,6 +29,16 @@ def write_impact_particles_h5(h5, particle_data, name=None, speciesType='electro
     g['momentum/z']=particle_data['GBz'] # gamma*beta_z
     g['momentum'].attrs['unitSI']= 2.73092449e-22 # m_e *c in kg*m / s
     g['momentum'].attrs['unitDimension']=(1., 1., -1., 0., 0., 0., 0.) # kg*m / s
+    
+    # Constant records
+    
+    # Weights. All particles should have the same weight (macro charge)
+    weight = total_charge / n_particle
+    g2 = g.create_group('weight')
+    g2.attrs['value']  = weight
+    g2.attrs['shape'] = (n_particle)
+    g2.attrs['unitSI'] = 1.0
+    g2.attrs['unitDimension'] = (0., 0., 1, 1., 0., 0., 0.) # Amp*s = Coulomb    
 
 
 #     # Time
