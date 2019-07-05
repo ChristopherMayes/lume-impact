@@ -672,5 +672,157 @@ def parse_impact_particles(filePath, names=('x', 'GBx', 'y', 'GBy', 'z', 'GBz'))
     dtype={'names': names,
            'formats': 6*[np.float]}
     pdat = np.loadtxt(filePath, skiprows=1, dtype=dtype)
-    
+
+
     return pdat
+
+#def read_impact_dist(filename):
+#    '''Read in particle distribution (partcl.data) used 
+#    in IMPACT-T simulation. Used to describe the 
+#    beam distribution as it leaves the cathode.'''
+#    dist = {}
+#    data = np.loadtxt(filename, skiprows=1)
+#    dist['x']  = data[:,0] # [m]
+#    dist['px'] = data[:,1]
+#    dist['y']  = data[:,2] # [m]
+#    dist['py'] = data[:,3] # 
+#    dist['z']  = data[:,4] # [m]
+#    dist['pz'] = data[:,5]
+#    return dist
+
+
+#-----------------------------------------------------------------  
+#-----------------------------------------------------------------  
+# Parsers for Impact-T output
+
+def load_fort18(filePath):
+    ''' From impact manual v2:
+        1st col: time (secs)
+        2nd col: distance (m)
+        3rd col: gamma
+        4th col: kinetic energy (MeV) 5th col: beta
+        6th col: Rmax (m) R is measured from the axis of pipe 
+        7th col: rms energy deviation normalized by MC^2
+    '''
+    data = {}
+    print('Loading ',filePath,' as for.18' )
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    keys = ['t', 'z', 'gamma', 'E_kinetic','beta','R_max','deltaE_rms']
+    for count, key in enumerate(keys):
+        data[key] = fortdata[:,count]
+    return data
+
+def load_fort24(filePath):
+    '''From impact manual:
+    fort.24, fort.25: X and Y RMS size information
+    1st col: time (secs)
+    2nd col: z distance (m)
+    3rd col: centroid location (m)
+    4th col: RMS size (m)
+    5th col: Centroid momentum normalized by MC 6th col: RMS momentum normalized by MC
+    7th col: Twiss parameter
+    8th col: normalized RMS emittance (m-rad)
+    '''
+    data = {}
+    print('Loading ',filePath,' as fort.24.' )
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    keys = ['t', 'z', 'x_centroid', 'x_rms','xgb_centroid', 'xgb_rms', 'x_twiss','x_normemit']
+    for count, key in enumerate(keys):
+        #Column 1 is time and 2 is distance
+        #Both are already recorded from fort.18
+        data[key] = fortdata[:,count]    
+    return data
+    
+def load_fort25(filePath):
+    '''
+    Same columns as fort24, Y RMS
+    '''
+    data = {}
+    print('Loading ',filePath,' as fort.25.' )
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    keys = ['t', 'z', 'y_centroid', 'y_rms','ygb_centroid', 'ygb_rms', 'y_twiss','y_normemit']
+    for count, key in enumerate(keys):
+        data[key] = fortdata[:,count]
+    return data
+
+def load_fort26(filePath):
+    '''From impact manual:
+    fort.26: Z RMS size information
+    1st col: time (secs)
+    2nd col: centroid location (m)
+    3rd col: RMS size (m)
+    4th col: Centroid momentum normalized by MC 5th col: RMS momentum normalized by MC
+    6th col: Twiss parameter
+    7th col: normalized RMS emittance (m-rad)
+    '''
+    data = {}
+    print('Loading fort.26 file')
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    keys = ['t', 'z_centroid','z_rms','zgb_centroid', 'zgb_rms', 'z_twiss','z_normemit']
+    for count, key in enumerate(keys):
+        data[key] = fortdata[:,count]
+    return data
+        
+def load_fort27(filePath):
+    '''
+    fort.27: maximum amplitude information
+    1st col: time (secs)
+    2nd col: z distance (m)
+    3rd col: Max. X (m)
+    4th col: Max. Px (MC)
+    5th col: Max. Y (m)
+    6th col: Max. Py (MC)
+    7th col: Max. Z (m) (with respect to centroid) 8th col: Max. Pz (MC)
+    '''
+    data = {}
+    print('Loading ',filePath,' as fort.27.' )
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    keys = ['t', 'z', 'x_max','px_max','y_max', 'py_max', 'z_max','pz_max']
+    for count, key in enumerate(keys):
+        data[key] = fortdata[:,count]  
+    return data
+        
+def load_fort28(filePath):
+    '''From impact manual:
+    fort.28: load balance and loss diagnostic
+    1st col: time (secs)
+    2nd col: z distance (m)
+    3rd col: min # of particles on a PE
+    4th col: max # of particles on a PE
+    5th col: total # of particles in the bunch
+    '''
+    data = {}
+    print('Loading ',filePath,' as fort.28.' )
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    keys = ['t', 'z', 'numparticles_min', 'numparticles_max','numparticles']
+    for count, key in enumerate(keys):
+        data[key] = fortdata[:,count]
+    return data
+        
+def load_fort29(filePath):
+    '''
+    fort.29: cubic root of 3rd moments of the beam distribution
+    1st col: time (secs) 2nd col: z distance (m) 3rd col: X (m)
+    4th col: Px (MC)
+    5th col: Y (m)
+    6th col: Py (MC)
+    7th col: Z (m)
+    8th col: Pz (MC)
+    '''            
+    data = {}
+    print('Loading ',filePath,' as fort.29.' )
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    keys = ['t', 'z', 'x_moment','px_moment','y_moment', 'py_moment', 'z_moment','pz_moment']
+    for count, key in enumerate(keys):
+        data[key] = fortdata[:,count]
+    return data
+
+
+
