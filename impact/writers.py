@@ -11,8 +11,7 @@ def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, sp
 
     g.attrs['speciesType'] = speciesType
 
-    #macrocharge = screen_data['q']*screen_data['nmacro']
-    #g.attrs['totalCharge'] = np.sum(macrocharge)
+    g.attrs['totalCharge'] = total_charge
 
     n_particle = len(particle_data['x'])
 
@@ -40,25 +39,4 @@ def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, sp
     g2.attrs['unitSI'] = 1.0
     g2.attrs['unitDimension'] = (0., 0., 1, 1., 0., 0., 0.) # Amp*s = Coulomb    
 
-
-#     # Time
-#    g['time'] = screen_data['t']
-#    g['time'].attrs['unitSI'] = 1.0 # s
-#    g['time'].attrs['unitDimension'] = (0., 0., 1., 0., 0., 0., 0.) # s
-#
-#    # Weights
-#    weights = abs(screen_data['nmacro']*screen_data['q']) 
-#    if len(set(weights)) == 1:
-#        # Constant record
-#        g2 = g.create_group('weight')
-#        g2.attrs['value']  = weights[0]
-#        g2.attrs['shape'] = (len(weights))
-#        g2.attrs['unitSI'] = 1.0
-#        g2.attrs['unitDimension'] = (0., 0., 1, 1., 0., 0., 0.) # Amp*s = Coulomb
-#    else: 
-#        # Unique weights
-#        g['weight'] = weights
-#        g['weight'].attrs['unitSI'] = 1.0
-#        g['weight'].attrs['unitDimension']=(0., 0., 1, 1., 0., 0., 0.) # Amp*s = Coulomb
-#
 

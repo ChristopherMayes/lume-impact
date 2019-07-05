@@ -185,7 +185,7 @@
  0.0     1  1  -1  16.984   1.0     16.984 0.0 0.0 0.0 0.0 /
 !0.0     1 300 -3  16.986   1.0     16.986 /
 !0.0     1  1  -4  16.988   1.0     16.988 1.0e-12 /
- 0.0     1  1  -98 16.90    1.0     16.90 /
+!!! Undocumented line:  0.0     1  1  -98 16.90    1.0     16.90 /
 !
 ! =========DL1=DL1=DL1=====bend magnet DBA (DL1)==( dipole1 center at 17.291 )===DL1=DL1=DL1=====
 ! total arc length including enge fringe is 0.60525,

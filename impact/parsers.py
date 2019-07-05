@@ -1,5 +1,5 @@
 import numpy as np
-
+import os
 
 #-----------------
 # Parsing ImpactT input file
@@ -645,8 +645,10 @@ def parse_lattice(lines):
     add_s_position(eles)
     create_names(eles)
     return eles
-    
+ 
 
+    
+    
 #-----------------------------------------------------------------  
 #-----------------------------------------------------------------  
 # Particles
@@ -673,29 +675,27 @@ def parse_impact_particles(filePath, names=('x', 'GBx', 'y', 'GBy', 'z', 'GBz'))
            'formats': 6*[np.float]}
     pdat = np.loadtxt(filePath, skiprows=1, dtype=dtype)
 
-
-    return pdat
-
-#def read_impact_dist(filename):
-#    '''Read in particle distribution (partcl.data) used 
-#    in IMPACT-T simulation. Used to describe the 
-#    beam distribution as it leaves the cathode.'''
-#    dist = {}
-#    data = np.loadtxt(filename, skiprows=1)
-#    dist['x']  = data[:,0] # [m]
-#    dist['px'] = data[:,1]
-#    dist['y']  = data[:,2] # [m]
-#    dist['py'] = data[:,3] # 
-#    dist['z']  = data[:,4] # [m]
-#    dist['pz'] = data[:,5]
-#    return dist
-
+    return pdat    
+    
 
 #-----------------------------------------------------------------  
 #-----------------------------------------------------------------  
-# Parsers for Impact-T output
+# Parsers for Impact-T fort.X output
 
-def load_fort18(filePath):
+def load_fortX(filePath, keys):
+    data = {}
+    #Load the data 
+    fortdata = np.loadtxt(filePath)
+    for count, key in enumerate(keys):
+        data[key] = fortdata[:,count]
+    return data
+
+FORT_KEYS = {}
+FORT_UNITS = {}
+
+FORT_KEYS[18] = ['t', 'z', 'gamma', 'E_kinetic','beta', 'r_max','deltaGamma_rms']
+FORT_UNITS[18] = ['s','m', '1',     'MeV',      '1',     'm',    '1']
+def load_fort18(filePath, keys=FORT_KEYS[18]):
     ''' From impact manual v2:
         1st col: time (secs)
         2nd col: distance (m)
@@ -704,51 +704,36 @@ def load_fort18(filePath):
         6th col: Rmax (m) R is measured from the axis of pipe 
         7th col: rms energy deviation normalized by MC^2
     '''
-    data = {}
-    print('Loading ',filePath,' as for.18' )
-    #Load the data 
-    fortdata = np.loadtxt(filePath)
-    keys = ['t', 'z', 'gamma', 'E_kinetic','beta','R_max','deltaE_rms']
-    for count, key in enumerate(keys):
-        data[key] = fortdata[:,count]
-    return data
+    return load_fortX(filePath, keys)
 
-def load_fort24(filePath):
+FORT_KEYS[24] =  ['t', 'z', 'x_centroid', 'x_rms', 'GBx_centroid', 'GBx_rms', 'x_twiss','x_normemit']
+FORT_UNITS[24] = ['s', 'm', 'm',          'm',     '1',            '1',       '??',     'm-rad' ]
+def load_fort24(filePath, keys=FORT_KEYS[24]):
     '''From impact manual:
     fort.24, fort.25: X and Y RMS size information
     1st col: time (secs)
     2nd col: z distance (m)
     3rd col: centroid location (m)
     4th col: RMS size (m)
-    5th col: Centroid momentum normalized by MC 6th col: RMS momentum normalized by MC
+    5th col: Centroid momentum normalized by MC
+    6th col: RMS momentum normalized by MC
     7th col: Twiss parameter
     8th col: normalized RMS emittance (m-rad)
     '''
-    data = {}
-    print('Loading ',filePath,' as fort.24.' )
-    #Load the data 
-    fortdata = np.loadtxt(filePath)
-    keys = ['t', 'z', 'x_centroid', 'x_rms','xgb_centroid', 'xgb_rms', 'x_twiss','x_normemit']
-    for count, key in enumerate(keys):
-        #Column 1 is time and 2 is distance
-        #Both are already recorded from fort.18
-        data[key] = fortdata[:,count]    
-    return data
+    return load_fortX(filePath, keys)
     
-def load_fort25(filePath):
+FORT_KEYS[25] = ['t', 'z', 'y_centroid', 'y_rms','GBy_centroid', 'GBy_rms', 'y_twiss','y_normemit']    
+FORT_UNITS[25] = FORT_UNITS[24]
+def load_fort25(filePath, keys=FORT_KEYS[25]):
     '''
     Same columns as fort24, Y RMS
     '''
-    data = {}
-    print('Loading ',filePath,' as fort.25.' )
-    #Load the data 
-    fortdata = np.loadtxt(filePath)
-    keys = ['t', 'z', 'y_centroid', 'y_rms','ygb_centroid', 'ygb_rms', 'y_twiss','y_normemit']
-    for count, key in enumerate(keys):
-        data[key] = fortdata[:,count]
-    return data
+    return load_fortX(filePath, keys)
 
-def load_fort26(filePath):
+
+FORT_KEYS[26] = ['t', 'z_centroid','z_rms','GBz_centroid', 'GBz_rms', 'z_twiss','z_normemit']
+FORT_UNITS[26]= FORT_UNITS[25]
+def load_fort26(filePath, keys=FORT_KEYS[26]):
     '''From impact manual:
     fort.26: Z RMS size information
     1st col: time (secs)
@@ -758,16 +743,11 @@ def load_fort26(filePath):
     6th col: Twiss parameter
     7th col: normalized RMS emittance (m-rad)
     '''
-    data = {}
-    print('Loading fort.26 file')
-    #Load the data 
-    fortdata = np.loadtxt(filePath)
-    keys = ['t', 'z_centroid','z_rms','zgb_centroid', 'zgb_rms', 'z_twiss','z_normemit']
-    for count, key in enumerate(keys):
-        data[key] = fortdata[:,count]
-    return data
-        
-def load_fort27(filePath):
+    return load_fortX(filePath, keys)
+
+FORT_KEYS[27] =  ['t', 'z', 'x_max','GBx_max','y_max', 'GBy_max', 'z_max','GBz_max']
+FORT_UNITS[27] = ['s', 'm', 'm',    '1',      'm',     '1',       'm',    '1']
+def load_fort27(filePath, keys=FORT_KEYS[27]):
     '''
     fort.27: maximum amplitude information
     1st col: time (secs)
@@ -776,18 +756,14 @@ def load_fort27(filePath):
     4th col: Max. Px (MC)
     5th col: Max. Y (m)
     6th col: Max. Py (MC)
-    7th col: Max. Z (m) (with respect to centroid) 8th col: Max. Pz (MC)
+    7th col: Max. Z (m) (with respect to centroid) 
+    8th col: Max. Pz (MC)
     '''
-    data = {}
-    print('Loading ',filePath,' as fort.27.' )
-    #Load the data 
-    fortdata = np.loadtxt(filePath)
-    keys = ['t', 'z', 'x_max','px_max','y_max', 'py_max', 'z_max','pz_max']
-    for count, key in enumerate(keys):
-        data[key] = fortdata[:,count]  
-    return data
-        
-def load_fort28(filePath):
+    return load_fortX(filePath, keys)
+
+FORT_KEYS[28] =  ['t', 'z', 'numparticles_min', 'numparticles_max','numparticles']
+FORT_UNITS[28] = ['s', 'm', '1',                '1',               '1' ]
+def load_fort28(filePath, keys=FORT_KEYS[28] ):
     '''From impact manual:
     fort.28: load balance and loss diagnostic
     1st col: time (secs)
@@ -796,18 +772,29 @@ def load_fort28(filePath):
     4th col: max # of particles on a PE
     5th col: total # of particles in the bunch
     '''
-    data = {}
-    print('Loading ',filePath,' as fort.28.' )
-    #Load the data 
-    fortdata = np.loadtxt(filePath)
-    keys = ['t', 'z', 'numparticles_min', 'numparticles_max','numparticles']
-    for count, key in enumerate(keys):
-        data[key] = fortdata[:,count]
-    return data
-        
-def load_fort29(filePath):
+    return load_fortX(filePath, keys)
+   
+FORT_KEYS[29] =  ['t', 'z', 'x_moment3','GBx_moment3','y_moment3', 'GBy_moment3', 'z_moment3','GBz_moment3']    
+FORT_UNITS[29] = ['s', 'm', 'm',        '1',          'm',         '1',           'm',        '1']
+def load_fort29(filePath, keys=FORT_KEYS[29]):
     '''
     fort.29: cubic root of 3rd moments of the beam distribution
+    1st col: time (secs) 
+    2nd col: z distance (m) 
+    3rd col: X (m)
+    4th col: Px (MC)
+    5th col: Y (m)
+    6th col: Py (MC)
+    7th col: Z (m)
+    8th col: Pz (MC)
+    '''            
+    return load_fortX(filePath, keys)
+
+FORT_KEYS[30] =  ['t', 'z', 'x_moment4','GBx_moment4','y_moment4', 'GBy_moment4', 'z_moment4','GBz_moment4']
+FORT_UNITS[30] = FORT_UNITS[29]
+def load_fort30(filePath, keys=FORT_KEYS[30] ):
+    '''
+    fort.30: Fourth root of 4th moments of the beam distribution
     1st col: time (secs) 2nd col: z distance (m) 3rd col: X (m)
     4th col: Px (MC)
     5th col: Y (m)
@@ -815,14 +802,169 @@ def load_fort29(filePath):
     7th col: Z (m)
     8th col: Pz (MC)
     '''            
-    data = {}
-    print('Loading ',filePath,' as fort.29.' )
-    #Load the data 
+    return load_fortX(filePath, keys)
+
+
+
+
+def load_fort60_and_70(filePath):
+    """
+    1st col: bunch length (m)
+    2nd col: number of macroparticles per cell
+    3rd col: current profile
+    4th col: x slice emittance (m-rad)
+    5th col: y slice emittance (m-rad)
+    6th col: energy spread per cell without taking out correlation (eV)
+    7th col: uncorrelated energy spread per cell (eV)
+    """
     fortdata = np.loadtxt(filePath)
-    keys = ['t', 'z', 'x_moment','px_moment','y_moment', 'py_moment', 'z_moment','pz_moment']
+    data = {}
+    keys = ['slice_z', 
+            'particles_per_cell',
+            'current',
+            'x_emittance',
+            'y_emittance',
+            'energy_spread',
+            'uncorreleted_energy_spread']
     for count, key in enumerate(keys):
         data[key] = fortdata[:,count]
     return data
+            
 
+
+def fort_files(path):
+    """
+    Find fort.X fliles in path
+    """
+    assert os.path.isdir(path)
+    flist = os.listdir(path)
+    fortfiles=[]
+    for f in flist:
+        if f.startswith('fort.'):
+            fortfiles.append(os.path.join(path,f))
+    return fortfiles    
+    
+    
+def fort_type(filePath):
+    """
+    Extract the integer type of a fort.X file, where X is the type.
+    """
+    fullpath = os.path.abspath(filePath)
+    p, f = os.path.split(fullpath)
+    s = f.split('.')
+    if s[0] != 'fort':
+        print('Error: not a fort file:', filePath)
+    else:
+        return int(s[1])    
+
+
+FORT_DESCRIPTION = {
+    18:'Time and energy',
+    24:'RMS X information',
+    25:'RMS Y information',
+    26:'RMS Z information',
+    27:'Max amplitude information',
+    28:'Load balance and loss diagnostics',
+    29:'Cube root of third moments of the beam distribution',
+    30:'Fourth root of the fourth moments of the beam distribution',
+    34:'Dipole ONLY: X output information in dipole reference coordinate system',
+    35:'Dipole ONLY: Y output information in dipole reference coordinate system',
+    36:'Dipole ONLY: Z output information in dipole reference coordinate system ',
+    37:'Dipole ONLY: Maximum amplitude information in dipole reference coordinate system',
+    38:'Dipole ONLY: Reference particle information in dipole reference coordinate system',
+    40:'initial particle distribution at t = 0',
+    50:'final particle distribution projected to the centroid location of the bunch',
+    60:'Slice information of the initial distribution',
+    70:'Slice information of the final distribution'
+    
+    
+}
+
+FORT_LOADER = {
+    18:load_fort18,
+    24:load_fort24,
+    25:load_fort25,
+    26:load_fort26,
+    27:load_fort27,
+    28:load_fort28,
+    29:load_fort29,
+    30:load_fort30,
+    40:parse_impact_particles,
+    50:parse_impact_particles,
+    60:load_fort60_and_70,
+    70:load_fort60_and_70
+}
+
+# Form large unit dict for these types of files
+UNITS = {}
+for i in [18, 24, 25, 26, 27, 28, 29, 30]:
+    for j, k in enumerate(FORT_KEYS[i]):
+        UNITS[k] = FORT_UNITS[i][j]
+    
+def fort_type(filePath):
+    """
+    Extract the integer type of a fort.X file, where X is the type.
+    """
+    fullpath = os.path.abspath(filePath)
+    p, f = os.path.split(fullpath)
+    s = f.split('.')
+    if s[0] != 'fort':
+        print('Error: not a fort file:', filePath)
+    else:
+        type = int(s[1])    
+        if type not in FORT_DESCRIPTION:
+            print('Warning: unknown fort type for:', filePath)
+        if type not in FORT_LOADER:
+            print('Warning: no fort loader yet for:', filePath)
+        return type
+
+
+def load_fort(filePath, verbose=True):
+    """
+    Loads a fort file, automatically detecting its type and selecting a loader.
+    
+    """
+    type = fort_type(filePath)
+    
+    if verbose:
+        if type in FORT_DESCRIPTION:
+            print(type, FORT_DESCRIPTION[type])
+        else:
+            print('unknown type:',type)
+            
+    if type in FORT_LOADER:
+        dat = FORT_LOADER[type](filePath)
+    else:
+        print('ERROR: need parser for:', f)
+    return dat    
+    
+        
+   
+def load_many_fort(path, types=[18, 24, 25, 26, 27, 28, 29, 30], verbose=False):
+    """
+    Loads a large dict with data from many fort files.
+    Checks that keys do not conflict.
+    
+    Default types are for typical statistical information along the simulation path. 
+    
+    """
+    fortfiles=fort_files(path)
+    alldat = {}
+    for f in fortfiles:
+        type = fort_type(f)
+        if type not in types:
+            if verbose:
+                print('skipping:',f)
+            continue
+        
+        dat = load_fort(f, verbose=verbose)
+        for k in dat:
+            if k not in alldat:
+                alldat[k] = dat[k]
+            else:
+                # Check that this data is the same as what's already in there
+                assert np.all(alldat[k] == dat[k]), 'Conflicting data for key:'+k
+        
+    return alldat    
 
 
