@@ -787,7 +787,7 @@ def parse_impact_input(filePath):
     
     
     """
-    with open(infile, 'r') as f:    
+    with open(filePath, 'r') as f:    
         data = f.read()
         lines = data.split('\n')
     
