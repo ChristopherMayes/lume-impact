@@ -9,40 +9,49 @@ import os
 # ImpactT Header
 # lattice starts at line 10
 
+# Header dicts
+HNAMES={}
+HTYPES={}
+
 # Line 1
-names1  = ['Npcol', 'Nprow']
-types1 = [int, int]
+HNAMES[1]  = ['Npcol', 'Nprow']
+HTYPES[1] = [int, int]
 
 # Line 2
-names2 = ['Dt', 'Ntstep', 'Nbunch']
-types2 = [float, int, int]
+HNAMES[2] = ['Dt', 'Ntstep', 'Nbunch']
+HTYPES[2] = [float, int, int]
 
 # Line 3
-names3 = ['Dim', 'Np', 'Flagmap', 'Flagerr', 'Flagdiag', 'Flagimg', 'Zimage']
-types3 = [int, int, int, int, int, int, float];
+HNAMES[3] = ['Dim', 'Np', 'Flagmap', 'Flagerr', 'Flagdiag', 'Flagimg', 'Zimage']
+HTYPES[3] = [int, int, int, int, int, int, float];
 
 # Line 4
-names4 = ['Nx', 'Ny', 'Nz', 'Flagbc', 'Xrad', 'Yrad', 'Perdlen']
-types4 = [int, int, int, int, float, float, float]
+HNAMES[4] = ['Nx', 'Ny', 'Nz', 'Flagbc', 'Xrad', 'Yrad', 'Perdlen']
+HTYPES[4] = [int, int, int, int, float, float, float]
 
 # Line 5
-names5 = ['Flagdist', 'Rstartflg', 'Flagsbstp', 'Nemission', 'Temission']
-types5 = [int, int, int, int, float ]
+HNAMES[5] = ['Flagdist', 'Rstartflg', 'Flagsbstp', 'Nemission', 'Temission']
+HTYPES[5] = [int, int, int, int, float ]
 
 # Line 6-8
-names6 = ['sigx(m)', 'sigpx', 'muxpx', 'xscale', 'pxscale', 'xmu1(m)', 'xmu2']
-types6 = [float for i in range(len(names6))]
-names7 = ['sigy(m)', 'sigpy', 'muxpy', 'yscale', 'pyscale', 'ymu1(m)', 'ymu2']
-types7 = types6
-names8 = ['sigz(m)', 'sigpz', 'muxpz', 'zscale', 'pzscale', 'zmu1(m)', 'zmu2']
-types8 = types6
+HNAMES[6] = ['sigx(m)', 'sigpx', 'muxpx', 'xscale', 'pxscale', 'xmu1(m)', 'xmu2']
+HTYPES[6] = [float for i in range(len(HNAMES[6]))]
+HNAMES[7] = ['sigy(m)', 'sigpy', 'muxpy', 'yscale', 'pyscale', 'ymu1(m)', 'ymu2']
+HTYPES[7] = HTYPES[6] 
+HNAMES[8] = ['sigz(m)', 'sigpz', 'muxpz', 'zscale', 'pzscale', 'zmu1(m)', 'zmu2']
+HTYPES[8] = HTYPES[6]
 
 # Line 9
-names9 = ['Bcurr', 'Bkenergy', 'Bmass', 'Bcharge', 'Bfreq', 'Tini']
-types9 = [float for i in range(len(names9))]
+HNAMES[9] = ['Bcurr', 'Bkenergy', 'Bmass', 'Bcharge', 'Bfreq', 'Tini']
+HTYPES[9] = [float for i in range(len(HNAMES[9]))]
 
-allnames = [names1, names2, names3, names4, names5, names6, names7, names8, names9]
-alltypes = [types1, types2, types3, types4, types5, types6, types7, types8, types9]
+# Collect all these
+allnames=[]
+alltypes=[]
+for i in range(1,10):
+    allnames.append(HNAMES[i])
+    alltypes.append(HTYPES[i])
+
 
 #-----------------
 # Some help for keys above
@@ -378,8 +387,23 @@ def parse_dipole(line):
     return d
    
     
+def dipole_v(ele):
+    """
+    dipole Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    # Get file integer
+    f = ele['filename']
+    ii = int(f.split('rfdata')[1])
+    
+    v = [ele, ele['zedge'], ele['b_field_x'], ele['b_field'], ii, ele['half_gap'] ] 
+    
+    return v    
+    
 #-----------------------------------------------------------------      
-def parse_offset_beam(line):
+def parse_offset_beam(line, warn=False):
     """
     offset_beam (type -1)
     
@@ -390,21 +414,37 @@ def parse_offset_beam(line):
     Py (γβy) offset V6
     z offset V7(m)
     Pz (γβz) offset V8.
+    
+    Assumes zero if these are not present.
     """
 
     v = line.split()[3:-2] # V data starts with index 4, ends with '/'
     d={}
     ##print (v, len(v))
-    d['z']  = float(v[2]) 
+    d['s']  = float(v[2]) 
     olist = ['x_offset', 'px_offset', 'y_offset','py_offset','z_offset','pz_offset' ]
     for i in range(6):
         if i+3 > len(v)-1:
             val = 0.0
         else:
-            print('warning: offset_beam missing numbers. Assuming zeros', line)
+            ## print('warning: offset_beam missing numbers. Assuming zeros', line)
             val = float(v[i+3])
         d[olist[i]] = val
     return d
+
+
+
+def offset_beam_v(ele):
+    """
+    offset_beam Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    v = [ele, dummy, ele['s']] + [ele[x] for x in ['x_offset', 'px_offset', 'y_offset','py_offset','z_offset','pz_offset' ]]
+    
+    return v
+
 
 
 #-----------------------------------------------------------------  
@@ -428,6 +468,18 @@ def parse_write_beam(line):
     return d
 
 
+
+def write_beam_v(ele):
+    """
+    write_beam Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    v = [ele, dummy, dummy, ele['s']]   
+    return v
+
+
 #-----------------------------------------------------------------  
 def parse_write_beam_for_restart(line):
     """
@@ -444,6 +496,18 @@ def parse_write_beam_for_restart(line):
     d['filename']='fort.'+x[2]+'+myid'
     d['s'] = float(v[3]) 
     return d
+
+def write_beam_for_restart_v(ele):
+    """
+    write_beam_for_restart Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    v = [ele, dummy, dummy, ele['s']]   
+    return v
+
+
 
 #-----------------------------------------------------------------  
 
@@ -469,8 +533,11 @@ def change_timestep_v(ele):
 
     """
     # Let v[0] be the original ele, so the indexing looks the same.
-    v = [ele, 0.0, 0.0, ele['s'], ele['dt']]   
+    dummy = 0.0
+    v = [ele, dummy, dummy, ele['s'], ele['dt']]   
     return v
+
+
 
 
 
@@ -520,16 +587,54 @@ def parse_wakefield(line):
     
     return d
 
+def wakefield_v(ele):
+    """
+    wakefield Impact-T style V list
+
+    """
+    
+    
+    # Let v[0] be the original ele, so the indexing looks the same.
+    # V1 and V2 are not used.
+    dummy = 1
+    v = [ele, dummy, dummy,  ele['s_begin'], ele['s_end'] ]
+
+    if ele['method'] == 'analytical':
+         v += [ele['iris_radius'], ele['gap'], ele['period'] ]
+    
+    
+    return v
 
 
+#-----------------------------------------------------------------  
 def parse_stop(line):
     """
     Stop (type -99)
+    
+    If bytpe = −99, stop the simulation at given location V3(m).
+    
     
     """
     v = line.split()[3:] # V data starts with index 4
     d={'s':float(v[3])}
     return d
+
+
+def stop_v(ele):
+    """
+    stop Impact-T style V list
+
+    """
+    
+    
+    # Let v[0] be the original ele, so the indexing looks the same.
+    # V1 and V2 are not used.
+    # Bad documentation? Looks like V1 and V3 are used
+    dummy = 0.0
+    v = [ele, ele['s'], dummy, ele['s']]
+    
+    return v
+
 
 
 #-----------------------------------------------------------------  
@@ -545,11 +650,31 @@ def parse_spacecharge(line):
     d={}
     d['s'] = float(v[3])
     if float(v[2]) >0:
-        d['is_on'] = 'True'
+        d['is_on'] = True
     else:
-        d['is_on'] = 'False'
+        d['is_on'] = False
 
     return d
+
+def spacecharge_v(ele):
+    """
+    spacecharge Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    
+    if ele['is_on']:
+        sign = 1.0
+    else:
+        sign = -1
+        
+    
+    
+    v = [ele, dummy, sign, ele['s'] ]
+    
+    return v
+
 
 
 #-----------------------------------------------------------------  
@@ -621,12 +746,19 @@ def add_s_position(elelist, s0=0):
     Add 's' to element list according to their length. 
     s is at the end of an element.
     Assumes the list is in order.
+    
+    TODO: This isn't right
     """
     #s0 = -2.1459294
     s = s0
-    for e in elelist:
-        s = s + e['L']
-        e['s'] = s
+    for ele in elelist:
+        if 's' not in ele and 'zedge' in ele:
+            ele['s'] = ele['zedge'] + ele['L']
+        # Skip these. 
+       # if e['type'] in ['change_timestep', 'offset_beam', 'spacecharge', 'stop', 'write_beam', 'write_beam_for_restart']:
+            continue
+       # s = s + e['L']
+       # e['s'] = s
 
 def create_names(elelist):
     """
@@ -647,6 +779,36 @@ def parse_lattice(lines):
     return eles
  
 
+    
+    
+def parse_impact_input(filePath):
+    """
+    Parse and ImpactT.in file into header, lattice
+    
+    
+    """
+    with open(infile, 'r') as f:    
+        data = f.read()
+        lines = data.split('\n')
+    
+    header=parse_header(lines)
+    
+    # Find index of the line where the lattice starts
+    ix = ix_lattice(lines)
+
+    # Gather lattice lines
+    latlines = lines[ix:]
+    
+    # This parses all lines. 
+    eles = parse_lattice(latlines)
+    
+    
+    d = {}
+    d['header'] = header
+    d['lattice'] = eles
+    
+    return d
+        
     
     
 #-----------------------------------------------------------------  

@@ -1,5 +1,23 @@
 #import numpy as np
 
+
+
+
+
+def write_input(filePath, header, eles):
+    """
+    Write
+    
+    Note that the filename ultimately needs to be ImpactT.in
+    
+    """
+    lines =  header_lines(header) + lattice_lines(eles)
+    with open(filePath, 'w') as f:
+        for line in lines:
+            f.write(line+'\n')
+
+
+
 def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, speciesType='electron'):
     # Write particle data at a screen in openPMD BeamPhysics format
     # https://github.com/DavidSagan/openPMD-standard/blob/EXT_BeamPhysics/EXT_BeamPhysics.md
