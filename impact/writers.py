@@ -1,5 +1,7 @@
 #import numpy as np
 
+from .parsers import header_lines
+from .lattice import lattice_lines
 
 def write_input(filePath, header, eles):
     """
