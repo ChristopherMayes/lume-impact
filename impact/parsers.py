@@ -122,7 +122,7 @@ def header_lines(header_dict):
     lines = [line0]
     for i in range(1,10):
         names = HNAMES[i]
-        x = ' '.join([str(H[n]) for n in names])
+        x = ' '.join([str(header_dict[n]) for n in names])
         lines.append(x)
     #' '.join(lines)    
     return lines
