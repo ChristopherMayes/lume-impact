@@ -110,6 +110,25 @@ def ix_lattice(lines):
             return i
         
         
+        
+
+def header_lines(header_dict):
+    """
+    Re-forms the header dict into lines to be written to the Impact-T input file
+    """
+    
+    
+    line0 = '! Impact-T input file'
+    lines = [line0]
+    for i in range(1,10):
+        names = HNAMES[i]
+        x = ' '.join([str(H[n]) for n in names])
+        lines.append(x)
+    #' '.join(lines)    
+    return lines
+
+        
+        
 
 #-----------------
 # Lattice

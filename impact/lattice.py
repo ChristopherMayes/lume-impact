@@ -87,6 +87,12 @@ def ele_line(ele):
 
 
 
+def lattice_lines(eles):
+    lines = []
+    for e in eles:
+        lines.append(ele_line(e))
+    return lines
+
 
 
 #-----------------------------------------------------------------  

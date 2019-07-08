@@ -1,9 +1,6 @@
 #import numpy as np
 
 
-
-
-
 def write_input(filePath, header, eles):
     """
     Write
