@@ -1,6 +1,7 @@
 #import numpy as np
 from .parsers import drift_v, quadrupole_v, solrf_v, change_timestep_v, wakefield_v, stop_v, write_beam_v, offset_beam_v, dipole_v, spacecharge_v, write_beam_for_restart_v, itype_of
         
+import numpy as np    
         
 #-----------------------------------------------------------------  
 # Print eles in a MAD style syntax
@@ -93,6 +94,105 @@ def lattice_lines(eles):
         lines.append(ele_line(e))
     return lines
 
+
+
+
+#-----------------------------------------------------------------  
+#-----------------------------------------------------------------  
+# Layout
+# Info for plotting
+
+ELE_HEIGHT = {
+    'change_timestep':1,
+    'comment':1,
+    'dipole':2,
+    'drift':1,
+    'offset_beam':1,
+    'quadrupole':5,
+    'solrf':3,
+    'spacecharge':1,
+    'stop':1,
+    'wakefield':1,
+    'write_beam':1,
+    'write_beam_for_restart':1
+}
+ELE_COLOR = {
+    'change_timestep':'black',
+    'comment':'black',
+    'dipole':'red',
+    'drift':'black',
+    'offset_beam':'black',
+    'quadrupole':'blue',
+    'solrf':'green',
+    'spacecharge':'black',
+    'stop':'black',
+    'wakefield':'brown',
+    'write_beam':'black',
+    'write_beam_for_restart':'black'
+}
+
+def ele_shape(ele):
+    """
+    
+    """
+    type = ele['type']
+    q_sign = -1 # electron
+    
+    factor = 1.0
+
+    if type == 'quadrupole':
+        b1 = q_sign*ele['b1_gradient']
+        if b1 > 0:
+            # Focusing
+            top = b1
+            bottom = 0
+        else:
+            top  = 0
+            bottom = b1
+    else:
+        top =ELE_HEIGHT[type]
+        bottom = -top
+    
+    c = ELE_COLOR[type]
+    
+    d = {}
+    d['left'] = ele['s']-ele['L']
+    d['right'] = ele['s']
+    d['top'] = top
+    d['bottom'] = bottom
+    # Center points
+    d['x'] =  ele['s']-ele['L']/2
+    d['y'] = 0
+    d['color'] = ELE_COLOR[type]
+    d['name'] = ele['name']
+    
+    d['all'] = ele_str(ele)#'\n'.join(str(ele).split(',')) # Con
+    d['description'] = ele['description']
+    
+    return d
+
+def ele_shapes(eles):
+    """
+    Form dataset of al element info
+    
+    Only returns shapes for physical elements
+    """
+    # Automatically get keys
+    keys = list(ele_shape(eles[0]))
+    # Prepare lists
+    data = {}
+    for k in keys:
+        data[k] = []
+    for e in eles:
+        type = e['type']
+        if type in ['comment']:
+            continue
+        if itype_of[type] <0:
+            continue
+        d = ele_shape(e)
+        for k in keys:
+            data[k].append(d[k])
+    return data
 
 
 #-----------------------------------------------------------------  

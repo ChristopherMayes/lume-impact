@@ -181,8 +181,8 @@ ele_type = {0:'drift',
 # Inverse dictionary
 itype_of = {}
 for k in ele_type:
-    itype_of[ele_type[k]] = k
-
+    itype_of[ele_type[k]] = k 
+    
 def parse_type(line):
     """
     Parse a lattice line. This is the fourth item in the line. 
@@ -369,7 +369,7 @@ def solrf_v(ele):
         
     #misalignment list
     v1 = misalignment_v(ele)
-    v += [v1[0], v1[1], v1[3], v1[4], v1[5]] # solrd doesn't have z_offset
+    v += [v1[0], v1[1], v1[3], v1[4], v1[5]] # solrf doesn't have z_offset
     
     if 'solenoid_field_scale' in ele:
         v.append(ele['solenoid_field_scale'])
@@ -427,12 +427,12 @@ def parse_offset_beam(line, warn=False):
     offset_beam (type -1)
     
     If btype = −1, steer the transverse beam centroid at given location V2(m) to position 
-    x offset V3(m)
+    x offset        V3(m)
     Px (γβx) offset V4
-    y offset V5(m)
+    y offset        V5(m)
     Py (γβy) offset V6
-    z offset V7(m)
-    Pz (γβz) offset V8.
+    z offset        V7(m)
+    Pz (γβz) offset V8
     
     Assumes zero if these are not present.
     """
@@ -730,19 +730,29 @@ def parse_ele(line):
     
     Returns an ele dict.
 
+    Parses everything after / as the 'description'
     
     """
-    ##print(line)
-    x = line.split()
-    e = {}
     if is_commented(line):
         return {'type':'comment', 'comment':line, 'L':0}
+    
+    # Ele
+    e = {}
+    
+    x = line.split('/')
+    # Look for extra info past /
+    # 
+    if len(x) > 1:
+        # Remove spaces and comment character !
+        e['description'] =  x[1].strip().strip('!')
+        
+    x = x[0].split()
     
     e['original'] = line # Save original line
     e['L'] = float(x[0])
     e['itype'] = int(x[3])
     if e['itype'] < 0:
-        e['nseg'] = int(x[1]) # Only for type < 0
+        e['nseg'] = int(x[1])  # Only for type < 0
         e['bmpstp']= int(x[2]) # Only for type < 0
     
     if e['itype'] in ele_type:
