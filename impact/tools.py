@@ -68,3 +68,10 @@ def runs_script(runscript=[], dir=None, log_file=None, verbose=True):
     # Return to init dir
     os.chdir(init_dir)                
     return log      
+
+
+def full_path(path):
+    """
+    Helper function to expand enviromental variables and return the absolute path
+    """
+    return os.path.abspath(os.path.expandvars(path))

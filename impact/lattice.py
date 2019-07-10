@@ -94,8 +94,22 @@ def lattice_lines(eles):
         lines.append(ele_line(e))
     return lines
 
-
-
+#-----------------------------------------------------------------  
+#-----------------------------------------------------------------  
+# Higher level functions
+def ele_dict_from(eles):
+    """
+    Use names as keys. Names must be unique.
+    
+    """
+    ele_dict = {}
+    for ele in eles:
+        if ele['type'] == 'comment':
+            continue
+        name = ele['name']
+        assert name not in ele_dict
+        ele_dict[name] = ele
+    return ele_dict
 
 
 #-----------------------------------------------------------------  

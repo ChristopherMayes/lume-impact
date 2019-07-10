@@ -2,6 +2,7 @@
 
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str
 from .writers import write_impact_input
+from .lattice import ele_dict_from
 from . import tools
 import numpy as np
 import tempfile
@@ -9,11 +10,7 @@ import shutil
 import os
 
 
-def full_path(path):
-    """
-    Helper function to expand enviromental variables and return the absolute path
-    """
-    return os.path.abspath(os.path.expandvars(path))
+
 
 class Impact:
     """
@@ -27,6 +24,8 @@ class Impact:
                 input_file='ImpactT.in',
                 impact_bin='$IMPACTT_BIN',
                 workdir=None,
+                use_mpi = False,
+                mpi_exe = 'mpirun', # If needed
                 verbose=True):
         
         # Save init
@@ -34,6 +33,8 @@ class Impact:
         self.workdir = workdir
         self.verbose=verbose
         self.impact_bin = impact_bin
+        self.mpi_exe = mpi_exe
+        self.use_mpi = use_mpi
         
         # These will be set
         self.timeout=None
@@ -41,6 +42,8 @@ class Impact:
         self.output = {}
         self.tempdir = None # Actual working path. 
         self.auto_cleanup = True
+        self.ele = {} # Convenience lookup of elements in lattice by name
+        
         
         # Run control
         self.finished = False
@@ -50,7 +53,7 @@ class Impact:
         if os.path.exists(input_file):
             self.configure()                
         else:
-            self.vprint('Warning: Input file does not exist: '+input_file+'\n Not configured.')
+            self.vprint('Warning: Input file does not exist. Not configured.')
 
     def __del__(self):
         if  self.auto_cleanup:
@@ -69,12 +72,15 @@ class Impact:
         
     def configure_impact(self, input_file, workdir):
         for f in [self.original_input_file]:
-            f = full_path(f)
+            f = tools.full_path(f)
             self.original_path, _ = os.path.split(f) # Get original path
             print(self.original_path)
             assert os.path.exists(f)
         # Parse input file. This should be a dict with: header, lattice, fieldmaps, input_particle_file
         self.input = parse_impact_input(self.original_input_file)      
+        
+        # Set ele dict:
+        self.ele = ele_dict_from(self.input['lattice'])
         
         # Temporary directory for path
         self.tempdir = os.path.abspath(tempfile.TemporaryDirectory(prefix='temp_impactT_', dir=workdir).name)
@@ -100,7 +106,7 @@ class Impact:
     def run_impact(self, verbose=False, timeout=None):
         
         # Check that binary exists
-        self.impact_bin = full_path(self.impact_bin)
+        self.impact_bin = tools.full_path(self.impact_bin)
         assert os.path.exists(self.impact_bin)
         
         
@@ -110,7 +116,11 @@ class Impact:
         # Write input
         self.write_input()
         
-        runscript = [self.impact_bin]
+        if self.use_mpi:
+            n_procs = self.input['header']['Npcol'] * self.input['header']['Nprow']
+            runscript = [self.mpi_exe, '-n', str(n_procs), self.impact_bin]
+        else:
+            runscript = [self.impact_bin]
 
         try: 
             if timeout:
@@ -133,14 +143,13 @@ class Impact:
             # Load output    
             self.load_output()
             self.load_particles()
-        except:
-            print('Aborted')
+        except Exception as ex:
+            print('Run Aborted', ex)
         finally:
             # Return to init_dir
             os.chdir(init_dir)    
  
         self.finished = True
-        
         
     def write_input(self,  input_filename='ImpactT.in'):
         
