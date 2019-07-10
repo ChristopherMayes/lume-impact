@@ -50,7 +50,7 @@ class Impact:
         if os.path.exists(input_file):
             self.configure()                
         else:
-            self.vprint('Warning: Input file does not exist. Not configured.')
+            self.vprint('Warning: Input file does not exist: '+input_file+'\n Not configured.')
 
     def __del__(self):
         if  self.auto_cleanup:
@@ -112,31 +112,35 @@ class Impact:
         
         runscript = [self.impact_bin]
 
-        if timeout:
-            res = tools.execute2(runscript, timeout=timeout)
-            log = res['log']
-            self.error = res['error']
-            self.output['run_error'] = self.error
-            self.output['why_run_error'] = res['why_error']
-
-        else:
-            # Interactive output, for Jupyter
-            log = []
-            for path in tools.execute(runscript):
-                if verbose:
-                    print(path, end="")
-                log.append(path)
-
-        self.log = log
-                        
-        # Load output    
-        self.load_output()
-        self.load_particles()
-        
-        # Return to init_dir
-        os.chdir(init_dir)         
-        
+        try: 
+            if timeout:
+                res = tools.execute2(runscript, timeout=timeout)
+                log = res['log']
+                self.error = res['error']
+                self.output['run_error'] = self.error
+                self.output['why_run_error'] = res['why_error']
+    
+            else:
+                # Interactive output, for Jupyter
+                log = []
+                for path in tools.execute(runscript):
+                    if verbose:
+                        print(path, end="")
+                    log.append(path)
+    
+            self.log = log
+                            
+            # Load output    
+            self.load_output()
+            self.load_particles()
+        except:
+            print('Aborted')
+        finally:
+            # Return to init_dir
+            os.chdir(init_dir)    
+ 
         self.finished = True
+        
         
     def write_input(self,  input_filename='ImpactT.in'):
         
