@@ -12,54 +12,229 @@ import os
 # Header dicts
 HNAMES={}
 HTYPES={}
-
+HDEFAULTS = {}
 # Line 1
 HNAMES[1]  = ['Npcol', 'Nprow']
 HTYPES[1] = [int, int]
+HDEFAULTS[1] = [1,1]
 
 # Line 2
 HNAMES[2] = ['Dt', 'Ntstep', 'Nbunch']
 HTYPES[2] = [float, int, int]
+HDEFAULTS[2] = [0, 100000000, 1] # Dt must be set
 
 # Line 3
-HNAMES[3] = ['Dim', 'Np', 'Flagmap', 'Flagerr', 'Flagdiag', 'Flagimg', 'Zimage']
-HTYPES[3] = [int, int, int, int, int, int, float];
+HNAMES[3]    = ['Dim', 'Np', 'Flagmap', 'Flagerr', 'Flagdiag', 'Flagimg', 'Zimage']
+HTYPES[3]    = [int,   int,   int,      int,        int,       int,        float];
+HDEFAULTS[3] = [999,   0,     1,        0,          2,         1,          0.02]
 
 # Line 4
 HNAMES[4] = ['Nx', 'Ny', 'Nz', 'Flagbc', 'Xrad', 'Yrad', 'Perdlen']
 HTYPES[4] = [int, int, int, int, float, float, float]
+HDEFAULTS[4] = [32, 32, 32, 1, 0.015, 0.015, 100.0]
 
 # Line 5
 HNAMES[5] = ['Flagdist', 'Rstartflg', 'Flagsbstp', 'Nemission', 'Temission']
 HTYPES[5] = [int, int, int, int, float ]
+HDEFAULTS[5] = [16, 0, 0, 400, 1.4e-11]
 
 # Line 6-8
 HNAMES[6] = ['sigx(m)', 'sigpx', 'muxpx', 'xscale', 'pxscale', 'xmu1(m)', 'xmu2']
 HTYPES[6] = [float for i in range(len(HNAMES[6]))]
+HDEFAULTS[6] = [0.0 for i in range(len(HNAMES[6]))]
 HNAMES[7] = ['sigy(m)', 'sigpy', 'muxpy', 'yscale', 'pyscale', 'ymu1(m)', 'ymu2']
 HTYPES[7] = HTYPES[6] 
+HDEFAULTS[7] = [0.0 for i in range(len(HNAMES[7]))]
 HNAMES[8] = ['sigz(m)', 'sigpz', 'muxpz', 'zscale', 'pzscale', 'zmu1(m)', 'zmu2']
 HTYPES[8] = HTYPES[6]
+HDEFAULTS[8] = [0.0 for i in range(len(HNAMES[8]))]
 
 # Line 9
 HNAMES[9] = ['Bcurr', 'Bkenergy', 'Bmass', 'Bcharge', 'Bfreq', 'Tini']
 HTYPES[9] = [float for i in range(len(HNAMES[9]))]
+HDEFAULTS[9] = [1.0, 1.0, 510998.946, -1.0, 2856000000.0, 0.0]
 
 # Collect all these
-allnames=[]
-alltypes=[]
+HEADER_NAMES=[]
+HEADER_TYPES=[]
 for i in range(1,10):
-    allnames.append(HNAMES[i])
-    alltypes.append(HTYPES[i])
+    HEADER_NAMES.append(HNAMES[i])
+    HEADER_TYPES.append(HTYPES[i])
+# Flattened version
+ALL_HEADER_NAMES = [item for sublist in HEADER_NAMES for item in sublist]
+ALL_HEADER_TYPES = [item for sublist in HEADER_TYPES for item in sublist]
+HEADER_TYPE_OF = dict(zip(ALL_HEADER_NAMES, ALL_HEADER_TYPES))
+
 
 
 #-----------------
 # Some help for keys above
 help = {}
+# Line 1
 help['Npcol'] =  'Number of columns of processors, used to decompose domain along Y dimension.'
-help['Npro1w'] =  'Number of rows of processors, used to decompose domain along Z dimension.'
+help['Nprow'] =  'Number of rows of processors, used to decompose domain along Z dimension.'
+# Line 2
 help['Dt'] =  'Time step size (secs).'
 help['Ntstep'] = 'Maximum number of time steps.'
+help['Nbunch'] = 'The initial distribution of the bunch can be divided longitudinally into Nbunch slices. See the manual.'
+# Line 3
+help['Dim'] = 'Random seed integer'
+help['Np'] = 'Number of macroparticles to track'
+help['Flagmap']='Type of integrator. Currently must be set to 1.' 
+help['Flagerr']='Error study flag. 0 - no misalignment and rotation errors; 1 - misalignment and rotation errors are allowed for Quadrupole, Multipole (Sextupole, Octupole, Decapole) and SolRF elements. This function can also be used to simulate the beam transport through rotated beam line elements such as skew quadrupole etc.'
+help['Flagdiag']='Diagnostics flag: 1 - output the information at given time, 2 - output the information at the location of bunch centroid by drifting the particles to that location, 3 or more - no output.'
+help['Flagimg']='Image charge flag. If set to 1 then the image charge forces due to the cathode are included. The cathode is always assumed to be at z = 0. To not include the image charge forces set imchgF to 0.'
+help['Zimage']='z position beyond which image charge forces are neglected. Set z small to speed up the calculation but large enough so that the results are not affected.'
+# Line 4
+help['Nx'] = 'Number of mesh points in x'
+help['Ny'] = 'Number of mesh points in y'
+help['Nz'] = 'Number of mesh points in z'
+help['Flagbc'] = 'Field boundary condition flag: Currently must be set to 1 which corresponds to an open boundary condition.'
+help['Xrad'] = 'Computational domain size in x'
+help['Yrad'] = 'Computational domain size in x'
+help['Perdlen'] = 'Computational domain size in z. Must be greater than the lattice length'
+# Line 5
+help['Flagdist'] = 'Type of the initial distribution'
+help['Rstartflg'] = 'If restartf lag = 1, restart the simulation from the previous check point. If restartf lag = 0, start the simulation from the beginning.'
+help['Flagsbstp'] = 'Not used.'
+help['Nemission'] = 'There is a time period where the laser is shining on the cathode and electrons are being emitted. Nemisson gives the number of numerical emission steps. More steps gives more accurate modeling but the computation time varies linearly with the number of steps. If Nemission < 0, there will be no cathode model. The particles are assumed to start in a vacuum.'
+help['Temission'] = 'Laser pulse emission time (sec.) Note, this time needs to be somewhat greater than the real emission time in the initial longitudinal distribution so that the time step size is changed after the whole beam is a few time steps out of the cathode.'
+
+# Line 6-8
+help['sigx(m)'] = 'Distribution sigma_x in meters'
+help['sigpx']   = 'Distribution sigma_px, where px is gamma*beta_x'
+help['muxpx']   = 'Distribution correlation <x px>, where px is gamma*beta_x'
+help['xscale']  = 'Scale factor for distribution x'
+help['pxscale'] = 'Scale factor for distribution px'
+help['xmu1(m)'] = 'Distribution mean for x in meters'
+help['xmu2']    = 'Distribution mean for px, where px is gamma*beta_x'
+
+help['sigy(m)'] = 'Distribution sigma_y in meters'
+help['sigpy']   = 'Distribution sigma_py, where px is gamma*beta_y'
+help['muypy']   = 'Distribution correlation <y py>, where py is gamma*beta_y'
+help['yscale']  = 'Scale factor for distribution y'
+help['pxycale'] = 'Scale factor for distribution py'
+help['ymu1(m)'] = 'Distribution mean for y in meters'
+help['ymu2']    = 'Distribution mean for py, where py is gamma*beta_y'
+
+help['sigz(m)'] = 'Distribution sigma_z in meters'
+help['sigpz']   = 'Distribution sigma_pz, where pz is gamma*beta_z'
+help['muzpz']   = 'Distribution correlation <z pz>, where pz is gamma*beta_z'
+help['zscale']  = 'Scale factor for distribution z'
+help['pzscale'] = 'Scale factor for distribution pz'
+help['zmu1(m)'] = 'Distribution mean for z in meters'
+help['zmu2']    = 'Distribution mean for pz, where pz is gamma*beta_z'
+
+
+# Line 9
+help['Bcurr'] = 'Beam current in Amps'
+help['Bkenergy'] = 'Initial beam kinetic energy in eV. WARNING: this one is only used to drift the particle out of the wall. The real initial beam energy needs to be input from ”xmu6” in the initial distribution or the particle data file for the readin distribution.'
+help['Bmass'] = 'Mass of the particles in eV.'
+help['Bcharge'] = 'Particle charge in units of proton charge.'
+help['Bfreq'] = 'Reference frequency in Hz.'
+help['Tini'] = 'Initial reference time in seconds.'
+
+
+
+
+def header_is_good(header_dict):
+    """
+    Sanity check of header. 
+    """
+    good = False
+    
+    if header_dict['Flagmap'] != 1:
+        return False
+    if header_dict['Flagbc'] != 1:
+        return False    
+
+    
+    h = header_dict.copy()
+    # These keys must be in header
+    for k in ALL_HEADER_NAMES:
+        if k not in h:
+            print('Missing key:', k)
+            return False
+        else:
+            v1 = h.pop(k, None)
+            # Check type conversion
+            v2 = HEADER_TYPE_OF[k](v1)
+            if v1 - v2 !=0:
+                print('Type conversion failed: ', v1, v2)
+                return False
+    
+
+    
+    if len(h) == 0:
+        good = True
+    
+    return good
+
+def header_str(H):
+    """
+    Summary information about the header
+    """
+    qb_pC = H['Bcurr']/H['Bfreq']*1e12
+    Nbunch = H['Nbunch']
+  
+    if H['Flagimg']:
+        start_condition = 'Cathode start at z = 0 m\n   emission time: '+str(H['Temission'])+' s\n   image charges neglected after z = '+str(H['Zimage'])+' m'
+        
+    else:
+        start_condition = 'Free space start'
+        
+    if H['Rstartflg'] == 0:
+        restart_condition = 'Simulation starting from the beginning'
+    elif ['Rstartflg'] == 1:
+        restart_condition = 'Restarting simulation from checkpoint.'
+    else:
+        restart_condition = 'Bad restart condition: '+str(['Rstartflg'])
+        
+
+    dist_type = DIST_TYPE[H['Flagdist']]
+    
+    lines = [
+        '================ Impact-T Summary ================',
+        f'{Nbunch} bunch'
+        f'total charge: {qb_pC} pC',
+        f'Distribution type: {dist_type}',
+        start_condition,
+        'Tracking '+str(H['Np'])+' particles',
+        'Processor domain: '+str(H['Nprow'])+ ' x '+str(H['Npcol'])+' = '+str(H['Nprow']*H['Npcol'])+' CPUs',
+        'Computational domain: '+str(H['Xrad'])+' m x '+str(H['Yrad'])+' m x '+str(H['Perdlen'])+' m',
+        'Space charge grid: '+str(H['Nx'])+' x '+str(H['Ny'])+' x '+str(H['Nz']),
+        'Maximum time steps: '+str(H['Ntstep']),
+        'Random Seed: '+str(H['Dim']),
+        'Reference Frequency: '+str(H['Bfreq'])+' Hz',
+        'Initial reference time: '+str(H['Tini'])+' s',
+         restart_condition,
+        '==================================================',
+        '\n'
+    ]
+    
+    return '\n'.join(lines)
+
+
+#-----------------
+# Distribution types
+
+DIST_TYPE = {
+    1:'uniform',
+    2:'gauss3',
+    3:'waterbag',
+    4:'semigauss',
+    5:'kv3d',
+    16:'read',
+    24:'readParmela',
+    25:'readElegant',
+    27:'colcoldzsob'
+}
+# TODO: ijk distribution
+
+# Inverse
+DIST_ITYPE={}
+for k, v in DIST_TYPE.items():
+    DIST_ITYPE[v]=k
 
 
 
@@ -94,7 +269,7 @@ def parse_header(lines):
     x = remove_comments(lines)
     d = {}
     for i in range(9):
-        d.update(parse_line(x[i], allnames[i], alltypes[i]))
+        d.update(parse_line(x[i], HEADER_NAMES[i], HEADER_TYPES[i]))
     return(d)
 
 # 
@@ -707,6 +882,32 @@ def spacecharge_v(ele):
 
 #-----------------------------------------------------------------  
 #-----------------------------------------------------------------  
+# Fieldmaps
+
+def fieldmap_names(eles, prefix='rfdata'):
+    """
+    Extracts the unique fieldmap file names from eles. 
+    This does not check if the files exist. 
+    
+    All fieldmaps should start with 'rfdata'
+    """
+    fmaps = {ele['filename'] for ele in eles if 'filename' in ele and ele['filename'].startswith(prefix) }
+    return fmaps
+
+def load_fieldmaps(fmap_names, dir):
+    """
+    Load fieldmap data as dict of np.array 
+    Fieldmaps are simple 1d ASCII files
+    """
+    fmapdata={}
+    for f in fmap_names:
+        file = os.path.join(dir, f)
+        fmapdata[f] = np.loadtxt(file)
+    return fmapdata
+
+
+#-----------------------------------------------------------------  
+#-----------------------------------------------------------------  
 # Master element parsing
 
 
@@ -812,15 +1013,29 @@ def parse_lattice(lines):
     
 def parse_impact_input(filePath):
     """
-    Parse and ImpactT.in file into header, lattice
+    Parse and ImpactT.in file into header, lattice, fieldmaps
     
     
     """
+    # Full path
+    path, _ = os.path.split(filePath)
+    
+    # Read lines
     with open(filePath, 'r') as f:    
         data = f.read()
         lines = data.split('\n')
     
     header=parse_header(lines)
+    
+    # Check for input particles. Must be named 'partcl.data'.
+    if header['Flagdist'] == 16:
+        pfile = os.path.join(path, 'partcl.data')
+        pfile = os.path.abspath(pfile)
+        if not os.path.exists(pfile):
+            print('Warning: partcl.data missing in path:', path)
+    else:
+        pfile = None
+    
     
     # Find index of the line where the lattice starts
     ix = ix_lattice(lines)
@@ -831,10 +1046,18 @@ def parse_impact_input(filePath):
     # This parses all lines. 
     eles = parse_lattice(latlines)
     
+    # Get fieldmaps
+   
+    fmap_names = fieldmap_names(eles)
+    fieldmaps = load_fieldmaps(fmap_names, path)
     
+
+    # Ouput dict
     d = {}
+    d['input_particle_file'] = pfile
     d['header'] = header
     d['lattice'] = eles
+    d['fieldmaps'] = fieldmaps
     
     return d
         
@@ -1020,7 +1243,38 @@ def load_fort60_and_70(filePath):
     for count, key in enumerate(keys):
         data[key] = fortdata[:,count]
     return data
-            
+       
+    
+# Wrapper functions to provide keyed output    
+    
+def load_fort40(filePath):
+    """
+    Returns dict with 'initial_particles'
+    """
+    data = parse_impact_particles(filePath)
+    return {'initial_particles':data}    
+
+def load_fort50(filePath):
+    """
+    Returns dict with 'final_particles'
+    """
+    data = parse_impact_particles(filePath)
+    return {'final_particles':data}    
+    
+def load_fort60(filePath):
+    """
+    Returns dict with 'initial_particle_slices'
+    """
+    data = load_fort60_and_70(filePath)
+    return {'initial_particle_slices':data}
+
+def load_fort70(filePath):
+    """
+    Returns dict with 'final_particle_slices'
+    """
+    data = load_fort60_and_70(filePath)
+    return {'final_particle_slices':data}
+
 
 
 def fort_files(path):
@@ -1071,6 +1325,10 @@ FORT_DESCRIPTION = {
     
 }
 
+
+
+
+
 FORT_LOADER = {
     18:load_fort18,
     24:load_fort24,
@@ -1080,10 +1338,10 @@ FORT_LOADER = {
     28:load_fort28,
     29:load_fort29,
     30:load_fort30,
-    40:parse_impact_particles,
-    50:parse_impact_particles,
-    60:load_fort60_and_70,
-    70:load_fort60_and_70
+    40:load_fort40,
+    50:load_fort50,
+    60:load_fort60,
+    70:load_fort70
 }
 
 # Form large unit dict for these types of files
@@ -1119,7 +1377,7 @@ def load_fort(filePath, verbose=True):
     
     if verbose:
         if type in FORT_DESCRIPTION:
-            print(type, FORT_DESCRIPTION[type])
+            print('Loaded fort', type,':', FORT_DESCRIPTION[type])
         else:
             print('unknown type:',type)
             
@@ -1129,9 +1387,12 @@ def load_fort(filePath, verbose=True):
         print('ERROR: need parser for:', f)
     return dat    
     
-        
+
+FORT_STAT_TYPES     = [18, 24, 25, 26, 27, 28, 29, 30]
+FORT_PARTICLE_TYPES = [40,50]
+FORT_SLICE_TYPES    = [60,70]
    
-def load_many_fort(path, types=[18, 24, 25, 26, 27, 28, 29, 30], verbose=False):
+def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
     """
     Loads a large dict with data from many fort files.
     Checks that keys do not conflict.
@@ -1144,8 +1405,6 @@ def load_many_fort(path, types=[18, 24, 25, 26, 27, 28, 29, 30], verbose=False):
     for f in fortfiles:
         type = fort_type(f)
         if type not in types:
-            if verbose:
-                print('skipping:',f)
             continue
         
         dat = load_fort(f, verbose=verbose)

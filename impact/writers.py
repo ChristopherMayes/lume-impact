@@ -3,7 +3,7 @@
 from .parsers import header_lines
 from .lattice import lattice_lines
 
-def write_input(filePath, header, eles):
+def write_impact_input(filePath, header, eles):
     """
     Write
     
