@@ -50,8 +50,11 @@ def process_fieldmap_solrf(data):
 def fieldmap_reconsruction(fdat, z):
     """
     Transcription of Ji's routine
+    
+    Field at z relative to the element's zedge
+    
     """
-    z0 = fdat['z0']  # Not used?
+    z0 = fdat['z0']  
     z1 = fdat['z1']  # Not used?
     
     zlen = fdat['L']
@@ -69,7 +72,7 @@ def fieldmap_reconsruction(fdat, z):
     Fcoef1 = rawdata[1::2] # cos parts
     Fcoef2 = rawdata[2::2] # sin parts
 
-    kk = 2*np.pi*(z-zmid) / zlen
+    kk = 2*np.pi*(z-zmid -z0) / zlen
     
     ilist = np.arange(ncoefreal)+1
     
