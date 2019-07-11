@@ -67,7 +67,7 @@ def ele_line(ele):
     type = ele['type']
     if type == 'comment':
         return ele['comment']
-    itype = itype_of[type] 
+    itype = parsers.itype_of[type] 
     if itype < 0:
         Bnseg = ele['nseg']
         Bmpstp = ele['bmpstp']
@@ -204,7 +204,7 @@ def ele_shapes(eles):
         type = e['type']
         if type in ['comment']:
             continue
-        if itype_of[type] <0:
+        if parsers.itype_of[type] <0:
             continue
         d = ele_shape(e)
         for k in keys:
@@ -231,10 +231,10 @@ def sanity_check_ele(ele):
         # These aren't used
         dat2[1]=0
         dat2[2]=0
-    if itype in [ itype_of['offset_beam']]:
+    if itype in [ parsers.itype_of['offset_beam']]:
         # V1 is not used
         dat2[4]=0      
-    if itype in [ itype_of['spacecharge']]:
+    if itype in [ parsers.itype_of['spacecharge']]:
         # V1 is not used, only v2 sign matters
         dat2[4]=0  
         if float(dat2[5]) >0:
@@ -242,7 +242,7 @@ def sanity_check_ele(ele):
         else:
             dat2[5]=-1.0            
         
-    if itype in [ itype_of['write_beam'], itype_of['stop'], itype_of['write_beam_for_restart'] ]:
+    if itype in [ parsers.itype_of['write_beam'], parsers.itype_of['stop'], parsers.itype_of['write_beam_for_restart'] ]:
         # Only V3 is used
         dat2[4]=0
         dat2[5]=0

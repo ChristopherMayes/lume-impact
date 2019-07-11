@@ -16,6 +16,22 @@ def write_impact_input(filePath, header, eles):
             f.write(line+'\n')
 
 
+            
+def write_impact_input_h5(h5, header, eles, name='input'):
+    """
+    Write
+    
+    Note that the filename ultimately needs to be ImpactT.in
+    
+    """
+    g = h5.create_group(name)
+    
+    lines =  header_lines(header) + lattice_lines(eles)
+    data = '\n'.join(lines)
+    
+    g.attrs['ImpactT.in'] = '\n'.join(lines)
+    
+    
 
 def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, speciesType='electron'):
     # Write particle data at a screen in openPMD BeamPhysics format

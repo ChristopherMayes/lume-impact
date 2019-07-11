@@ -1108,6 +1108,7 @@ def parse_impact_input(filePath):
 
     # Ouput dict
     d = {}
+    d['original_input'] = data
     d['input_particle_file'] = pfile
     d['header'] = header
     d['lattice'] = eles
