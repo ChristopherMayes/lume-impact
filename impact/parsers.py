@@ -732,9 +732,31 @@ def change_timestep_v(ele):
     return v
 
 
+#----------------------------------------------------------------- 
 
+def parse_rotationally_symmetric_to_3d(line):
+    """
+    If btype = −5, switch the simulation from azimuthal symmetry to fully 3d simulation after location V3(m). 
+    This location should be set as large negative number such as -1000.0 in order to start the 3D simulation immediately after the electron emission.
+    If there are multiple such lines in the input file, only the last line matters.
+    
+    """
+    v = line.split()[3:] # V data starts with index 4
+    d={}
+    d['s'] = float(v[3])
 
+    return d    
+    
 
+def rotationally_symmetric_to_3d_v(ele):
+    """
+    rotationally_symmetric_to_3d Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    v = [ele, dummy, dummy, ele['s']]   
+    return v
 
 #-----------------------------------------------------------------  
 def parse_wakefield(line):
@@ -870,7 +892,37 @@ def spacecharge_v(ele):
     return v
 
 
+#----------------------------------------------------------------- 
+def parse_write_slice_info(line):
+    """
+    If bytpe = −9, output slice-based information at given location V3(m) into file “fort.Bmpstp” using “Bnseg” slices.
+    
+    """
+    
+    x = line.split()
+    Bnseg = int(x[1])
+    Bmpstp = int(x[2])
+    v = x[3:] # V data starts with index 4
+    
+    d={}
+    d['n_slices'] = Bnseg
+    d['filename'] = 'fort.'+str(Bmpstp)
+    d['s'] = float(v[3])
 
+    return d    
+    
+    
+def write_slice_info_v(ele):
+    """
+    write_slice_info Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    v = [ele, dummy, dummy, ele['s']]   
+    return v
+
+    
 #-----------------------------------------------------------------  
 
 #def parse_bpm(line):
@@ -919,8 +971,10 @@ ele_parsers = {#'bpm': parse_bpm,
                'offset_beam':parse_offset_beam,
                'write_beam':parse_write_beam,
                'change_timestep':parse_change_timestep,
+               'rotationally_symmetric_to_3d':parse_rotationally_symmetric_to_3d,
                'wakefield':parse_wakefield,
                'spacecharge':parse_spacecharge,
+               'write_slice_info':parse_write_slice_info,
                'write_beam_for_restart':parse_write_beam_for_restart,
                'stop':parse_stop
               }  

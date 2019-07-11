@@ -1,5 +1,5 @@
 #import numpy as np
-from .parsers import drift_v, quadrupole_v, solrf_v, change_timestep_v, wakefield_v, stop_v, write_beam_v, offset_beam_v, dipole_v, spacecharge_v, write_beam_for_restart_v, itype_of
+from . import parsers
         
 import numpy as np    
         
@@ -38,17 +38,19 @@ def ele_str(e):
 
 
 ele_v_function = {
-    'dipole':dipole_v,
-    'drift':drift_v,
-    'quadrupole':quadrupole_v,
-    'solrf':solrf_v,
-    'stop':stop_v,
-    'change_timestep':change_timestep_v,
-    'offset_beam':offset_beam_v,
-    'wakefield':wakefield_v,
-    'write_beam':write_beam_v,
-    'write_beam_for_restart':write_beam_for_restart_v,
-    'spacecharge':spacecharge_v
+    'dipole':parsers.dipole_v,
+    'drift':parsers.drift_v,
+    'quadrupole':parsers.quadrupole_v,
+    'solrf':parsers.solrf_v,
+    'stop':parsers.stop_v,
+    'change_timestep':parsers.change_timestep_v,
+    'offset_beam':parsers.offset_beam_v,
+    'rotationally_symmetric_to_3d':parsers.rotationally_symmetric_to_3d_v,
+    'wakefield':parsers.wakefield_v,
+    'write_beam':parsers.write_beam_v,
+    'write_beam_for_restart':parsers.write_beam_for_restart_v,
+    'spacecharge':parsers.spacecharge_v,
+    'write_slice_info':parsers.write_slice_info_v
                   
                  }    
 
