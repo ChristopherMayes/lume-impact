@@ -1414,7 +1414,7 @@ for i in [18, 24, 25, 26, 27, 28, 29, 30]:
     for j, k in enumerate(FORT_KEYS[i]):
         UNITS[k] = FORT_UNITS[i][j]
     
-def fort_type(filePath):
+def fort_type(filePath, verbose=False):
     """
     Extract the integer type of a fort.X file, where X is the type.
     """
@@ -1425,19 +1425,20 @@ def fort_type(filePath):
         print('Error: not a fort file:', filePath)
     else:
         type = int(s[1])    
-        if type not in FORT_DESCRIPTION:
+        if type not in FORT_DESCRIPTION and verbose:
             print('Warning: unknown fort type for:', filePath)
-        if type not in FORT_LOADER:
+        if type not in FORT_LOADER and verbose:
             print('Warning: no fort loader yet for:', filePath)
         return type
 
 
-def load_fort(filePath, verbose=True):
+def load_fort(filePath, type = None, verbose=True):
     """
     Loads a fort file, automatically detecting its type and selecting a loader.
     
     """
-    type = fort_type(filePath)
+    if not type:
+        type = fort_type(filePath)
     
     if verbose:
         if type in FORT_DESCRIPTION:
@@ -1467,11 +1468,11 @@ def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
     fortfiles=fort_files(path)
     alldat = {}
     for f in fortfiles:
-        type = fort_type(f)
+        type = fort_type(f, verbose=verbose)
         if type not in types:
             continue
         
-        dat = load_fort(f, verbose=verbose)
+        dat = load_fort(f, type=type, verbose=verbose)
         for k in dat:
             if k not in alldat:
                 alldat[k] = dat[k]
