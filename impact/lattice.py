@@ -69,12 +69,23 @@ def ele_line(ele):
         return ele['comment']
     itype = parsers.itype_of[type] 
     if itype < 0:
-        Bnseg = ele['nseg']
-        Bmpstp = ele['bmpstp']
+        # Custom usage
+        if type =='write_beam':
+            Bnseg = ele['sample_frequency']
+            Bmpstp  = int(ele['filename'].split('fort.')[1]) # Extract from filename
+        else:
+            Bnseg = ele['nseg']
+            Bmpstp = ele['bmpstp']
     else:
         Bnseg = 0
         Bmpstp = 0
-    dat = [ele['L'], Bnseg, Bmpstp, itype]
+    
+    # Length is only for real elements
+    if itype < 0:
+        L = 0
+    else:
+        L = ele['L']
+    dat = [L, Bnseg, Bmpstp, itype]
     
     if type in ele_v_function:
         v =  ele_v_function[type](ele)
@@ -170,6 +181,10 @@ def ele_shape(ele):
         top =ELE_HEIGHT[type]
         bottom = -top
     
+    # DEBUG
+    if 'L' not in ele:
+        print('ERROR: no L in ele: ', ele)
+    
     c = ELE_COLOR[type]
     
     d = {}
@@ -188,6 +203,8 @@ def ele_shape(ele):
     
     return d
 
+DUMMY_ELE = {'L':0, 's':0, 'description':'', 'name':'dummy', 'type':'drift'}
+
 def ele_shapes(eles):
     """
     Form dataset of al element info
@@ -195,7 +212,7 @@ def ele_shapes(eles):
     Only returns shapes for physical elements
     """
     # Automatically get keys
-    keys = list(ele_shape(eles[0]))
+    keys = list(ele_shape(DUMMY_ELE))
     # Prepare lists
     data = {}
     for k in keys:

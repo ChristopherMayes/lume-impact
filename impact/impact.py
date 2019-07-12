@@ -7,8 +7,8 @@ from . import tools
 import numpy as np
 import tempfile
 import shutil
+from time import time
 import os
-
 
 
 
@@ -18,6 +18,7 @@ class Impact:
     
     Files will be written into a temporary directory within workdir. 
     If workdir=None, a location will be determined by the system. 
+    This behavior can
     
     """
     def __init__(self,
@@ -26,6 +27,7 @@ class Impact:
                 workdir=None,
                 use_mpi = False,
                 mpi_exe = 'mpirun', # If needed
+                path = None, # Actual simulation path. If set, will not make a temporary directory. 
                 verbose=True):
         
         # Save init
@@ -35,12 +37,12 @@ class Impact:
         self.impact_bin = impact_bin
         self.mpi_exe = mpi_exe
         self.use_mpi = use_mpi
+        self.path = path # Actual working path. 
         
         # These will be set
         self.timeout=None
         self.input = None
         self.output = {}
-        self.tempdir = None # Actual working path. 
         self.auto_cleanup = True
         self.ele = {} # Convenience lookup of elements in lattice by name
         
@@ -48,6 +50,7 @@ class Impact:
         # Run control
         self.finished = False
         self.configured = False
+        self.using_tempdir = False
         
         # Call configure
         if os.path.exists(input_file):
@@ -56,19 +59,21 @@ class Impact:
             self.vprint('Warning: Input file does not exist. Not configured.')
 
     def __del__(self):
-        if  self.auto_cleanup:
+        if self.auto_cleanup:
             self.clean() # clean directory before deleting
 
-    def clean(self):   
+    def clean(self, override=False):   
         # Only remove temporary directory. Never delete anything else!!!
-        if self.tempdir:
-            self.vprint('deleting: ', self.tempdir)
-            shutil.rmtree(self.tempdir)            
+        if self.using_tempdir or override:
+            self.vprint('deleting: ', self.path)
+            shutil.rmtree(self.path)
+        else: 
+            self.vprint('Warning: no cleanup because path is not a temporary directory:', self.path)
             
     def configure(self):
         self.configure_impact(self.original_input_file, self.workdir)
         self.configured = True
-        
+        self.vprint('Configured')
         
     def configure_impact(self, input_file, workdir):
         for f in [self.original_input_file]:
@@ -83,17 +88,21 @@ class Impact:
         self.ele = ele_dict_from(self.input['lattice'])
         
         # Temporary directory for path
-        self.tempdir = os.path.abspath(tempfile.TemporaryDirectory(prefix='temp_impactT_', dir=workdir).name)
-        os.mkdir(self.tempdir)
+        if not self.path:
+            self.path = os.path.abspath(tempfile.TemporaryDirectory(prefix='temp_impactT_', dir=workdir).name)
+            os.mkdir(self.path)
+            self.using_tempdir = True
+        else:
+            self.using_tempdir = False
      
-        self.vprint('Configured for tempdir:', self.tempdir)
+        self.vprint('Configured to run in:', self.path)
     
     def load_output(self):
-        self.output['stats'] = load_many_fort(self.tempdir, FORT_STAT_TYPES, verbose=self.verbose)
-        self.output['slice_info'] = load_many_fort(self.tempdir, FORT_SLICE_TYPES, verbose=self.verbose)
+        self.output['stats'] = load_many_fort(self.path, FORT_STAT_TYPES, verbose=self.verbose)
+        self.output['slice_info'] = load_many_fort(self.path, FORT_SLICE_TYPES, verbose=self.verbose)
         
     def load_particles(self):
-        self.particles = load_many_fort(self.tempdir, FORT_PARTICLE_TYPES, verbose=self.verbose)
+        self.particles = load_many_fort(self.path, FORT_PARTICLE_TYPES, verbose=self.verbose)
         
         
         
@@ -105,13 +114,19 @@ class Impact:
     
     def run_impact(self, verbose=False, timeout=None):
         
+        self.vprint('--------- Running Impact-T -----------')
+        self.vprint(header_str(self.input['header']))
+        
         # Check that binary exists
         self.impact_bin = tools.full_path(self.impact_bin)
         assert os.path.exists(self.impact_bin)
         
+        run_info = self.output['run_info'] = {}
+        t1 = time()
+        run_info['start_time'] = t1
         
         init_dir = os.getcwd()
-        os.chdir(self.tempdir)
+        os.chdir(self.path)
         
         # Write input
         self.write_input()
@@ -127,8 +142,8 @@ class Impact:
                 res = tools.execute2(runscript, timeout=timeout)
                 log = res['log']
                 self.error = res['error']
-                self.output['run_error'] = self.error
-                self.output['why_run_error'] = res['why_error']
+                run_info['error'] = self.error
+                run_info['why_run_error'] = res['why_error']
     
             else:
                 # Interactive output, for Jupyter
@@ -145,7 +160,10 @@ class Impact:
             self.load_particles()
         except Exception as ex:
             print('Run Aborted', ex)
+            run_info['error'] = True
+            run_info['why_run_error'] = str(ex)
         finally:
+            run_info['run_time'] = time() - t1
             # Return to init_dir
             os.chdir(init_dir)    
  
@@ -153,7 +171,7 @@ class Impact:
         
     def write_input(self,  input_filename='ImpactT.in'):
         
-        path = self.tempdir
+        path = self.path
         assert os.path.exists(path)
         
         filePath = os.path.join(path, input_filename)
@@ -182,7 +200,7 @@ class Impact:
     
         
     def __str__(self):
-        path = self.tempdir
+        path = self.path
         s = header_str(self.input['header'])
         if self.finished:
             s += 'Impact-T finished in '+path
@@ -191,7 +209,4 @@ class Impact:
         else:
             s += 'Impact-T not configured.'
         return s
-        
-        
-    
         

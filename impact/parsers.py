@@ -418,13 +418,13 @@ def misalignment_v(ele):
     """
     V list for misalignments
     """
-    v = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    v = [0.0, 0.0, 0.0, 0.0, 0.0]
     if 'x_offset' in ele: v[0] = ele['x_offset']
     if 'y_offset' in ele: v[1] = ele['y_offset']
-    if 'z_offset' in ele: v[2] = ele['z_offset']
-    if 'x_rotation' in ele: v[3] = ele['x_rotation']
-    if 'y_rotation' in ele: v[4] = ele['y_rotation' ]     
-    if 'z_rotation' in ele: v[5] = ele['z_rotation' ]         
+    if 'x_rotation' in ele: v[2] = ele['x_rotation']
+    if 'y_rotation' in ele: v[3] = ele['y_rotation' ]     
+    if 'z_rotation' in ele: v[4] = ele['z_rotation' ]         
+    
     return v
     
 
@@ -451,7 +451,7 @@ def parse_quadrupole(line):
     V11: rf quadrupole phase (degree)
     """    
         
-    v = line.split()[3:] # V data starts with index 4
+    v = line.split('/')[0].split()[3:] # V data starts with index 
     d={}
     d['zedge'] = float(v[1]) 
     d['b1_gradient'] = float(v[2]) 
@@ -462,7 +462,7 @@ def parse_quadrupole(line):
     d['radius'] = float(v[4])
     d2 = parse_misalignments(v[5:10])
     d.update(d2)
-    if v[10] != '/':
+    if len(v) > 11:
         d['rf_frequency'] = float(v[10])
         d['rf_phase_deg'] = float(v[11])
     return(d)    
@@ -543,8 +543,7 @@ def solrf_v(ele):
     if 'radius' in ele: v[6] = ele['radius']
         
     #misalignment list
-    v1 = misalignment_v(ele)
-    v += [v1[0], v1[1], v1[3], v1[4], v1[5]] # solrf doesn't have z_offset
+    v += misalignment_v(ele)
     
     if 'solenoid_field_scale' in ele:
         v.append(ele['solenoid_field_scale'])
@@ -1004,20 +1003,30 @@ def parse_ele(line):
     x = x[0].split()
     
     e['original'] = line # Save original line
-    e['L'] = float(x[0])
-    e['itype'] = int(x[3])
-    if e['itype'] < 0:
+    
+    #e['itype'] = int(x[3]) #Don't store this
+    itype = int(x[3])
+    if itype < 0:
+        # Control element
         e['nseg'] = int(x[1])  # Only for type < 0
         e['bmpstp']= int(x[2]) # Only for type < 0
+    else:
+        # Real element. Needs L 
+        e['L'] = float(x[0])
     
-    if e['itype'] in ele_type:
-        e['type'] = ele_type[e['itype']] 
-        if e['itype'] >= -99:
+    if itype in ele_type:
+        e['type'] = ele_type[itype] 
+        if itype >= -99:
             d2 = ele_parsers[e['type']](line)
             e.update(d2)        
     else:
         print('Warning: undocumented type', line)
         e['type'] ='undocumented'
+    
+    # Custom cleanup
+    if e['type'] == 'write_beam':
+        e.pop('nseg')
+        e.pop('bmpstp')
     
     return e
 
