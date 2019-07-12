@@ -73,7 +73,7 @@ class Impact:
     def configure(self):
         self.configure_impact(self.original_input_file, self.workdir)
         self.configured = True
-        self.vprint('Configured')
+
         
     def configure_impact(self, input_file, workdir):
         for f in [self.original_input_file]:
@@ -95,7 +95,10 @@ class Impact:
         else:
             self.using_tempdir = False
      
+        self.vprint(header_str(self.input['header']))
         self.vprint('Configured to run in:', self.path)
+        
+        
     
     def load_output(self):
         self.output['stats'] = load_many_fort(self.path, FORT_STAT_TYPES, verbose=self.verbose)
@@ -112,10 +115,26 @@ class Impact:
             return
         self.run_impact(verbose=self.verbose, timeout=self.timeout)        
     
-    def run_impact(self, verbose=False, timeout=None):
+    
+    def get_run_script(self, write_to_path=True):
+        """
+        Assembles the run script
+        """
         
-        self.vprint('--------- Running Impact-T -----------')
-        self.vprint(header_str(self.input['header']))
+        if self.use_mpi:
+            n_procs = self.input['header']['Npcol'] * self.input['header']['Nprow']
+            runscript = [self.mpi_exe, '-n', str(n_procs), tools.full_path(self.impact_bin)]
+        else:
+            runscript = [tools.full_path(self.impact_bin)]
+            
+        if write_to_path:
+            with open(os.path.join(self.path, 'run'), 'w') as f:
+                f.write(' '.join(runscript))
+            
+        return runscript
+
+    
+    def run_impact(self, verbose=False, timeout=None):
         
         # Check that binary exists
         self.impact_bin = tools.full_path(self.impact_bin)
@@ -131,12 +150,8 @@ class Impact:
         # Write input
         self.write_input()
         
-        if self.use_mpi:
-            n_procs = self.input['header']['Npcol'] * self.input['header']['Nprow']
-            runscript = [self.mpi_exe, '-n', str(n_procs), self.impact_bin]
-        else:
-            runscript = [self.impact_bin]
-
+        runscript = self.get_run_script()
+        
         try: 
             if timeout:
                 res = tools.execute2(runscript, timeout=timeout)
@@ -148,11 +163,17 @@ class Impact:
             else:
                 # Interactive output, for Jupyter
                 log = []
+                counter = 0
                 for path in tools.execute(runscript):
+                    # Fancy clearing of old lines
+                    counter +=1
                     if verbose:
-                        print(path, end="")
+                        if counter < 15:
+                            print(path, end='')
+                        else:
+                            print('\r', path.strip()+', elapsed: '+str(time()-t1), end='')
                     log.append(path)
-    
+                self.vprint('Finished.')
             self.log = log
                             
             # Load output    
