@@ -1,7 +1,7 @@
 #import numpy as np
 
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str
-from .writers import write_impact_input
+from . import writers
 from .lattice import ele_dict_from
 from . import tools
 import numpy as np
@@ -9,7 +9,6 @@ import tempfile
 import shutil
 from time import time
 import os
-
 
 
 class Impact:
@@ -197,7 +196,7 @@ class Impact:
         
         filePath = os.path.join(path, input_filename)
         # Write main input file
-        write_impact_input(filePath, self.input['header'], self.input['lattice'])
+        writers.write_impact_input(filePath, self.input['header'], self.input['lattice'])
         
         # Write fieldmaps
         for fmap, data in self.input['fieldmaps'].items():
@@ -214,6 +213,15 @@ class Impact:
             else:
                 self.vprint('partcl.data already exits, will not overwrite.')
 
+                
+    def archive(self, h5=None):
+        """
+        Archive all data to an h5 handle. If none is given, a file will be created.
+        """
+        
+    def fingerprint(self):
+        return tools.fingerprint(self.input)
+                
     def vprint(self, *args):
         # Verbose print
         if self.verbose:

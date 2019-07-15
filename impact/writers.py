@@ -15,8 +15,6 @@ def write_impact_input(filePath, header, eles):
         for line in lines:
             f.write(line+'\n')
 
-
-            
 def write_impact_input_h5(h5, header, eles, name='input'):
     """
     Write
@@ -37,10 +35,7 @@ def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, sp
     # Write particle data at a screen in openPMD BeamPhysics format
     # https://github.com/DavidSagan/openPMD-standard/blob/EXT_BeamPhysics/EXT_BeamPhysics.md
 
-    if not name:
-        g = h5
-    else:
-        g = h5.create_group(name)
+    g = h5.create_group(name)
 
     g.attrs['speciesType'] = speciesType
 
