@@ -10,10 +10,8 @@ import shutil
 from time import time
 import os
 
-
 class Impact:
     """
-    
     
     Files will be written into a temporary directory within workdir. 
     If workdir=None, a location will be determined by the system. 
@@ -214,10 +212,32 @@ class Impact:
                 self.vprint('partcl.data already exits, will not overwrite.')
 
                 
-    def archive(self, h5=None):
+    def archive(self, h5):
         """
-        Archive all data to an h5 handle. If none is given, a file will be created.
+        Archive all data to an h5 handle. 
         """
+        
+        # All input
+        writers.write_impact_input_h5(h5, self.input, name='input')
+
+        # All output
+        writers.write_impact_output_h5(h5, self.output, name=None) 
+            
+        # Particles    
+        g = h5.create_group('particles')
+        for key in self.particles:
+            particle_data = self.particles[key]
+            name = key
+            charge = self.total_charge()
+            self.vprint('Archiving', name, 'with charge', charge)
+            writers.write_impact_particles_h5(g, particle_data, name=name, total_charge=charge) 
+        
+    
+    def total_charge(self):
+        H = self.input['header']
+        return H['Bcurr']/H['Bfreq']
+        
+        
         
     def fingerprint(self):
         return tools.fingerprint(self.input)
