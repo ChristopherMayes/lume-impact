@@ -101,3 +101,24 @@ def fingerprint(keyed_data, digest_size=16):
         s = json.dumps(val, sort_keys=True, cls=NumpyEncoder).encode()
         h.update(s)
     return h.hexdigest()
+
+
+
+def find_property(s, key='name', separator=':', delims=[' ', ',', ';']):
+    """
+    Find property of the form key+delim+value
+    
+    Example: string = 'ax safsf name:QUAD01, ' should return 'QUAD01'
+    
+    """
+    match=key+separator
+    ix = s.find(match)
+    if ix == -1:
+        return None
+    
+    # Split out any other delims
+    ss = s[ix+len(match):]
+    for d in delims:
+        ss = ss.split(d)[0]
+    
+    return ss

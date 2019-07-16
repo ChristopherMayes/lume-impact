@@ -49,7 +49,7 @@ def layout_plot(eles, plot_width=1000, plot_height=200):
     p.quad(top='top', bottom='bottom', left='left',
        right='right', color='color', source=ds)
 
-    labels = LabelSet(x='x', y='y', text='description', level='glyph', angle=pi/2,
+    labels = LabelSet(x='x', y='y', text='name', level='glyph', angle=pi/2,
               x_offset=5, y_offset=30, source=ds, render_mode='canvas')
     p.add_layout(labels)
 

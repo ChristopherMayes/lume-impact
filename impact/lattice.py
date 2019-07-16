@@ -19,7 +19,7 @@ def ele_str(e):
     line = e['name']+': '+e['type']
     l = len(line)
     for key in e:
-        if key in ['s', 'name', 'type', 'original', 'itype']: 
+        if key in ['name', 'type', 'original', 'itype']: 
             continue
         val = str(e[key])
         s =  key+'='+val

@@ -1,5 +1,7 @@
 import numpy as np
 import os
+from . import tools
+
 
 #-----------------
 # Parsing ImpactT input file
@@ -1062,8 +1064,15 @@ def create_names(elelist):
         counter[t] = 0
     for e in elelist:
         t = e['type']
-        counter[t] = counter[t]+1
+        counter[t] = counter[t]+1        
         e['name'] = e['type']+'_'+str(counter[t])
+        
+        # Try from description
+        if 'description' in e:
+            alias_name = tools.find_property(e['description'], 'name')
+            if alias_name:
+                e['name'] = alias_name
+            
 
 def parse_lattice(lines):
     eles = [parse_ele(line) for line in lines]

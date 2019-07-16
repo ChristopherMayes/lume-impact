@@ -155,7 +155,7 @@ def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, sp
 
 
     
-#=====================
+#============================
 # Corresponding read routines
     
 def read_attrs_h5(h5):
@@ -191,7 +191,7 @@ def read_input_h5(h5):
     Read all Impact-T input from h5 handle.
     """
     d = {}
-    d['header'] = read_attribs_h5(h5['header'])
+    d['header'] = read_attrs_h5(h5['header'])
     d['lattice'] = read_list_h5(h5['lattice'])
     if 'input_particle_file' in h5.attrs:
         d['input_particle_file'] = h5.attrs['input_particle_file']
