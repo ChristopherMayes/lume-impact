@@ -1,6 +1,6 @@
 #import numpy as np
 
-from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str
+from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper
 from . import writers
 from .lattice import ele_dict_from
 from . import tools
@@ -9,6 +9,8 @@ import tempfile
 import shutil
 from time import time
 import os
+
+
 
 class Impact:
     """
@@ -19,7 +21,7 @@ class Impact:
     
     """
     def __init__(self,
-                input_file='ImpactT.in',
+                input_file=None, #'ImpactT.in',
                 impact_bin='$IMPACTT_BIN',
                 workdir=None,
                 use_mpi = False,
@@ -38,7 +40,7 @@ class Impact:
         
         # These will be set
         self.timeout=None
-        self.input = None
+        self.input = {}
         self.output = {}
         self.auto_cleanup = True
         self.ele = {} # Convenience lookup of elements in lattice by name
@@ -50,10 +52,11 @@ class Impact:
         self.using_tempdir = False
         
         # Call configure
-        if os.path.exists(input_file):
-            self.configure()                
+        if input_file:
+            self.load_input(input_file)
+            self.configure()
         else:
-            self.vprint('Warning: Input file does not exist. Not configured.')
+            self.vprint('Warning: Input file does not exist. Not configured. Please set header and lattice.')
 
     def __del__(self):
         if self.auto_cleanup:
@@ -68,18 +71,20 @@ class Impact:
             self.vprint('Warning: no cleanup because path is not a temporary directory:', self.path)
             
     def configure(self):
-        self.configure_impact(self.original_input_file, self.workdir)
-        self.configured = True
-
+        self.configure_impact(workdir=self.workdir)
         
-    def configure_impact(self, input_file, workdir):
-        for f in [self.original_input_file]:
-            f = tools.full_path(f)
-            self.original_path, _ = os.path.split(f) # Get original path
-            print(self.original_path)
-            assert os.path.exists(f)
-        # Parse input file. This should be a dict with: header, lattice, fieldmaps, input_particle_file
-        self.input = parse_impact_input(self.original_input_file)      
+    def configure_impact(self, input_filePath=None, workdir=None):
+        
+        if input_filePath:
+            self.load_input(input_filePath)
+        
+        if ('header' not in self.input) or ('lattice' not in self.input):
+            self.vprint('Warning: input not set. Not configured')
+            self.configured = False
+            return
+        
+        # Bookkeeper
+        self.input['header'] = header_bookkeeper(self.input['header'], verbose=self.verbose)
         
         # Set ele dict:
         self.ele = ele_dict_from(self.input['lattice'])
@@ -95,16 +100,20 @@ class Impact:
         self.vprint(header_str(self.input['header']))
         self.vprint('Configured to run in:', self.path)
         
+        self.configured = True
         
+        
+    def load_input(self, input_filePath):
+        f = tools.full_path(input_filePath)
+        self.original_path, _ = os.path.split(f) # Get original path
+        self.input = parse_impact_input(f)
     
     def load_output(self):
         self.output['stats'] = load_many_fort(self.path, FORT_STAT_TYPES, verbose=self.verbose)
         self.output['slice_info'] = load_many_fort(self.path, FORT_SLICE_TYPES, verbose=self.verbose)
         
     def load_particles(self):
-        self.particles = load_many_fort(self.path, FORT_PARTICLE_TYPES, verbose=self.verbose)
-        
-        
+        self.particles = load_many_fort(self.path, FORT_PARTICLE_TYPES, verbose=self.verbose)   
         
     def run(self):
         if not self.configured:
@@ -115,7 +124,7 @@ class Impact:
     
     def get_run_script(self, write_to_path=True):
         """
-        Assembles the run script
+        Assembles the run script. Optionally writes a file 'run' with this line to path.
         """
         
         if self.use_mpi:

@@ -59,13 +59,39 @@ HDEFAULTS[9] = [1.0, 1.0, 510998.946, -1.0, 2856000000.0, 0.0]
 # Collect all these
 HEADER_NAMES=[]
 HEADER_TYPES=[]
+HEADER_DEFAULTS = []
 for i in range(1,10):
     HEADER_NAMES.append(HNAMES[i])
     HEADER_TYPES.append(HTYPES[i])
+    HEADER_DEFAULTS.append(HDEFAULTS[i])
 # Flattened version
 ALL_HEADER_NAMES = [item for sublist in HEADER_NAMES for item in sublist]
 ALL_HEADER_TYPES = [item for sublist in HEADER_TYPES for item in sublist]
-HEADER_TYPE_OF = dict(zip(ALL_HEADER_NAMES, ALL_HEADER_TYPES))
+ALL_HEADER_DEFAULTS = [item for sublist in HEADER_DEFAULTS for item in sublist]
+# Make dicts
+HEADER_DEFAULT = dict(zip(ALL_HEADER_NAMES, ALL_HEADER_DEFAULTS))
+HEADER_TYPE = dict(zip(ALL_HEADER_NAMES, ALL_HEADER_TYPES))
+
+
+
+
+def header_bookkeeper(header, defaults=HEADER_DEFAULT, verbose=True):
+    """
+    Checks header for missing or bad keys, fills in defaults. 
+    """
+    # Check for bad keys
+    for k in header:
+        if verbose and k not in defaults:
+            print('Warning:', k, 'does not belong in header.')
+    newheader = header.copy()   
+    # Fill defaults
+    for k in defaults:
+        if k not in newheader:
+            if verbose:
+                print('Filling in default for',k)
+            newheader[k] = defaults[k]
+    return newheader
+
 
 
 
