@@ -11,7 +11,6 @@ from time import time
 import os
 
 
-
 class Impact:
     """
     
@@ -220,6 +219,22 @@ class Impact:
             else:
                 self.vprint('partcl.data already exits, will not overwrite.')
 
+                
+    def set_property(self, property_string, value):
+        """
+        Convenience syntax to set the header or element property. 
+        property_string should be 'header:key' or 'ele_name:key'
+        
+        Examples of property_string: 'header:Np', 'SOL1:solenoid_field_scale'
+        
+        """
+        name, prop = property_string.split(':')
+        if name == 'header':
+            self.input['header'][prop] = value
+        else:
+            self.ele[name][prop] = value
+    
+        
                 
     def archive(self, h5):
         """
