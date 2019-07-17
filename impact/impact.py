@@ -10,7 +10,6 @@ import shutil
 from time import time
 import os
 
-
 class Impact:
     """
     
@@ -39,7 +38,7 @@ class Impact:
         
         # These will be set
         self.timeout=None
-        self.input = {}
+        self.input = {'header':{}, 'lattice':[]}
         self.output = {}
         self.auto_cleanup = True
         self.ele = {} # Convenience lookup of elements in lattice by name
@@ -77,13 +76,16 @@ class Impact:
         if input_filePath:
             self.load_input(input_filePath)
         
-        if ('header' not in self.input) or ('lattice' not in self.input):
-            self.vprint('Warning: input not set. Not configured')
+        # Header Bookkeeper
+        self.input['header'] = header_bookkeeper(self.input['header'], verbose=self.verbose)
+        
+        if  len(self.input['lattice']) == 0:
+            self.vprint('Warning: lattice is empty. Not configured')
             self.configured = False
             return
         
-        # Bookkeeper
-        self.input['header'] = header_bookkeeper(self.input['header'], verbose=self.verbose)
+        
+
         
         # Set ele dict:
         self.ele = ele_dict_from(self.input['lattice'])
@@ -252,7 +254,7 @@ class Impact:
         for key in self.particles:
             particle_data = self.particles[key]
             name = key
-            charge = self.total_charge()
+            charge = self.macrocharge() * len(particle_data['x'])
             self.vprint('Archiving', name, 'with charge', charge)
             writers.write_impact_particles_h5(g, particle_data, name=name, total_charge=charge) 
         
@@ -260,10 +262,21 @@ class Impact:
     def total_charge(self):
         H = self.input['header']
         return H['Bcurr']/H['Bfreq']
-        
+
+    def macrocharge(self):
+        H = self.input['header']
+        Np = H['Np']
+        if Np == 0:
+            self.vprint('Error: zero particles. Returning zero macrocharge')
+            return 0
+        else:
+            return H['Bcurr']/H['Bfreq']/Np
         
         
     def fingerprint(self):
+        """
+        Data fingerprint using the input. 
+        """
         return tools.fingerprint(self.input)
                 
     def vprint(self, *args):

@@ -87,9 +87,11 @@ def header_bookkeeper(header, defaults=HEADER_DEFAULT, verbose=True):
     # Fill defaults
     for k in defaults:
         if k not in newheader:
+            val = defaults[k]
+            newheader[k] = val
             if verbose:
-                print('Filling in default for',k)
-            newheader[k] = defaults[k]
+                print('Header bookkeeper: Filling in default for',k, '=',val)
+           
     return newheader
 
 

@@ -92,7 +92,7 @@ class NumpyEncoder(json.JSONEncoder):
 def fingerprint(keyed_data, digest_size=16):
     """
     Creates a cryptographic fingerprint from keyed data. 
-    Used JSON dumps, blake2b algorithm.
+    Used JSON dumps to form strings, and the blake2b algorithm to hash.
     
     """
     h = blake2b(digest_size=16)
