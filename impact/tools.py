@@ -3,6 +3,7 @@ import os, errno
 from hashlib import blake2b
 import numpy as np
 import json
+import shutil
 
 def execute(cmd):
     """
@@ -122,3 +123,6 @@ def find_property(s, key='name', separator=':', delims=[' ', ',', ';']):
         ss = ss.split(d)[0]
     
     return ss
+
+
+

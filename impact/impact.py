@@ -10,6 +10,9 @@ import shutil
 from time import time
 import os
 
+
+
+
 class Impact:
     """
     
@@ -217,9 +220,11 @@ class Impact:
             src = self.input['input_particle_file']
             dest = os.path.join(path, 'partcl.data')
             if not os.path.exists(dest):
-                os.symlink(src, dest)
+                writers.write_input_particles_from_file(src, dest, self.input['header']['Np'] )
             else:
                 self.vprint('partcl.data already exits, will not overwrite.')
+        
+            
 
                 
     def set_property(self, property_string, value):
