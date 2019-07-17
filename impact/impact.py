@@ -12,7 +12,6 @@ import os
 
 
 
-
 class Impact:
     """
     
@@ -65,7 +64,7 @@ class Impact:
 
     def clean(self, override=False):   
         # Only remove temporary directory. Never delete anything else!!!
-        if self.using_tempdir or override:
+        if (self.using_tempdir or override) and os.path.exists(self.path):
             self.vprint('deleting: ', self.path)
             shutil.rmtree(self.path)
         else: 
