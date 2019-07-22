@@ -54,6 +54,7 @@ ele_v_function = {
                   
                  }    
 
+
 def ele_line(ele):
     """
     Write Impact-T stype element line
@@ -73,9 +74,22 @@ def ele_line(ele):
         if type =='write_beam':
             Bnseg = ele['sample_frequency']
             Bmpstp  = int(ele['filename'].split('fort.')[1]) # Extract from filename
-        else:
-            Bnseg = ele['nseg']
+        elif type == 'write_slice_info':
+            Bnseg = ele['n_slices']
+            Bmpstp  = int(ele['filename'].split('fort.')[1]) # Extract from filename
+        elif type == 'write_beam_for_restart':
+            Bnseg = 0
             Bmpstp = ele['bmpstp']
+        elif type == 'wakefield':
+            if ele['method'] == 'from_file':
+                Bnseg  = 1 # Anything > 0
+                Bmpstp = int(ele['filename'].split('fort.')[1]) # Extract from filename
+            else:
+                Bnseg = -1 # Anything <= 0
+                Bmpstp = 0
+        else:
+            Bnseg = 0  #ele['nseg']
+            Bmpstp = 0 # ele['bmpstp']
     else:
         Bnseg = 0
         Bmpstp = 0

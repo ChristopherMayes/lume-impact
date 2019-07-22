@@ -1036,11 +1036,8 @@ def parse_ele(line):
     
     #e['itype'] = int(x[3]) #Don't store this
     itype = int(x[3])
-    if itype < 0:
-        # Control element
-        e['nseg'] = int(x[1])  # Only for type < 0
-        e['bmpstp']= int(x[2]) # Only for type < 0
-    else:
+
+    if itype >= 0:
         # Real element. Needs L 
         e['L'] = float(x[0])
     
@@ -1053,11 +1050,7 @@ def parse_ele(line):
         print('Warning: undocumented type', line)
         e['type'] ='undocumented'
     
-    # Custom cleanup
-    if e['type'] == 'write_beam':
-        e.pop('nseg')
-        e.pop('bmpstp')
-    
+
     return e
 
         
