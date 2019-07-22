@@ -2,7 +2,7 @@
 
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper
 from . import writers
-from .lattice import ele_dict_from
+from .lattice import ele_dict_from, ele_str
 from . import tools
 import numpy as np
 import tempfile
@@ -282,11 +282,20 @@ class Impact:
         Data fingerprint using the input. 
         """
         return tools.fingerprint(self.input)
-                
+    
+    def print_lattice(self):
+        """
+        Pretty printing of the lattice
+        """
+        for ele in self.input['lattice']:
+            line = ele_str(ele)
+            print(line)
+    
     def vprint(self, *args):
         # Verbose print
         if self.verbose:
             print(*args)
+    
     
         
     def __str__(self):
