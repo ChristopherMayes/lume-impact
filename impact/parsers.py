@@ -2,7 +2,6 @@ import numpy as np
 import os
 from . import tools
 
-
 #-----------------
 # Parsing ImpactT input file
 
@@ -1454,12 +1453,12 @@ def fort_type(filePath, verbose=False):
     if s[0] != 'fort':
         print('Error: not a fort file:', filePath)
     else:
-        type = int(s[1])    
-        if type not in FORT_DESCRIPTION and verbose:
-            print('Warning: unknown fort type for:', filePath)
-        if type not in FORT_LOADER and verbose:
+        file_type = int(s[1])    
+        if file_type not in FORT_DESCRIPTION and verbose:
+            print('Warning: unknown fort file_type for:', filePath)
+        if file_type not in FORT_LOADER and verbose:
             print('Warning: no fort loader yet for:', filePath)
-        return type
+        return file_type
 
 
 def load_fort(filePath, type = None, verbose=True):
@@ -1498,17 +1497,25 @@ def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
     fortfiles=fort_files(path)
     alldat = {}
     for f in fortfiles:
-        type = fort_type(f, verbose=verbose)
-        if type not in types:
+        file_type = fort_type(f, verbose=verbose)
+        if file_type not in types:
             continue
         
-        dat = load_fort(f, type=type, verbose=verbose)
+        dat = load_fort(f, type=file_type, verbose=verbose)
         for k in dat:
             if k not in alldat:
                 alldat[k] = dat[k]
+
+            elif np.allclose(alldat[k], dat[k], atol=1e-20):
+                # If the difference between alldat-dat < 1e-20,
+                # move on to next key without error. 
+                # https://numpy.org/devdocs/reference/generated/numpy.isclose.html#numpy.isclose
+                pass
+                
             else:
+                # Data is not close enough to ignore differences.
                 # Check that this data is the same as what's already in there
-                assert np.all(alldat[k] == dat[k]), 'Conflicting data for key:'+k
+                assert np.all(alldat[k] == dat[k]), 'Conflicting data for key:'+k  
         
     return alldat    
 
