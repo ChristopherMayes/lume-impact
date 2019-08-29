@@ -1,6 +1,7 @@
 #import numpy as np
 from . import parsers
-        
+from .parsers import itype_of
+
 import numpy as np    
         
 #-----------------------------------------------------------------  
