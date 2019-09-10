@@ -6,7 +6,7 @@ from .lattice import ele_dict_from, ele_str
 from . import tools
 import numpy as np
 import tempfile
-import shutil
+
 from time import time
 import os
 
@@ -23,20 +23,23 @@ class Impact:
     def __init__(self,
                 input_file=None, #'ImpactT.in',
                 impact_bin='$IMPACTT_BIN',
+                use_tempdir=True,
                 workdir=None,
                 use_mpi = False,
                 mpi_exe = 'mpirun', # If needed
-                path = None, # Actual simulation path. If set, will not make a temporary directory. 
                 verbose=True):
         
         # Save init
         self.original_input_file = input_file
+        self.use_tempdir = use_tempdir
         self.workdir = workdir
+        if workdir:
+            assert os.path.exists(workdir), 'workdir does not exist: '+workdir        
         self.verbose=verbose
         self.impact_bin = impact_bin
         self.mpi_exe = mpi_exe
         self.use_mpi = use_mpi
-        self.path = path # Actual working path. 
+
         
         # These will be set
         self.timeout=None
@@ -49,7 +52,6 @@ class Impact:
         # Run control
         self.finished = False
         self.configured = False
-        self.using_tempdir = False
         
         # Call configure
         if input_file:
@@ -57,18 +59,6 @@ class Impact:
             self.configure()
         else:
             self.vprint('Warning: Input file does not exist. Not configured. Please set header and lattice.')
-
-    def __del__(self):
-        if self.auto_cleanup:
-            self.clean() # clean directory before deleting
-
-    def clean(self, override=False):   
-        # Only remove temporary directory. Never delete anything else!!!
-        if (self.using_tempdir or override) and os.path.exists(self.path):
-            self.vprint('deleting: ', self.path)
-            shutil.rmtree(self.path)
-        else: 
-            self.vprint('Warning: no cleanup because path is not a temporary directory:', self.path)
             
     def configure(self):
         self.configure_impact(workdir=self.workdir)
@@ -85,20 +75,20 @@ class Impact:
             self.vprint('Warning: lattice is empty. Not configured')
             self.configured = False
             return
-        
-        
-
-        
+   
         # Set ele dict:
         self.ele = ele_dict_from(self.input['lattice'])
-        
-        # Temporary directory for path
-        if not self.path:
-            self.path = os.path.abspath(tempfile.TemporaryDirectory(prefix='temp_impactT_', dir=workdir).name)
-            os.mkdir(self.path)
-            self.using_tempdir = True
+            
+        # Set paths
+        if self.use_tempdir:
+
+            # Need to attach this to the object. Otherwise it will go out of scope.
+            self.tempdir = tempfile.TemporaryDirectory(dir=self.workdir)
+            self.path = self.tempdir.name
+            
         else:
-            self.using_tempdir = False
+            # Work in place
+            self.path = self.original_path        
      
         self.vprint(header_str(self.input['header']))
         self.vprint('Configured to run in:', self.path)
