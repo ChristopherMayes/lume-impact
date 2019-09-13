@@ -56,6 +56,17 @@ ele_v_function = {
                  }    
 
 
+def extract_bmpstp(filename):
+    """
+    Extracts Bmpstp from filename. Filenames are often of the form:
+        fort.Bmpstp
+    or:
+        fort.(Bmpstp+myid)
+        
+        
+    """
+    return int(filename.split('fort.')[1].split('+myid')[0]) # Extract from filename
+
 def ele_line(ele):
     """
     Write Impact-T stype element line
@@ -74,17 +85,17 @@ def ele_line(ele):
         # Custom usage
         if type =='write_beam':
             Bnseg = ele['sample_frequency']
-            Bmpstp  = int(ele['filename'].split('fort.')[1]) # Extract from filename
+            Bmpstp  = extract_bmpstp(ele['filename'])
         elif type == 'write_slice_info':
             Bnseg = ele['n_slices']
-            Bmpstp  = int(ele['filename'].split('fort.')[1]) # Extract from filename
+            Bmpstp  = extract_bmpstp(ele['filename'])
         elif type == 'write_beam_for_restart':
             Bnseg = 0
-            Bmpstp = ele['bmpstp']
+            Bmpstp = extract_bmpstp(ele['filename'])
         elif type == 'wakefield':
             if ele['method'] == 'from_file':
                 Bnseg  = 1 # Anything > 0
-                Bmpstp = int(ele['filename'].split('fort.')[1]) # Extract from filename
+                Bmpstp = extract_bmpstp(ele['filename'])
             else:
                 Bnseg = -1 # Anything <= 0
                 Bmpstp = 0
