@@ -1,6 +1,6 @@
 #import numpy as np
 
-from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper
+from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles
 from . import writers
 from .lattice import ele_dict_from, ele_str
 from . import tools
@@ -106,7 +106,20 @@ class Impact:
         self.output['slice_info'] = load_many_fort(self.path, FORT_SLICE_TYPES, verbose=self.verbose)
         
     def load_particles(self):
+        # Standard output
+        self.vprint('Loading particles')
         self.particles = load_many_fort(self.path, FORT_PARTICLE_TYPES, verbose=self.verbose)   
+        # Additional particle files:
+        for e in self.input['lattice']:
+            if e['type'] == 'write_beam':
+                name = e['name']
+                fname = e['filename']
+                full_fname = os.path.join(self.path, fname)
+                if os.path.exists(full_fname):
+                    self.particles[name] = parse_impact_particles(full_fname)
+                    self.vprint(f'Loaded write beam particles {name} {fname}')
+                
+            
         
     def run(self):
         if not self.configured:
@@ -145,6 +158,8 @@ class Impact:
         
         init_dir = os.getcwd()
         os.chdir(self.path)
+        
+        self.vprint('Running Impact-T in '+self.path)
         
         # Write input
         self.write_input()

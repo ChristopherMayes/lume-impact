@@ -1497,7 +1497,7 @@ def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
     fortfiles=fort_files(path)
     alldat = {}
     for f in fortfiles:
-        file_type = fort_type(f, verbose=verbose)
+        file_type = fort_type(f, verbose=False)
         if file_type not in types:
             continue
         

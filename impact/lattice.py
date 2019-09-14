@@ -65,7 +65,10 @@ def extract_bmpstp(filename):
         
         
     """
-    return int(filename.split('fort.')[1].split('+myid')[0]) # Extract from filename
+    ii = int(filename.split('fort.')[1].split('+myid')[0]) # Extract from filename
+    if ii >= 100:
+        print('Warning: Bmpstp >= 100 is not supported! Nothing will be written.')
+    return ii
 
 def ele_line(ele):
     """
