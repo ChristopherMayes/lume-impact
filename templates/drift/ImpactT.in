@@ -1,0 +1,32 @@
+! Impact-T input file
+
+!Npcol Nprow
+1 1
+
+!Dt Ntstep Nbunch
+5e-12 1000000 1
+
+!Dim Np Flagmap Flagerr Flagdiag Flagimg Zimage
+6 10000 1 0 2 0 0.02
+
+!Nx Ny Nz Flagbc Xrad Yrad Perdlen
+32 32 32 1 0.015 0.015 45.0
+
+!Flagdist Rstartflg Flagsbstp Nemission Temission
+2 0 0  0 0 
+
+!sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
+1e-3 0.0 0.0 1.0 1.0 0.0 0.0
+
+!sigy(m) sigpy muxpy yscale pyscale ymu1(m) ymu2
+1e-3 0.0 0.0 1.0 1.0 0.0 0.0
+
+!sigz(m) sigpz muxpz zscale pzscale zmu1(m) zmu2
+.0001    0.0 0.0 1.0 1.0 0 195.69256334448912
+
+!Bcurr Bkenergy Bmass Bcharge Bfreq Tini
+2.856e-3 1.0 511005.0 -1.0 2856000000.0 0.0
+! No SC: 0 1.0 511005.0 -1.0 2856000000.0 4.714e-09
+!**************************1.5 cell gun ************************
+1.0 0 0 0 1.0 0.15 /!name:drift_1
+0 0 0 -99 0 0.0 1 /!name:stop_1

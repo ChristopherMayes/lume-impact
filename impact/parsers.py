@@ -256,7 +256,8 @@ DIST_TYPE = {
     16:'read',
     24:'readParmela',
     25:'readElegant',
-    27:'colcoldzsob'
+    27:'colcoldzsob',
+    112:'beercan'  # todo: make general
 }
 # TODO: ijk distribution
 
@@ -316,7 +317,7 @@ def ix_lattice(lines):
         
         
 
-def header_lines(header_dict):
+def header_lines(header_dict, annotate=True):
     """
     Re-forms the header dict into lines to be written to the Impact-T input file
     """
@@ -326,6 +327,10 @@ def header_lines(header_dict):
     lines = [line0]
     for i in range(1,10):
         names = HNAMES[i]
+        
+        if annotate:
+            lines.append('\n!'+ ' '.join(names))
+            
         x = ' '.join([str(header_dict[n]) for n in names])
         lines.append(x)
     #' '.join(lines)    
@@ -1169,7 +1174,7 @@ def parse_impact_particles(filePath, names=('x', 'GBx', 'y', 'GBy', 'z', 'GBz'))
     
     Impact-T input/output particles distribions are ASCII files with columns:
     x (m)
-    gamma_beta_x (dimensionless)
+    gamma*beta_x (dimensionless)
     y (m)
     gamma*beta_y (dimensionless)
     z (m)
