@@ -1118,10 +1118,16 @@ def parse_impact_input(filePath):
     path, _ = os.path.split(filePath)
     
     # Read lines
-    with open(filePath, 'r') as f:    
-        data = f.read()
-        lines = data.split('\n')
-    
+    try:
+        with open(filePath, 'r') as f:    
+            data = f.read()
+    except UnicodeDecodeError:
+        with open(filePath, 'r', encoding="utf8", errors='ignore') as f:    
+            data = f.read()
+    except: 
+        print('Unxpected error while reading input file!!!')
+       
+    lines = data.split('\n')
     header=parse_header(lines)
     
     # Check for input particles. Must be named 'partcl.data'.
