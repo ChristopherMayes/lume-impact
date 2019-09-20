@@ -1123,7 +1123,8 @@ def parse_impact_input(filePath):
             data = f.read()
     except UnicodeDecodeError:
         with open(filePath, 'r', encoding="utf8", errors='ignore') as f:    
-            data = f.read()
+           print('Warning: Non-utf8 characters were detected in the input file and ignored.')
+           data = f.read()
     except: 
         print('Unxpected error while reading input file!!!')
        
