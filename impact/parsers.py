@@ -276,9 +276,9 @@ def is_commented(line, commentchar='!'):
         return True
     return line.strip()[0] == commentchar
 
-# Strip comments
+# Strip comments, and trailing comments
 def remove_comments(lines):
-    return [l for l in lines if len(l) >0 and not is_commented(l)]
+    return [l.split('!')[0] for l in lines if len(l) >0 and not is_commented(l)]
 
 
 def parse_line(line, names, types):
