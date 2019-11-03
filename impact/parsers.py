@@ -311,8 +311,11 @@ def ix_lattice(lines):
     slines = remove_comments(lines)
     latline = slines[9]
     for i in range(len(lines)):
-        if lines[i] == latline:
+        if latline in lines[i]:
             return i
+        
+    print('Error: no lattice found in stripped lines:', slines)
+    raise
         
         
         
@@ -1037,7 +1040,7 @@ def parse_ele(line):
     x = x[0].split()
     
     e['original'] = line # Save original line
-    
+
     #e['itype'] = int(x[3]) #Don't store this
     itype = int(x[3])
 
