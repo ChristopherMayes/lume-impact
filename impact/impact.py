@@ -11,6 +11,7 @@ from time import time
 import os
 
 
+
 class Impact:
     """
     
@@ -134,10 +135,14 @@ class Impact:
         Assembles the run script. Optionally writes a file 'run' with this line to path.
         """
         
+        n_procs = self.input['header']['Npcol'] * self.input['header']['Nprow']
+        
         if self.use_mpi:
-            n_procs = self.input['header']['Npcol'] * self.input['header']['Nprow']
             runscript = [self.mpi_exe, '-n', str(n_procs), tools.full_path(self.impact_bin)]
         else:
+            if n_procs > 1:
+                print('Error: n_procs > 1 but use_mpi = False')
+                raise
             runscript = [tools.full_path(self.impact_bin)]
             
         if write_to_path:
