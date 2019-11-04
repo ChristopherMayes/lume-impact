@@ -11,13 +11,12 @@ from time import time
 import os
 
 
-
 class Impact:
     """
     
     Files will be written into a temporary directory within workdir. 
     If workdir=None, a location will be determined by the system. 
-    This behavior can
+    
     
     """
     def __init__(self,
@@ -45,7 +44,7 @@ class Impact:
         self.timeout=None
         self.input = {'header':{}, 'lattice':[]}
         self.output = {}
-        self.auto_cleanup = True
+        self.particles = {}
         self.ele = {} # Convenience lookup of elements in lattice by name
         
         
@@ -64,6 +63,8 @@ class Impact:
         self.configure_impact(workdir=self.workdir)
         
     def configure_impact(self, input_filePath=None, workdir=None):
+        
+        
         
         if input_filePath:
             self.load_input(input_filePath)
@@ -266,7 +267,17 @@ class Impact:
             charge = self.macrocharge() * len(particle_data['x'])
             self.vprint('Archiving', name, 'with charge', charge)
             writers.write_impact_particles_h5(g, particle_data, name=name, total_charge=charge) 
-        
+
+    def load_archive(self, h5, configure=True):
+        """
+        Loads input and output from h5 archive. Re-runs configure. 
+        """
+        self.input = readers.read_input_h5(h5['input'], verbose=self.verbose)
+        self.output = readers.read_output_h5(h5, verbose=self.verbose)            
+            
+        if configure:    
+            self.configure()                  
+            
     
     def total_charge(self):
         H = self.input['header']
