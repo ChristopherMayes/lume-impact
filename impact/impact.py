@@ -10,8 +10,6 @@ import tempfile
 from time import time
 import os
 
-
-
 class Impact:
     """
     
@@ -234,22 +232,20 @@ class Impact:
             else:
                 self.vprint('partcl.data already exits, will not overwrite.')
         
-            
-
                 
-    def set_property(self, property_string, value):
+    def set_attribute(self, attribute_string, value):
         """
-        Convenience syntax to set the header or element property. 
-        property_string should be 'header:key' or 'ele_name:key'
+        Convenience syntax to set the header or element attribute. 
+        attribute_string should be 'header:key' or 'ele_name:key'
         
-        Examples of property_string: 'header:Np', 'SOL1:solenoid_field_scale'
+        Examples of attribute_string: 'header:Np', 'SOL1:solenoid_field_scale'
         
         """
-        name, prop = property_string.split(':')
+        name, attrib = attribute_string.split(':')
         if name == 'header':
-            self.input['header'][prop] = value
+            self.input['header'][attrib] = value
         else:
-            self.ele[name][prop] = value
+            self.ele[name][attrib] = value
     
         
                 
