@@ -308,10 +308,10 @@ class Impact:
             line = ele_str(ele)
             print(line)
     
-    def vprint(self, *args):
+    def vprint(self, *args, **kwargs):
         # Verbose print
         if self.verbose:
-            print(*args)
+            print(*args, **kwargs)   
     
     
         

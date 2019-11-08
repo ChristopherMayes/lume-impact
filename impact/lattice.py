@@ -67,7 +67,7 @@ def extract_bmpstp(filename):
     """
     ii = int(filename.split('fort.')[1].split('+myid')[0]) # Extract from filename
     if ii >= 100:
-        print('Warning: Bmpstp >= 100 is not supported! Nothing will be written.')
+        print(f'Warning: Bmpstp >= 100 is not supported! Filename = {filename}. Nothing will be written.')
     return ii
 
 def ele_line(ele):
@@ -131,7 +131,8 @@ def ele_line(ele):
 
 
 def lattice_lines(eles):
-    lines = []
+    line0 = '!=================== LATTICE ==================='
+    lines = [line0]
     for e in eles:
         lines.append(ele_line(e))
     return lines

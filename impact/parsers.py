@@ -272,9 +272,10 @@ for k, v in DIST_TYPE.items():
 # Util
 
 def is_commented(line, commentchar='!'):
-    if len(line) == 0:
+    sline = line.strip() # remove spaces
+    if len(sline) == 0:
         return True
-    return line.strip()[0] == commentchar
+    return sline[0] == commentchar
 
 # Strip comments, and trailing comments
 def remove_comments(lines):
@@ -332,7 +333,7 @@ def header_lines(header_dict, annotate=True):
         names = HNAMES[i]
         
         if annotate:
-            lines.append('\n!'+ ' '.join(names))
+            lines.append('!'+ ' '.join(names))
             
         x = ' '.join([str(header_dict[n]) for n in names])
         lines.append(x)
