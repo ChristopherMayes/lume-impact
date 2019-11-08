@@ -15,7 +15,7 @@
 64 64 128 1 0.015 0.015 45.0
 
 !Flagdist Rstartflg Flagsbstp Nemission Temission
-16 0 0 400 1.4e-11
+16 0 0 400 14e-12
 
 !sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
 0.0006 0.0 0.0 1.0 1.0 0.0 0.0
@@ -51,7 +51,7 @@
 !***************************** L0A exit ***************************
 ! Space charge switches
 !!!0 0 0 -8 0 1 4.527856 / name:SC_ON
-!!!0 0 0 -5 0 0 4.527856 / name:SC_2D_to_3D
+0 0 0 -5 0 0 4.527856 / name:SC_2D_to_3D
 !
 0.0 1 42 -2 0 0 4.554244 / name:WRITE_BEAM_42_L0BBEG
 0.199 10 20 0 4.553856 0.15 / 
