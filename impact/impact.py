@@ -17,6 +17,7 @@ class Impact:
     If workdir=None, a location will be determined by the system. 
     
     
+    
     """
     def __init__(self,
                 input_file=None, #'ImpactT.in',
@@ -29,15 +30,13 @@ class Impact:
         
         # Save init
         self.original_input_file = input_file
-        self.use_tempdir = use_tempdir
-        self.workdir = workdir
-        if workdir:
-            assert os.path.exists(workdir), 'workdir does not exist: '+workdir        
-        self.verbose=verbose
         self.impact_bin = impact_bin
-        self.mpi_exe = mpi_exe
+        self.use_tempdir = use_tempdir
+        self.workdir = workdir     
         self.use_mpi = use_mpi
-
+        self.mpi_exe = mpi_exe
+        self.verbose=verbose
+        
         
         # These will be set
         self.timeout=None
@@ -79,6 +78,10 @@ class Impact:
         # Set ele dict:
         self.ele = ele_dict_from(self.input['lattice'])
             
+        if self.workdir: 
+            self.workdir = tools.full_path(self.workdir) #Ensure full path
+            assert os.path.exists(self.workdir), 'workdir does not exist: '+self.workdir            
+            
         # Set paths
         if self.use_tempdir:
 
@@ -86,6 +89,8 @@ class Impact:
             self.tempdir = tempfile.TemporaryDirectory(dir=self.workdir)
             self.path = self.tempdir.name
             
+        elif self.workdir:
+            self.path = self.workdir
         else:
             # Work in place
             self.path = self.original_path        
@@ -144,8 +149,10 @@ class Impact:
             runscript = [tools.full_path(self.impact_bin)]
             
         if write_to_path:
-            with open(os.path.join(self.path, 'run'), 'w') as f:
+            runfile = os.path.join(self.path, 'run')
+            with open(runfile, 'w') as f:
                 f.write(' '.join(runscript))
+            tools.make_executable(runfile)
             
         return runscript
 
@@ -210,7 +217,7 @@ class Impact:
         
     def write_input(self,  input_filename='ImpactT.in'):
         
-        path = self.path
+        path = tools.full_path(self.path)
         assert os.path.exists(path)
         
         filePath = os.path.join(path, input_filename)

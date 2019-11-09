@@ -80,7 +80,15 @@ def full_path(path):
     """
     return os.path.abspath(os.path.expandvars(path))
 
-
+def make_executable(path):
+    """
+    Makes path executable. 
+    
+    See: https://stackoverflow.com/questions/12791997/how-do-you-do-a-simple-chmod-x-from-within-python
+    """
+    mode = os.stat(path).st_mode
+    mode |= (mode & 0o444) >> 2    # copy R bits to X
+    os.chmod(path, mode)
 
 class NumpyEncoder(json.JSONEncoder):
     """
