@@ -8,6 +8,12 @@ from impact import Impact
 # Prepare Impact object. This will call I.configure() automatically. 
 I = Impact('../templates/lcls_injector/ImpactT.in', verbose=True)
 
+# Change some things
+I.input['header']['Np'] = 10000
+I.input['header']['Nx'] = 16
+I.input['header']['Ny'] = 16
+I.input['header']['Nz'] = 16
+
 # Run
 I.run()
 ...
@@ -16,10 +22,14 @@ I.run()
 h5 = h5py.File('test.h5', 'w')
 I.archive(h5)
 
-# Clean up all files
-I.cleanup()
+
 
 ```
+
+
+# Impact-T Source
+
+https://github.com/impact-lbl/IMPACT-T
 
 
 # Notes: 
