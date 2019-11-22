@@ -1,5 +1,7 @@
 #import numpy as np
 
+from .fieldmaps import read_fieldmap_h5
+
 #============================
 # Corresponding read routines to 
 
@@ -59,7 +61,7 @@ def read_input_h5(h5, verbose=False):
     if 'fieldmaps' in h5:
         d['fieldmaps'] = {}
         for k in h5['fieldmaps']:
-            d['fieldmaps'][k] = h5['fieldmaps'][k][:]
+            d['fieldmaps'][k] = read_fieldmap_h5(h5['fieldmaps'][k]) 
         if verbose:
             print('h5 read fieldmaps:', list( d['fieldmaps']))
             

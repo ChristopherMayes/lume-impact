@@ -88,9 +88,35 @@ def write_impact_input_h5(h5, input, name='input', include_fieldmaps=True):
     
     # Any fieldmaps
     if 'fieldmaps' in input and include_fieldmaps:
-        write_datasets_h5(g, input['fieldmaps'], name='fieldmaps')
-    
+        g2 = g.create_group('fieldmaps')
+        
+        for name, fieldmap in input['fieldmaps'].items():
+            write_fieldmap_h5(g2, fieldmap, name=name)
 
+
+    
+def write_fieldmap_h5(h5, fieldmap, name=None):
+    """
+
+    """
+    if name:
+        g = h5.create_group(name)
+    else:
+        g = h5
+    
+    # Look for symlink fieldmaps
+    if 'filePath' in fieldmap:
+        g.attrs['filePath'] = fieldmap['filePath']
+        return
+    
+    # Must be real fieldmap
+    
+    # Info attributes
+    write_attrs_h5(g, fieldmap['info'], name='info')
+    # Data as single dataset
+    g['data'] = fieldmap['data']    
+    
+    
 def write_impact_output_h5(h5, output, name='output'):
     """
     Write all output data. Should be dict of dicts
@@ -112,6 +138,13 @@ def write_impact_output_h5(h5, output, name='output'):
              write_datasets_h5(g2, data, key)
     
 
+    
+
+        
+    
+    
+    
+    
     
 def write_input_particles_from_file(src, dest, n_particles, skiprows=1):
     """

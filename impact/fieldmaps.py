@@ -1,4 +1,161 @@
 import numpy as np
+import os
+
+def write_fieldmap(filePath, fieldmap):
+    """
+    Master routine for writing a fieldmap
+    """
+    
+    # Look for symlink
+    if 'filePath' in fieldmap:
+        write_fieldmap_symlink(fieldmap, filePath)
+        return
+    
+    format = fieldmap['info']['format']
+    if format == 'rfdata':
+        write_fieldmap_rfdata(filePath, fieldmap)
+    elif format == 'solenoid_T7':
+        write_solenoid_fieldmap(fieldmap, filePath)
+    else:
+        print('Missing writer for fieldmap:', fieldmap)
+        raise
+        
+        
+# Simple routines for symlinking fieldmaps
+
+def read_fieldmap_symlink(filePath):
+    return {'filePath':os.path.abspath(filePath)}
+    
+def write_fieldmap_symlink(fieldmap, filePath):
+    if os.path.exists(filePath):
+        return
+        # do nothing
+    else:
+        os.symlink(fieldmap['filePath'], filePath)
+
+    
+# -----------------------
+# rfdata fieldmaps
+def read_fieldmap_rfdata(filePath):
+    """
+    Read Impact-T rfdata file, which should be simple two-column ASCII data
+    """
+    
+    info = {}
+    info['format'] = 'rfdata'
+    info['filePath'] = os.path.abspath(filePath) 
+    
+    # Read data
+    d = {}
+    d['info'] = info
+    d['data'] = np.loadtxt(filePath)
+    return d
+    
+    
+def write_fieldmap_rfdata(filePath, fieldmap):
+    """
+    
+    """
+    np.savetxt(filePath, fieldmap['data'])
+
+    
+    
+    
+def write_fieldmap_h5(h5, fieldmap, name=None):
+    """
+
+    """
+    if name:
+        g = h5.create_group(name)
+    else:
+        g = h5
+    
+    # Look for symlink fieldmaps
+    if 'filePath' in fieldmap:
+        g.attrs['filePath'] = fieldmap['filePath']
+        return
+    
+    # Must be real fieldmap
+    
+    # Info attributes
+    write_attrs_h5(g, fieldmap['info'], name='info')
+    # Data as single dataset
+    g['data'] = fieldmap['data']
+
+    
+def read_fieldmap_h5(h5):
+    """
+    
+    """
+    if 'filePath' in h5.attrs:
+        return {'filePath':h5.attrs['filePath']}
+    
+    info = dict(h5['info'].attrs)
+    data = h5['data']
+    
+    return {'info':info, 'data':data}    
+    
+    
+    
+    
+    
+    
+# -----------------------
+# Ty fieldmaps
+def read_solenoid_fieldmap(filePath):
+    """
+    Read a T7 style file.
+    
+    Format:
+    
+    Header:
+        zmin, zmax, nz
+        rmin, rmax, nr
+    Data:
+        Br, Bz
+        (repeating)
+        
+    min, max are in cm
+    Er 
+    
+    """
+    d = {}
+    # Read header 
+    with open(filePath) as f:
+        line1 = f.readline()
+        line2 = f.readline()
+    zmin, zmax, nz = line1.split()
+    rmin, rmax, nr = line2.split()
+
+    info = {}
+    info['format'] = 'solenoid_T7'
+    info['zmin'] = float(zmin)
+    info['zmax'] = float(zmax)
+    info['nz'] = int(nz)
+    info['rmin'] = float(rmin)
+    info['rmax'] = float(rmax)
+    info['nr'] = int(nr)
+    
+    # Read data
+    d['info'] = info
+    d['data'] = np.loadtxt(filePath, skiprows=2)
+    
+    return d
+
+def write_solenoid_fieldmap(fieldmap, filePath):
+    """
+    Save fieldmap data to file in T7 format.
+    fieldmap must have:
+    ['info'] = dict with keys: zmin, zmax, nz, rmin, rmax, nr
+    ['data'] = array of data
+    """
+    info = fieldmap['info']
+    line1 = ' '.join([str(x) for x in [info['zmin'], info['zmax'], info['nz']]])
+    line2 = ' '.join([str(x) for x in [info['rmin'], info['rmax'], info['nr']]])
+    header = line1+'\n'+line2
+    # Save data
+    np.savetxt(filePath, fieldmap['data'], header=header, comments='')
+
 
 
 

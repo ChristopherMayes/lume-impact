@@ -1,7 +1,7 @@
 #import numpy as np
 
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles
-from . import writers
+from . import writers, fieldmaps
 from .lattice import ele_dict_from, ele_str
 from . import tools
 import numpy as np
@@ -10,12 +10,13 @@ import tempfile
 from time import time
 import os
 
+
+
 class Impact:
     """
     
     Files will be written into a temporary directory within workdir. 
     If workdir=None, a location will be determined by the system. 
-    
     
     
     """
@@ -30,13 +31,18 @@ class Impact:
         
         # Save init
         self.original_input_file = input_file
-        self.impact_bin = impact_bin
         self.use_tempdir = use_tempdir
-        self.workdir = workdir     
-        self.use_mpi = use_mpi
-        self.mpi_exe = mpi_exe
-        self.verbose=verbose
         
+        if workdir:
+            workdir = tools.full_path(workdir)
+            assert os.path.exists(workdir), 'workdir does not exist: '+workdir   
+        self.workdir = workdir
+            
+        self.verbose=verbose
+        self.impact_bin = impact_bin
+        self.mpi_exe = mpi_exe
+        self.use_mpi = use_mpi
+
         
         # These will be set
         self.timeout=None
@@ -60,9 +66,7 @@ class Impact:
     def configure(self):
         self.configure_impact(workdir=self.workdir)
         
-    def configure_impact(self, input_filePath=None, workdir=None):
-        
-        
+    def configure_impact(self, input_filePath=None, workdir=None):     
         
         if input_filePath:
             self.load_input(input_filePath)
@@ -78,19 +82,13 @@ class Impact:
         # Set ele dict:
         self.ele = ele_dict_from(self.input['lattice'])
             
-        if self.workdir: 
-            self.workdir = tools.full_path(self.workdir) #Ensure full path
-            assert os.path.exists(self.workdir), 'workdir does not exist: '+self.workdir            
-            
         # Set paths
         if self.use_tempdir:
 
             # Need to attach this to the object. Otherwise it will go out of scope.
-            self.tempdir = tempfile.TemporaryDirectory(dir=self.workdir)
+            self.tempdir = tempfile.TemporaryDirectory(dir=workdir)
             self.path = self.tempdir.name
             
-        elif self.workdir:
-            self.path = self.workdir
         else:
             # Work in place
             self.path = self.original_path        
@@ -149,10 +147,8 @@ class Impact:
             runscript = [tools.full_path(self.impact_bin)]
             
         if write_to_path:
-            runfile = os.path.join(self.path, 'run')
-            with open(runfile, 'w') as f:
+            with open(os.path.join(self.path, 'run'), 'w') as f:
                 f.write(' '.join(runscript))
-            tools.make_executable(runfile)
             
         return runscript
 
@@ -217,7 +213,7 @@ class Impact:
         
     def write_input(self,  input_filename='ImpactT.in'):
         
-        path = tools.full_path(self.path)
+        path = self.path
         assert os.path.exists(path)
         
         filePath = os.path.join(path, input_filename)
@@ -225,15 +221,19 @@ class Impact:
         writers.write_impact_input(filePath, self.input['header'], self.input['lattice'])
         
         # Write fieldmaps
-        for fmap, data in self.input['fieldmaps'].items():
-            file = os.path.join(path, fmap)
-            np.savetxt(file, data)
-        
+        for name, fieldmap in self.input['fieldmaps'].items():
+            file = os.path.join(path, name)
+            fieldmaps.write_fieldmap(file, fieldmap)
+
         # Input particles (if required)
         # Symlink
         if self.input['header']['Flagdist'] == 16:
             src = self.input['input_particle_file']
             dest = os.path.join(path, 'partcl.data')
+            # Don't worry about overwriting in temporary directories
+            if self.tempdir and os.path.exists(dest):
+                os.remove(dest)
+            
             if not os.path.exists(dest):
                 writers.write_input_particles_from_file(src, dest, self.input['header']['Np'] )
             else:
@@ -315,10 +315,10 @@ class Impact:
             line = ele_str(ele)
             print(line)
     
-    def vprint(self, *args, **kwargs):
+    def vprint(self, *args):
         # Verbose print
         if self.verbose:
-            print(*args, **kwargs)   
+            print(*args)
     
     
         

@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from . import tools
+from . import tools, fieldmaps
 
 #-----------------
 # Parsing ImpactT input file
@@ -489,7 +489,7 @@ def parse_quadrupole(line):
     V11: rf quadrupole phase (degree)
     """    
         
-    v = line.split('/')[0].split()[3:] # V data starts with index 
+    v = line.split('/')[0].split()[3:] # V data starts with index 4 
     d={}
     d['zedge'] = float(v[1]) 
     d['b1_gradient'] = float(v[2]) 
@@ -504,6 +504,7 @@ def parse_quadrupole(line):
         d['rf_frequency'] = float(v[10])
         d['rf_phase_deg'] = float(v[11])
     return(d)    
+
 
 def quadrupole_v(ele):
     """
@@ -529,6 +530,62 @@ def quadrupole_v(ele):
         v += [ele['rf_frequency'], ele['rf_phase_deg']]
     
     return v
+
+
+#-----------------------------------------------------------------  
+def parse_solenoid(line):
+    """
+    
+    (type 3)
+    
+    V1: zedge
+    V2: Bz0 (T)
+    V3: file ID
+    V4: radius
+    V5: x misalignment error Not used.
+    V6: y misalignment error Not used.
+    V7: rotation error x Not used.
+    V8: rotation error y Not used.
+    V9: rotation error z Not used.
+    
+    The discrete magnetic field data is stored in 1T<V3>.T7 file, 
+    where <V3> is the file ID integer above
+    
+    The read in format of 1T#.T7 is in the manual. 
+    """
+    
+    v = line.split('/')[0].split()[3:] # V data starts with index 
+    d={}
+    d['zedge'] = float(v[1]) 
+    d['b_field'] = float(v[2]) 
+    d['filename'] =  '1T'+str(int(float(v[3])))+'.T7'
+    d['radius'] = float(v[4])
+    # Not used: d2 = parse_misalignments(v[5:10])
+    # d.update(d2)
+    
+    return d
+
+
+
+def solenoid_v(ele):
+    """
+    Solenoid V list from ele dict
+    
+    V[0] is the original ele
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    
+    file_id = int( ele['filename'].split('1T')[1].split('.')[0] ) 
+    
+    v = [ele, ele['zedge'], ele['b_field'], file_id, ele['radius']]
+
+    #misalignment list
+    v += misalignment_v(ele)
+
+    return v
+
+
 
 
 #-----------------------------------------------------------------  
@@ -631,6 +688,66 @@ def dipole_v(ele):
     
     v = [ele, ele['zedge'], ele['b_field_x'], ele['b_field'], ii, ele['half_gap'] ] 
     
+    return v    
+    
+    
+    
+#-----------------------------------------------------------------     
+def parse_emfield_cylindrical(line):
+    """
+    emfield_cylindrical
+    112: EMfldCyl 
+    
+    Read in discrete EM field data Ez(MV/m), Er(MV/m), and Hθ(A/m) 
+    as a function of (r,z) of EM field data (from SUPERFISH output).
+    
+    V1: zedge
+    V2: radius
+    V3: RF frequency
+    V4: theta0_deg
+    V5: file ID
+    V6: radius               Not used yet
+    V7: x misalignment error Not used yet
+    V8: y misalignment error Not used yet
+    V9: rotation error x     Not used yet
+    V10: rotation error y    Not used yet 
+    V11: rotation error z    Not used yet
+    
+    The discrete field data is stored in 1Tv3.T7 file. 
+    The read in format of 1Tv3.T7 is in the manual. 
+    
+    """
+    
+    v = line.split('/')[0].split()[3:] # V data starts with index 
+    d={}
+    d['zedge']        = float(v[1]) 
+    d['radius']       = float(v[2]) 
+    d['rf_frequency'] = float(v[3])
+    d['theta0_deg']       = float(v[4])
+    d['filename'] =  '1T'+str(int(float(v[5])))+'.T7'
+    # v[6] # Not used
+    # Not used: d2 = parse_misalignments(v[7:12])
+    # d.update(d2)
+    
+    return d
+
+def emfield_cylindrical_v(ele):
+    """
+    emfield_cylindrical V list from ele dict
+    
+    V[0] is the original ele
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    
+    file_id = int( ele['filename'].split('1T')[1].split('.')[0] ) 
+    
+    v = [ele, 
+         ele['zedge'], ele['radius'], ele['rf_frequency'], ele['theta0_deg'], file_id, 0.0]
+
+    #misalignment list (Should be zeros)
+    v += misalignment_v(ele)
+
     return v    
     
 #-----------------------------------------------------------------      
@@ -973,25 +1090,41 @@ def write_slice_info_v(ele):
 #-----------------------------------------------------------------  
 # Fieldmaps
 
-def fieldmap_names(eles, prefix='rfdata'):
-    """
-    Extracts the unique fieldmap file names from eles. 
-    This does not check if the files exist. 
-    
-    All fieldmaps should start with 'rfdata'
-    """
-    fmaps = {ele['filename'] for ele in eles if 'filename' in ele and ele['filename'].startswith(prefix) }
-    return fmaps
 
-def load_fieldmaps(fmap_names, dir):
+fieldmap_parsers = {
+    'quadrupole':fieldmaps.read_fieldmap_rfdata,
+    'dipole':fieldmaps.read_fieldmap_rfdata,
+    'multipole':fieldmaps.read_fieldmap_rfdata,
+    'srf_cavity':fieldmaps.read_fieldmap_rfdata,
+    'solrf':fieldmaps.read_fieldmap_rfdata,
+    'solenoid':fieldmaps.read_solenoid_fieldmap,
+    'emfield_cylindrical':fieldmaps.read_fieldmap_symlink, # TODO: better parsing
+    'emfield_cartesian':fieldmaps.read_fieldmap_symlink    # TODO: better parsing
+}
+
+def load_fieldmaps(eles, dir):
     """
-    Load fieldmap data as dict of np.array 
-    Fieldmaps are simple 1d ASCII files
+    Parses fieldmap data from list of elements. 
+    
     """
     fmapdata={}
-    for f in fmap_names:
-        file = os.path.join(dir, f)
-        fmapdata[f] = np.loadtxt(file)
+    
+    for ele in eles:
+        if 'filename' not in ele:
+            continue
+        name = ele['filename']
+        # Skip already parsed files
+        if name in fmapdata:
+            continue
+        type = ele['type']
+        
+        # Pick parser
+        if type in fieldmap_parsers:
+            file = os.path.join(dir, name)
+            # Call the appropriate parser
+            fmapdata[name] = fieldmap_parsers[type](file)
+
+
     return fmapdata
 
 
@@ -1003,8 +1136,10 @@ def load_fieldmaps(fmap_names, dir):
 ele_parsers = {#'bpm': parse_bpm,
                'drift':parse_drift,
                'quadrupole':parse_quadrupole,
+               'solenoid':parse_solenoid,
                'dipole':parse_dipole,
                'solrf':parse_solrf,
+               'emfield_cylindrical':parse_emfield_cylindrical,
                'offset_beam':parse_offset_beam,
                'write_beam':parse_write_beam,
                'change_timestep':parse_change_timestep,
@@ -1051,6 +1186,7 @@ def parse_ele(line):
     
     if itype in ele_type:
         e['type'] = ele_type[itype] 
+        
         if itype >= -99:
             d2 = ele_parsers[e['type']](line)
             e.update(d2)        
@@ -1155,9 +1291,7 @@ def parse_impact_input(filePath):
     eles = parse_lattice(latlines)
     
     # Get fieldmaps
-   
-    fmap_names = fieldmap_names(eles)
-    fieldmaps = load_fieldmaps(fmap_names, path)
+    fieldmaps = load_fieldmaps(eles, path)
     
 
     # Ouput dict
@@ -1176,10 +1310,14 @@ def parse_impact_input(filePath):
 #-----------------------------------------------------------------  
 # Particles
 
-def parse_impact_particles(filePath, names=('x', 'GBx', 'y', 'GBy', 'z', 'GBz')):
+def parse_impact_particles(filePath, 
+                           names=('x', 'GBx', 'y', 'GBy', 'z', 'GBz'),
+                           skiprows=0):
     """
     Parse Impact-T input and output particle data.
-    Typical filenames: 'partcl.data', 'fort.40', 'fort.50'
+    Typical filenames: 'partcl.data', 'fort.40', 'fort.50'.
+    
+    Note that partcl.data has the number of particles in the first line, so skiprows=1 should be used.
     
     Returns a strucured numpy array
     
@@ -1196,7 +1334,8 @@ def parse_impact_particles(filePath, names=('x', 'GBx', 'y', 'GBy', 'z', 'GBz'))
     
     dtype={'names': names,
            'formats': 6*[np.float]}
-    pdat = np.loadtxt(filePath, skiprows=1, dtype=dtype)
+    pdat = np.loadtxt(filePath, skiprows=skiprows, dtype=dtype,
+                     ndmin=1) # to make sure that 1 particle is parsed the same as many.
 
     return pdat    
     
