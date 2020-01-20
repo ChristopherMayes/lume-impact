@@ -132,5 +132,11 @@ def find_property(s, key='name', separator=':', delims=[' ', ',', ';']):
     
     return ss
 
+def fstr(s):
+    """
+    Makes a fixed string for h5 files
+    """
+    return np.string_(s)    
+
 
 

@@ -2,7 +2,7 @@
 
 from .parsers import header_lines
 from .lattice import lattice_lines
-
+from .tools import fstr
 
 
 def write_attrs_h5(h5, data, name=None):
@@ -164,35 +164,44 @@ def write_input_particles_from_file(src, dest, n_particles, skiprows=1):
                 line = fsrc.readline()
                 fdest.write(line)    
     
+    
 
-def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, speciesType='electron'):
+
+def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, time=0.0, speciesType='electron'):
     # Write particle data at a screen in openPMD BeamPhysics format
     # https://github.com/DavidSagan/openPMD-standard/blob/EXT_BeamPhysics/EXT_BeamPhysics.md
+
+    
 
     if name:
         g = h5.create_group(name)
     else:
         g = h5
 
-    g.attrs['speciesType'] = speciesType
-
-    g.attrs['totalCharge'] = total_charge
-
     n_particle = len(particle_data['x'])
+    #-----------
+    g.attrs['speciesType'] = fstr(speciesType)
+    g.attrs['numParticles'] = n_particle
+    g.attrs['chargeLive']  = total_charge
+    g.attrs['totalCharge'] = total_charge
+    g.attrs['chargeUnitSI'] = 1
 
     # Position
     g['position/x']=particle_data['x'] # in meters
     g['position/y']=particle_data['y']
     g['position/z']=particle_data['z']
     g['position'].attrs['unitSI'] = 1.0
-    g['position'].attrs['unitDimension']=(1., 0., 0., 0., 0., 0., 0.) # m
+    for component in ['position/x', 'position/y', 'position/z', 'position']: # Add units to all components
+        g[component].attrs['unitSI'] = 1.0
+        g[component].attrs['unitDimension']=(1., 0., 0., 0., 0., 0., 0.) # m
 
     # momenta
     g['momentum/x']=particle_data['GBx'] # gamma*beta_x
     g['momentum/y']=particle_data['GBy'] # gamma*beta_y
     g['momentum/z']=particle_data['GBz'] # gamma*beta_z
-    g['momentum'].attrs['unitSI']= 2.73092449e-22 # m_e *c in kg*m / s
-    g['momentum'].attrs['unitDimension']=(1., 1., -1., 0., 0., 0., 0.) # kg*m / s
+    for component in ['momentum/x', 'momentum/y', 'momentum/z', 'momentum']: 
+        g[component].attrs['unitSI']= 2.73092449e-22 # m_e *c in kg*m / s
+        g[component].attrs['unitDimension']=(1., 1., -1., 0., 0., 0., 0.) # kg*m / s
     
     # Constant records
     
@@ -204,5 +213,17 @@ def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, sp
     g2.attrs['unitSI'] = 1.0
     g2.attrs['unitDimension'] = (0., 0., 1, 1., 0., 0., 0.) # Amp*s = Coulomb    
 
+    # Time
+    g2 = g.create_group('time')
+    g2.attrs['value']  = 0.0
+    g2.attrs['shape'] = (n_particle)
+    g2.attrs['unitSI'] = 1.0
+    g2.attrs['unitDimension'] = (0., 0., 1, 0., 0., 0., 0.) # s
 
+    # Status
+    g2 = g.create_group('status')
+    g2.attrs['value']  = 1
+    g2.attrs['shape'] = (n_particle)
+    g2.attrs['unitSI'] = 1.0
+    g2.attrs['unitDimension'] = (0., 0., 0, 0., 0., 0., 0.) # dimensionless
 
