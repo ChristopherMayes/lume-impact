@@ -61,9 +61,9 @@ def runs_script(runscript=[], dir=None, log_file=None, verbose=True):
     log = []
     
     for path in execute(runscript):
-         if verbose:
+        if verbose:
             print(path, end="")
-         log.append(path)
+        log.append(path)
     if log_file:
         with open(log_file, 'w') as f:
             for line in log:
@@ -90,26 +90,7 @@ def make_executable(path):
     mode |= (mode & 0o444) >> 2    # copy R bits to X
     os.chmod(path, mode)
 
-class NumpyEncoder(json.JSONEncoder):
-    """
-    See: https://stackoverflow.com/questions/26646362/numpy-array-is-not-json-serializable
-    """
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
-def fingerprint(keyed_data, digest_size=16):
-    """
-    Creates a cryptographic fingerprint from keyed data. 
-    Used JSON dumps to form strings, and the blake2b algorithm to hash.
-    
-    """
-    h = blake2b(digest_size=16)
-    for key in keyed_data:
-        val = keyed_data[key]
-        s = json.dumps(val, sort_keys=True, cls=NumpyEncoder).encode()
-        h.update(s)
-    return h.hexdigest()
+
 
 
 
@@ -138,5 +119,33 @@ def fstr(s):
     """
     return np.string_(s)    
 
+
+
+class NpEncoder(json.JSONEncoder):
+    """
+    See: https://stackoverflow.com/questions/50916422/python-typeerror-object-of-type-int64-is-not-json-serializable/50916741
+    """
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NpEncoder, self).default(obj)
+
+def fingerprint(keyed_data, digest_size=16):
+    """
+    Creates a cryptographic fingerprint from keyed data. 
+    Used JSON dumps to form strings, and the blake2b algorithm to hash.
+    
+    """
+    h = blake2b(digest_size=16)
+    for key in keyed_data:
+        val = keyed_data[key]
+        s = json.dumps(val, sort_keys=True, cls=NpEncoder).encode()
+        h.update(s)
+    return h.hexdigest()  
 
 

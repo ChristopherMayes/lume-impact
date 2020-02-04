@@ -1,6 +1,11 @@
+from . import tools, fieldmaps
+from .particles import SPECIES_MASS
+
+from pmd_beamphysics.units import pmd_unit, multiply_units
+
 import numpy as np
 import os
-from . import tools, fieldmaps
+
 
 #-----------------
 # Parsing ImpactT input file
@@ -1266,7 +1271,7 @@ def parse_impact_input(filePath):
            print('Warning: Non-utf8 characters were detected in the input file and ignored.')
            data = f.read()
     except: 
-        print('Unxpected error while reading input file!!!')
+        raise ValueError('Unxpected error while reading input file!!!')
        
     lines = data.split('\n')
     header=parse_header(lines)
@@ -1355,8 +1360,8 @@ def load_fortX(filePath, keys):
 FORT_KEYS = {}
 FORT_UNITS = {}
 
-FORT_KEYS[18] = ['t', 'z', 'gamma', 'E_kinetic','beta', 'r_max','deltaGamma_rms']
-FORT_UNITS[18] = ['s','m', '1',     'MeV',      '1',     'm',    '1']
+FORT_KEYS[18] =  ['t', 'mean_z', 'mean_gamma', 'mean_kinetic_energy_MeV','mean_beta', 'max_r', 'sigma_gamma']
+FORT_UNITS[18] = ['s', 'm',      '1',          'MeV',           '1',         'm',     '1']
 def load_fort18(filePath, keys=FORT_KEYS[18]):
     ''' From impact manual v2:
         1st col: time (secs)
@@ -1368,8 +1373,8 @@ def load_fort18(filePath, keys=FORT_KEYS[18]):
     '''
     return load_fortX(filePath, keys)
 
-FORT_KEYS[24] =  ['t', 'z', 'x_centroid', 'x_rms', 'GBx_centroid', 'GBx_rms', 'x_twiss','x_normemit']
-FORT_UNITS[24] = ['s', 'm', 'm',          'm',     '1',            '1',       '??',     'm-rad' ]
+FORT_KEYS[24] =  ['t', 'mean_z', 'mean_x', 'sigma_x', 'mean_gammabeta_x', 'sigma_gammabeta_x', '-cov_x__gammabeta_x','norm_emit_x']
+FORT_UNITS[24] = ['s', 'm', 'm',          'm',     '1',            '1',       'm',     'm' ]
 def load_fort24(filePath, keys=FORT_KEYS[24]):
     '''From impact manual:
     fort.24, fort.25: X and Y RMS size information
@@ -1379,12 +1384,12 @@ def load_fort24(filePath, keys=FORT_KEYS[24]):
     4th col: RMS size (m)
     5th col: Centroid momentum normalized by MC
     6th col: RMS momentum normalized by MC
-    7th col: Twiss parameter
+    7th col: Twiss parameter: -<x, gamma*beta_x>
     8th col: normalized RMS emittance (m-rad)
     '''
     return load_fortX(filePath, keys)
     
-FORT_KEYS[25] = ['t', 'z', 'y_centroid', 'y_rms','GBy_centroid', 'GBy_rms', 'y_twiss','y_normemit']    
+FORT_KEYS[25] = ['t', 'mean_z', 'mean_y', 'sigma_y','mean_gammabeta_y', 'sigma_gammabeta_y', '-cov_y__gammabeta_y','norm_emit_y']    
 FORT_UNITS[25] = FORT_UNITS[24]
 def load_fort25(filePath, keys=FORT_KEYS[25]):
     '''
@@ -1393,7 +1398,7 @@ def load_fort25(filePath, keys=FORT_KEYS[25]):
     return load_fortX(filePath, keys)
 
 
-FORT_KEYS[26] = ['t', 'z_centroid','z_rms','GBz_centroid', 'GBz_rms', 'z_twiss','z_normemit']
+FORT_KEYS[26] = ['t', 'mean_z','sigma_z','mean_gammabeta_z', 'sigma_gammabeta_z', '-cov_z__gammabeta_z','norm_emit_z']
 FORT_UNITS[26]= FORT_UNITS[25]
 def load_fort26(filePath, keys=FORT_KEYS[26]):
     '''From impact manual:
@@ -1402,12 +1407,12 @@ def load_fort26(filePath, keys=FORT_KEYS[26]):
     2nd col: centroid location (m)
     3rd col: RMS size (m)
     4th col: Centroid momentum normalized by MC 5th col: RMS momentum normalized by MC
-    6th col: Twiss parameter
+    6th col: Twiss parameter: -<z, gamma*beta_z>
     7th col: normalized RMS emittance (m-rad)
     '''
     return load_fortX(filePath, keys)
 
-FORT_KEYS[27] =  ['t', 'z', 'x_max','GBx_max','y_max', 'GBy_max', 'z_max','GBz_max']
+FORT_KEYS[27] =  ['t', 'mean_z', 'max_amplitude_x','max_amplitude_gammabeta_x', 'max_amplitude_y','max_amplitude_gammabeta_y', 'max_amplitude_z','max_amplitude_gammabeta_z']
 FORT_UNITS[27] = ['s', 'm', 'm',    '1',      'm',     '1',       'm',    '1']
 def load_fort27(filePath, keys=FORT_KEYS[27]):
     '''
@@ -1423,7 +1428,7 @@ def load_fort27(filePath, keys=FORT_KEYS[27]):
     '''
     return load_fortX(filePath, keys)
 
-FORT_KEYS[28] =  ['t', 'z', 'numparticles_min', 'numparticles_max','numparticles']
+FORT_KEYS[28] =  ['t', 'mean_z', 'loadbalance_min_n_particle', 'loadbalance_max_n_particle','n_particle']
 FORT_UNITS[28] = ['s', 'm', '1',                '1',               '1' ]
 def load_fort28(filePath, keys=FORT_KEYS[28] ):
     '''From impact manual:
@@ -1436,7 +1441,7 @@ def load_fort28(filePath, keys=FORT_KEYS[28] ):
     '''
     return load_fortX(filePath, keys)
    
-FORT_KEYS[29] =  ['t', 'z', 'x_moment3','GBx_moment3','y_moment3', 'GBy_moment3', 'z_moment3','GBz_moment3']    
+FORT_KEYS[29] =  ['t', 'mean_z', 'moment3_x','moment3_gammabeta_x', 'moment3_y','moment3_gammabeta_y', 'moment3_z','moment3_gammabeta_z']
 FORT_UNITS[29] = ['s', 'm', 'm',        '1',          'm',         '1',           'm',        '1']
 def load_fort29(filePath, keys=FORT_KEYS[29]):
     '''
@@ -1452,7 +1457,7 @@ def load_fort29(filePath, keys=FORT_KEYS[29]):
     '''            
     return load_fortX(filePath, keys)
 
-FORT_KEYS[30] =  ['t', 'z', 'x_moment4','GBx_moment4','y_moment4', 'GBy_moment4', 'z_moment4','GBz_moment4']
+FORT_KEYS[30] =  ['t', 'mean_z', 'moment4_x','moment4_gammabeta_x', 'moment4_y','moment4_gammabeta_y', 'moment4_z','moment4_gammabeta_z']
 FORT_UNITS[30] = FORT_UNITS[29]
 def load_fort30(filePath, keys=FORT_KEYS[30] ):
     '''
@@ -1466,32 +1471,24 @@ def load_fort30(filePath, keys=FORT_KEYS[30] ):
     '''            
     return load_fortX(filePath, keys)
 
-
-
-
-def load_fort60_and_70(filePath):
+FORT_KEYS[60] =  ['slice_z', 'particles_per_cell', 'current', 'norm_emit_x', 'norm_emit_y', 'mean_energy', 'sigma_energy'] 
+FORT_UNITS[60] = ['m', '1', 'A', 'm', 'm', 'eV', 'eV']
+def load_fort60_and_70(filePath, keys=FORT_KEYS[60]):
     """
     1st col: bunch length (m)
     2nd col: number of macroparticles per cell
-    3rd col: current profile
-    4th col: x slice emittance (m-rad)
-    5th col: y slice emittance (m-rad)
-    6th col: energy spread per cell without taking out correlation (eV)
-    7th col: uncorrelated energy spread per cell (eV)
+    3rd col: current (A)
+    4th col: x slice emittance (m*rad)
+    5th col: y slice emittance (m*rad)
+    6th col: mean energy (eV)
+    7th col: energy spread (eV)
     """
-    fortdata = np.loadtxt(filePath)
-    data = {}
-    keys = ['slice_z', 
-            'particles_per_cell',
-            'current',
-            'x_emittance',
-            'y_emittance',
-            'energy_spread',
-            'uncorreleted_energy_spread']
-    for count, key in enumerate(keys):
-        data[key] = fortdata[:,count]
-    return data
-       
+    return load_fortX(filePath, keys)
+     
+    
+
+    
+    
     
 # Wrapper functions to provide keyed output    
     
@@ -1594,7 +1591,7 @@ FORT_LOADER = {
 
 # Form large unit dict for these types of files
 UNITS = {}
-for i in [18, 24, 25, 26, 27, 28, 29, 30]:
+for i in [18, 24, 25, 26, 27, 28, 29, 30, 60]:
     for j, k in enumerate(FORT_KEYS[i]):
         UNITS[k] = FORT_UNITS[i][j]
     
@@ -1675,3 +1672,80 @@ def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
     return alldat    
 
 
+
+
+
+def load_stats(path, species='electron', verbose=False):
+    """
+    Loads all Impact-T statistics output. 
+    
+    Returns dicts:
+        data, units
+    
+    Converts gamma_beta_X keys to pX using the mass from the species, in units eV/c. 
+    
+    """
+    
+    data = load_many_fort(path, FORT_STAT_TYPES, verbose=verbose)
+    units = {}
+    
+    mc2 = SPECIES_MASS[species]
+        
+    for k in list(data):
+        
+        unit_string = UNITS[k] 
+        
+        # Special
+        if k == 'mean_kinetic_energy_MeV':
+            newkey='mean_kinetic_energy'
+            data[newkey] = data.pop(k)*1e6
+            unit_string = 'eV'
+            k = newkey
+        
+        u = pmd_unit(unit_string)
+        
+        # Replace relativistic gamma*beta with momenta
+        if k.endswith('gammabeta_x') or k.endswith('gammabeta_y') or k.endswith('gammabeta_z'):
+            prefix = k[0:-11]
+            suffix = k[-1]
+            newkey = prefix+'p'+suffix
+            # Remove old key
+            data[newkey] = data.pop(k)*mc2
+            # to let the next if work
+            k = newkey
+            
+            u = multiply_units(u, pmd_unit('eV/c'))
+            
+        # Replace -
+        if k.startswith('-'):
+            newkey = k[1:]
+            data[newkey] = -1*data.pop(k)
+            k=newkey
+            
+            
+        # Add to units
+        units[k] = u
+                      
+    return data, units
+            
+def load_slice_info(path, verbose=False):
+    """
+    Loads slice data. Returns dicts:
+        data, units
+    
+    data has keys:
+        initial_particles
+        final_particles
+    and each is a dict with the slice statistics arrays
+        
+    """
+    data = load_many_fort(path, FORT_SLICE_TYPES, verbose=verbose)
+    units = {}
+    
+    data1=data[list(data)[0]]
+    for k in data1:
+        unit_string = UNITS[k] 
+        units[k] = pmd_unit(unit_string)
+        
+    
+    return data, units

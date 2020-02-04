@@ -1,59 +1,81 @@
+
+
+
+import scipy.constants
+
+m_e = scipy.constants.value('electron mass energy equivalent in MeV')*1e6
+m_p = scipy.constants.value('proton mass energy equivalent in MeV')*1e6
+c_light = 299792458
+e_charge = scipy.constants.e
+
 import numpy as np
 
+SPECIES_MASS = {
+    'electron': m_e,
+    'proton': m_p
+    
+}
 
 
-def convert_particles_t_to_s(particles, s, style='Bmad'):
+def identify_species(mass_eV, charge_sign):
     """
-    Drifts particles to a common s (z) position. 
+    Simple function to identify a species based on its mass in eV and charge sign.
     
-    Outputs coordinates in Bmad style. 
+    Finds species:
+        'electron'
+        'positron'
+    
+    TODO: more species
+    
+    """
+    m = round(mass_eV*1e-2)/1e-2
+    if m == 511000.0:
+        if charge_sign == 1:
+            return 'positron'
+        if charge_sign == -1:
+            return 'electron'
+    if m == 938272100.0:
+        if charge_sign == 1:
+            return 'proton'
+        
+    raise Exception(f'Cannot identify species with mass {mass_eV} eV and charge {charge_sign} e')
+
+
+
+def impact_particles_to_particle_data(tout, species='electron', time=0, macrocharge=0):
+    """
+    Convert impact particles to a standard form 
     
     """
     
-    ##mec2 = 0.51099895000e6
+    mc2 = SPECIES_MASS[species]
     
-    # 
-    x = particles['x']
-    y = particles['y']
-    z = particles['z']
-
-    GBx = particles['GBx']
-    GBy = particles['GBy']
-    GBz = particles['GBz']
+    data = {}
     
-    # Get these quantities
-    GB2 = GBx**2 + GBy**2 + GBz**2
-    GB = np.sqrt(GB2)
-    gamma = np.sqrt(1 + GB2) 
-    beta = np.sqrt(GB2)/gamma # Total beta
-    beta_z = GBz/gamma
+    n_particle = len(tout['x'])
     
-    dz = z - s # Position relative to s
-    xnew = x - dz * GBx/GBz
-    ynew = y - dz * GBy/GBz
-    cdt = -dz/beta_z
-    betacdt = beta*cdt
+    data['x'] = tout['x']
+    data['y'] = tout['y']
+    data['z'] = tout['z']
+    factor = c_light**2 /e_charge # kg -> eV
+    data['px'] = tout['GBx']*mc2
+    data['py'] = tout['GBy']*mc2
+    data['pz'] = tout['GBz']*mc2
     
-    # Get ref:
-    GB0 = np.mean(GB)
-    G0 = np.mean(gamma)
+    data['t'] = np.full(n_particle, time)
+    data['status'] = np.full(n_particle, 1)
+    if macrocharge == 0:
+        weight = 1/n_particle
+    else:
+        weight = abs(macrocharge)
+    data['weight'] =  np.full(n_particle, weight) 
     
-    assert style == 'Bmad'
-
-    # Form structured array
-    dtype={'names': ['x', 'px/p0', 'y', 'py/p0', '-betacdt', 'delta'],
-           'formats': 6*[np.float]}
     
-    n = len(x)
-    new_particles = np.empty(n, dtype=dtype)
-    new_particles['x'] = xnew
-    new_particles['px/p0'] = GBx / GB0
-    new_particles['y'] = ynew
-    new_particles['py/p0'] = GBy / GB0
-    new_particles['-betacdt'] = -betacdt
-    new_particles['delta'] = GB/GB0 -1
     
-    return new_particles
+    data['species'] = species
+    data['n_particle'] = n_particle
+    return data
+    
     
     
 def write_bmad_particles_ascii(particles, filename='test.beam0', charge=250e-12, mean_z=0, t_center=0, ix_ele=0, ix_bunch=1, species='electron'):

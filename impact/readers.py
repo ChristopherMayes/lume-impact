@@ -2,6 +2,9 @@
 
 from .fieldmaps import read_fieldmap_h5
 
+from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.units import read_dataset_and_unit_h5
+
 #============================
 # Corresponding read routines to 
 
@@ -68,29 +71,64 @@ def read_input_h5(h5, verbose=False):
     return d
 
 
-def read_output_h5(h5, verbose=False):
+def read_output_h5(h5, expected_units=None, verbose=False):
     """
-    Read all Impact-T output from h5 handle.
+    Reads a properly archived Impact output and returns a dicts:
+        output
+        units
     
-    Corresponds exactly to the output of write_impact_output_h5
+    
+    Corresponds exactly to the output of writers.write_output_h5
     """
-    d = {}
-    if 'run_info' in h5:
-        d['run_info'] = read_attrs_h5(h5['run_info'])
-        if verbose:
-            print('h5 read run_info')
+    
+    o = {}
+    o['run_info'] = dict(h5.attrs)
+    
+    units = {}
     
     if 'stats' in h5:
-        d['stats'] = read_datasets_h5(h5['stats'])
+        name2 = 'stats'
         if verbose:
-            print('h5 read stats')
+            print(f'reading {name2}')        
+        g = h5[name2]
+        o[name2] = {}
+        for key in g:
+            if expected_units:
+                expected_unit = expected_units[key] 
+            else:
+                expected_unit = None
+            o[name2][key], units[key] = read_dataset_and_unit_h5(g[key], expected_unit=expected_unit) 
             
+    #TODO: this could be simplified
     if 'slice_info' in h5:
-        g = h5['slice_info']
-        slice_info = d['slice_info'] = {}
-        for k in g:
-            slice_info[k] = read_datasets_h5(g[k])
+        name2 = 'slice_info'
         if verbose:
-            print('h5 read slice_info')            
-            
-    return d
+            print(f'reading {name2}')        
+        g = h5[name2]
+        o[name2] = {}
+        for name3 in g:
+            g2 = g[name3]
+            o[name2][name3]={}
+        
+            for key in g2:
+                if expected_units:
+                    expected_unit = expected_units[key] 
+                else:
+                    expected_unit = None
+                o[name2][name3][key], units[key] = read_dataset_and_unit_h5(g2[key], expected_unit=expected_unit)         
+    
+    
+    if 'particles' in h5:
+        o['particles'] = read_particles_h5(h5['particles'])        
+        
+    return o, units
+
+def read_particles_h5(h5):
+    """
+    Reads particles from h5
+    """
+    dat = {}
+    for g in h5:
+        dat[g] = ParticleGroup(h5=h5[g])
+    return dat      
+

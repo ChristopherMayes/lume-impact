@@ -1,9 +1,12 @@
 #import numpy as np
 
+from pmd_beamphysics.units import write_dataset_and_unit_h5
+
 from .parsers import header_lines
 from .lattice import lattice_lines
 from .tools import fstr
 
+import numpy as np
 
 def write_attrs_h5(h5, data, name=None):
     """
@@ -18,18 +21,6 @@ def write_attrs_h5(h5, data, name=None):
         g.attrs[key] = data[key]
     return g
 
-def write_datasets_h5(h5, data, name=None):
-    """
-    Simple function to write dict datasets in a group with name
-    """
-    if name:
-        g = h5.create_group(name)
-    else:
-        g = h5
-    
-    for key in data:
-        g[key] = data[key]
-    return g
 
 
 def write_impact_input(filePath, header, eles):
@@ -57,7 +48,7 @@ def write_lattice_h5(h5, eles, name='lattice'):
             
             
             
-def write_impact_input_h5(h5, input, name='input', include_fieldmaps=True):
+def write_input_h5(h5, input, name='input', include_fieldmaps=True):
     """
     Write header
     
@@ -117,33 +108,89 @@ def write_fieldmap_h5(h5, fieldmap, name=None):
     g['data'] = fieldmap['data']    
     
     
-def write_impact_output_h5(h5, output, name='output'):
-    """
-    Write all output data. Should be dict of dicts
-    """
-    if name:
-        g = h5.create_group(name)
-    else:
-        g = h5
-    
-    if 'run_info' in output:
-        write_attrs_h5(h5, output['run_info'], name='run_info' )
-    
-    if 'stats' in output:
-         write_datasets_h5(h5, output['stats'], 'stats')
-    
-    if 'slice_info' in output:
-        g2 = g.create_group('slice_info')
-        for key, data in output['slice_info'].items():
-             write_datasets_h5(g2, data, key)
-    
 
     
+def write_output_h5(h5, impact_output, name='output', units=None):
+    """
+    Writes all of impact_output dict to an h5 handle
+    
+    """
+    g = h5.create_group(name)
+    
+    if 'stats' in impact_output:
+        name2 = 'stats'
+        g2 = g.create_group(name2)
+        for key, data in impact_output[name2].items():
+            if units:
+                unit = units[key]
+            else:
+                unit = None
+            write_dataset_and_unit_h5(g2, key, data, unit)       
+       
+    # TODO: This could be simplified
+    if 'slice_info' in impact_output:
+        name2 = 'slice_info'
+        g2 = g.create_group(name2)
+        for name3, slice_dat in impact_output[name2].items():
+            g3 = g2.create_group(name3)
+            for key, data in impact_output[name2][name3].items():
+                if units:
+                    unit = units[key]
+                else:
+                    unit = None
+                write_dataset_and_unit_h5(g3, key, data, unit)
+            
+    if 'run_info' in impact_output:
+        for k, v in impact_output['run_info'].items():
+            g.attrs[k] = v
+    
+    # Particles
+    write_particles_h5(g, impact_output['particles'], name='particles')    
+    
+    
+#----------------------------        
+# particles
 
+
+def fstr(s):
+    """
+    Makes a fixed string for h5 files
+    """
+    return np.string_(s)
+
+def opmd_init(h5, basePath='/screen/%T/', particlesPath='/' ):
+    """
+    Root attribute initialization.
+    
+    h5 should be the root of the file.
+    """
+    d = {
+        'basePath':basePath,
+        'dataType':'openPMD',
+        'openPMD':'2.0.0',
+        'openPMDextension':'BeamPhysics;SpeciesType',
+        'particlesPath':particlesPath    
+    }
+    for k,v in d.items():
+        h5.attrs[k] = fstr(v)
         
+def write_particles_h5(h5, particles, name='particles'):
+    """
+    Write all screens to file, simply named by their index
     
+    See: read_particles_h5
+    """
+    g = h5.create_group(name)
     
+    # Set base attributes
+    opmd_init(h5, basePath='/'+name+'/%T/', particlesPath='/' )
     
+    # Loop over particles
+    for name, particle_group in particles.items():
+        #name = str(i)        
+        particle_group.write(g, name=name)  
+            
+
     
     
 def write_input_particles_from_file(src, dest, n_particles, skiprows=1):
@@ -168,6 +215,11 @@ def write_input_particles_from_file(src, dest, n_particles, skiprows=1):
 
 
 def write_impact_particles_h5(h5, particle_data, name=None, total_charge=1.0, time=0.0, speciesType='electron'):
+    """
+    Old routine. Do not delete, may still be useful.
+    
+    """
+    
     # Write particle data at a screen in openPMD BeamPhysics format
     # https://github.com/DavidSagan/openPMD-standard/blob/EXT_BeamPhysics/EXT_BeamPhysics.md
 

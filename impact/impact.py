@@ -1,14 +1,18 @@
-#import numpy as np
-
-from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles
+from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info
 from . import writers, fieldmaps
 from .lattice import ele_dict_from, ele_str
-from . import tools
-import numpy as np
-import tempfile
+from .particles import impact_particles_to_particle_data, identify_species
+from . import tools, readers
 
+from pmd_beamphysics import ParticleGroup
+
+import h5py
+import numpy as np
+
+import tempfile
 from time import time
 import os
+
 
 
 
@@ -48,7 +52,8 @@ class Impact:
         self.timeout=None
         self.input = {'header':{}, 'lattice':[]}
         self.output = {}
-        self.particles = {}
+        
+        self._units = {}
         self.ele = {} # Convenience lookup of elements in lattice by name
         
         
@@ -105,13 +110,21 @@ class Impact:
         self.input = parse_impact_input(f)
     
     def load_output(self):
-        self.output['stats'] = load_many_fort(self.path, FORT_STAT_TYPES, verbose=self.verbose)
-        self.output['slice_info'] = load_many_fort(self.path, FORT_SLICE_TYPES, verbose=self.verbose)
+        """
+        Loads stats, slice_info, and particles.
+        """
+        self.output['stats'], u = load_stats(self.path, species=self.species, verbose=self.verbose)
+        self._units.update(u)
+        
+        self.output['slice_info'], u = load_slice_info(self.path, self.verbose)
+        self._units.update(u)
+        
+        self.load_particles()
         
     def load_particles(self):
         # Standard output
         self.vprint('Loading particles')
-        self.particles = load_many_fort(self.path, FORT_PARTICLE_TYPES, verbose=self.verbose)   
+        self.output['particles'] = load_many_fort(self.path, FORT_PARTICLE_TYPES, verbose=self.verbose)   
         # Additional particle files:
         for e in self.input['lattice']:
             if e['type'] == 'write_beam':
@@ -121,9 +134,30 @@ class Impact:
                 if os.path.exists(full_fname):
                     self.particles[name] = parse_impact_particles(full_fname)
                     self.vprint(f'Loaded write beam particles {name} {fname}')
-                
-            
+
+        # Convert all to ParticleGroup
+        for name, pdata in self.particles.items():
+            pg_data = impact_particles_to_particle_data(pdata, macrocharge=self.macrocharge)
+            self.particles[name] = ParticleGroup(data = pg_data)
+            self.vprint(f'Converted {name} to ParticleGroup')
+      
+    
+    # Convenience routines
+    @property
+    def particles(self):
+        return self.output['particles']
+    
+    def stat(self, key):
+        """Con"""
+        return self.output['stats'][key]
+    
+    def units(self, key):
+        """pmd_unit of a given key"""
+        return self._units[key]
         
+    
+    #--------------
+    # Run
     def run(self):
         if not self.configured:
             self.vprint('not configured to run')
@@ -152,7 +186,6 @@ class Impact:
             
         return runscript
 
-    
     def run_impact(self, verbose=False, timeout=None):
         
         # Check that binary exists
@@ -172,6 +205,7 @@ class Impact:
         self.write_input()
         
         runscript = self.get_run_script()
+        run_info['run_script'] = ' '.join(runscript)
         
         try: 
             if timeout:
@@ -256,41 +290,65 @@ class Impact:
     
         
                 
-    def archive(self, h5):
+    def archive(self, h5=None):
         """
-        Archive all data to an h5 handle. 
-        """
+        Archive all data to an h5 handle or filename.
         
+        If no file is given, a file based on the fingerprint will be created.
+        
+        """
+        if not h5:
+            h5 = 'impact_'+self.fingerprint()+'.h5'
+         
+        if isinstance(h5, str):
+            g = h5py.File(h5, 'w')
+            self.vprint(f'Archiving to file {h5}')
+        else:
+            g = h5
+            
         # All input
-        writers.write_impact_input_h5(h5, self.input, name='input')
+        writers.write_input_h5(g, self.input, name='input')
 
         # All output
-        writers.write_impact_output_h5(h5, self.output, name=None) 
-            
-        # Particles    
-        g = h5.create_group('particles')
-        for key in self.particles:
-            particle_data = self.particles[key]
-            name = key
-            charge = self.macrocharge() * len(particle_data['x'])
-            self.vprint('Archiving', name, 'with charge', charge)
-            writers.write_impact_particles_h5(g, particle_data, name=name, total_charge=charge) 
+        writers.write_output_h5(g, self.output, name='output', units=self._units) 
+        
+        return h5
 
+    
     def load_archive(self, h5, configure=True):
         """
-        Loads input and output from h5 archive. Re-runs configure. 
+        Loads input and output from archived h5 file.
+        
+        See: Impact.archive
         """
-        self.input = readers.read_input_h5(h5['input'], verbose=self.verbose)
-        self.output = readers.read_output_h5(h5, verbose=self.verbose)            
-            
+        if isinstance(h5, str):
+            g = h5py.File(h5, 'r')
+            self.vprint(f'Reading archive file {h5}')
+        else:
+            g = h5
+        
+        self.input = readers.read_input_h5(g['input'], verbose=self.verbose)
+        self.output, self._units = readers.read_output_h5(g['output'], verbose=self.verbose)   
+
+        
+        self.vprint('Loaded from archive. Note: Must reconfigure to run again.')
+        self.configured = False     
+        
         if configure:    
-            self.configure()                  
+            self.configure()           
+                       
             
-    
+    @property
     def total_charge(self):
         H = self.input['header']
         return H['Bcurr']/H['Bfreq']
-
+    
+    @property
+    def species(self):
+        H = self.input['header']
+        return identify_species(H['Bmass'], H['Bcharge'])
+    
+    @property
     def macrocharge(self):
         H = self.input['header']
         Np = H['Np']

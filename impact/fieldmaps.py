@@ -91,7 +91,7 @@ def read_fieldmap_h5(h5):
         return {'filePath':h5.attrs['filePath']}
     
     info = dict(h5['info'].attrs)
-    data = h5['data']
+    data = h5['data'][:]
     
     return {'info':info, 'data':data}    
     
