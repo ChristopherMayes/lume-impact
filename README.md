@@ -27,6 +27,29 @@ I.archive(h5)
 ```
 
 
+Installing lume-impact
+======================
+
+Installing `lume-impact` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
+
+```
+conda config --add channels conda-forge
+```
+
+Once the `conda-forge` channel has been enabled, `lume-impact` can be installed with:
+
+```
+conda install lume-impact
+```
+
+It is possible to list all of the versions of `lume-impact` available on your platform with:
+
+```
+conda search lume-impact --channel conda-forge
+```
+
+
+
 # Impact-T Source
 
 https://github.com/impact-lbl/IMPACT-T
