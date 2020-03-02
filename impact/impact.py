@@ -1,10 +1,12 @@
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info
 from . import writers, fieldmaps
 from .lattice import ele_dict_from, ele_str
-from .particles import impact_particles_to_particle_data, identify_species
 from . import tools, readers
 
+from .particles import identify_species
+
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.interfaces.impact import impact_particles_to_particle_data
 
 import h5py
 import numpy as np
@@ -26,6 +28,7 @@ class Impact:
     """
     def __init__(self,
                 input_file=None, #'ImpactT.in',
+                initial_particles=None,
                 impact_bin='$IMPACTT_BIN',
                 use_tempdir=True,
                 workdir=None,
@@ -35,6 +38,7 @@ class Impact:
         
         # Save init
         self.original_input_file = input_file
+        self.initial_particles = initial_particles
         self.use_tempdir = use_tempdir
         
         if workdir:
@@ -137,7 +141,11 @@ class Impact:
 
         # Convert all to ParticleGroup
         for name, pdata in self.particles.items():
-            pg_data = impact_particles_to_particle_data(pdata, macrocharge=self.macrocharge)
+            print(name)
+            pg_data = impact_particles_to_particle_data(pdata, 
+                                                        mc2=self.mc2,
+                                                        species=self.species,
+                                                        macrocharge=self.macrocharge)
             self.particles[name] = ParticleGroup(data = pg_data)
             self.vprint(f'Converted {name} to ParticleGroup')
       
@@ -244,7 +252,32 @@ class Impact:
             os.chdir(init_dir)    
  
         self.finished = True
+    
+    
+    def write_initial_particles(self, fname=None, update_header=False):
+        if not fname:
+            fname = os.path.join(self.path, 'partcl.data')
         
+        H = self.input['header']
+        # check for cathode start
+        if H['Flagimg']:
+            cathode_kinetic_energy_ref = H['Bkenergy']
+        else:
+            cathode_kinetic_energy_ref = None
+            
+        # Call the openPMD-beamphysics writer routine    
+        res = self.initial_particles.write_impact(fname, verbose=self.verbose,
+                                          cathode_kinetic_energy_ref=cathode_kinetic_energy_ref)
+        
+        if update_header:
+            for k, v in res.items():
+                if k in H:
+                    H[k] = v
+                    self.vprint(f'Replaced {k} with {v} according to initial particles')    
+           
+            # Make sure this is set
+            H['Flagdist'] == 16
+    
     def write_input(self,  input_filename='ImpactT.in'):
         
         path = self.path
@@ -259,11 +292,15 @@ class Impact:
             file = os.path.join(path, name)
             fieldmaps.write_fieldmap(file, fieldmap)
 
-        # Input particles (if required)
+        # Initial particles (ParticleGroup)
+        if self.initial_particles:
+            p_info = self.write_initial_particles(update_header=True)            
+
         # Symlink
-        if self.input['header']['Flagdist'] == 16:
+        elif self.input['header']['Flagdist'] == 16:
             src = self.input['input_particle_file']
             dest = os.path.join(path, 'partcl.data')
+            
             # Don't worry about overwriting in temporary directories
             if self.tempdir and os.path.exists(dest):
                 os.remove(dest)
@@ -347,6 +384,10 @@ class Impact:
     def species(self):
         H = self.input['header']
         return identify_species(H['Bmass'], H['Bcharge'])
+    
+    @property
+    def mc2(self):
+        return self.input['header']['Bmass']
     
     @property
     def macrocharge(self):
