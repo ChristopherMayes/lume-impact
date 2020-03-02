@@ -8,6 +8,8 @@ from .particles import identify_species
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.impact import impact_particles_to_particle_data
 
+from scipy.interpolate import interp1d
+
 import h5py
 import numpy as np
 
@@ -81,7 +83,7 @@ class Impact:
             self.load_input(input_filePath)
         
         # Header Bookkeeper
-        self.input['header'] = header_bookkeeper(self.input['header'], verbose=self.verbose)
+        self.input['header'] = header_bookkeeper(self.header, verbose=self.verbose)
         
         if  len(self.input['lattice']) == 0:
             self.vprint('Warning: lattice is empty. Not configured')
@@ -102,7 +104,7 @@ class Impact:
             # Work in place
             self.path = self.original_path        
      
-        self.vprint(header_str(self.input['header']))
+        self.vprint(header_str(self.header))
         self.vprint('Configured to run in:', self.path)
         
         self.configured = True
@@ -129,6 +131,7 @@ class Impact:
         # Standard output
         self.vprint('Loading particles')
         self.output['particles'] = load_many_fort(self.path, FORT_PARTICLE_TYPES, verbose=self.verbose)   
+        
         # Additional particle files:
         for e in self.input['lattice']:
             if e['type'] == 'write_beam':
@@ -140,19 +143,43 @@ class Impact:
                     self.vprint(f'Loaded write beam particles {name} {fname}')
 
         # Convert all to ParticleGroup
+        
+        # Interpolate stats to get the time. 
+        time_f = interp1d(self.output['stats']['mean_z'], self.output['stats']['t'],
+                                  assume_sorted=True, fill_value='extrapolate')
+        
         for name, pdata in self.particles.items():
-            print(name)
+            # Initial particles have special z = beta_ref*c. See: impact_particles_to_particle_data
+            if name == 'initial_particles' and self.header['Flagimg']:
+                cathode_kinetic_energy_ref = self.header['Bkenergy']
+            else:
+                cathode_kinetic_energy_ref = None            
+                    
+            time = time_f(pdata['z'].mean())
+                    
             pg_data = impact_particles_to_particle_data(pdata, 
                                                         mc2=self.mc2,
                                                         species=self.species,
-                                                        macrocharge=self.macrocharge)
+                                                        time=time,
+                                                        macrocharge=self.macrocharge,
+                                                        cathode_kinetic_energy_ref=cathode_kinetic_energy_ref,
+                                                        verbose=self.verbose)
             self.particles[name] = ParticleGroup(data = pg_data)
             self.vprint(f'Converted {name} to ParticleGroup')
       
     
-    # Convenience routines
+    # Convenience routines    
+    @property    
+    def header(self):
+        """Convenience pointer to .input['header']"""
+        return self.input['header']    
+    @property    
+    def lattice(self):
+        """Convenience pointer to .input['lattice']"""
+        return self.input['lattice']           
     @property
     def particles(self):
+        """Convenience pointer to .input['lattice']"""
         return self.output['particles']
     
     def stat(self, key):
@@ -162,7 +189,8 @@ class Impact:
     def units(self, key):
         """pmd_unit of a given key"""
         return self._units[key]
-        
+
+    
     
     #--------------
     # Run
@@ -241,7 +269,7 @@ class Impact:
                             
             # Load output    
             self.load_output()
-            self.load_particles()
+ 
         except Exception as ex:
             print('Run Aborted', ex)
             run_info['error'] = True
@@ -258,7 +286,7 @@ class Impact:
         if not fname:
             fname = os.path.join(self.path, 'partcl.data')
         
-        H = self.input['header']
+        H = self.header
         # check for cathode start
         if H['Flagimg']:
             cathode_kinetic_energy_ref = H['Bkenergy']
@@ -273,7 +301,7 @@ class Impact:
             for k, v in res.items():
                 if k in H:
                     H[k] = v
-                    self.vprint(f'Replaced {k} with {v} according to initial particles')    
+                    self.vprint(f'Cathode start: Replaced {k} with {v} according to initial particles')    
            
             # Make sure this is set
             H['Flagdist'] == 16
@@ -285,7 +313,7 @@ class Impact:
         
         filePath = os.path.join(path, input_filename)
         # Write main input file
-        writers.write_impact_input(filePath, self.input['header'], self.input['lattice'])
+        writers.write_impact_input(filePath, self.header, self.lattice)
         
         # Write fieldmaps
         for name, fieldmap in self.input['fieldmaps'].items():
@@ -297,7 +325,7 @@ class Impact:
             p_info = self.write_initial_particles(update_header=True)            
 
         # Symlink
-        elif self.input['header']['Flagdist'] == 16:
+        elif self.header['Flagdist'] == 16:
             src = self.input['input_particle_file']
             dest = os.path.join(path, 'partcl.data')
             
@@ -306,7 +334,7 @@ class Impact:
                 os.remove(dest)
             
             if not os.path.exists(dest):
-                writers.write_input_particles_from_file(src, dest, self.input['header']['Np'] )
+                writers.write_input_particles_from_file(src, dest, self.header['Np'] )
             else:
                 self.vprint('partcl.data already exits, will not overwrite.')
         
@@ -321,7 +349,7 @@ class Impact:
         """
         name, attrib = attribute_string.split(':')
         if name == 'header':
-            self.input['header'][attrib] = value
+            self.header[attrib] = value
         else:
             self.ele[name][attrib] = value
     
@@ -342,6 +370,11 @@ class Impact:
             self.vprint(f'Archiving to file {h5}')
         else:
             g = h5
+            
+            
+        # Initial particles
+        if self.initial_particles:
+            self.initial_particles.write(g, name='initial_particles')            
             
         # All input
         writers.write_input_h5(g, self.input, name='input')
@@ -367,6 +400,9 @@ class Impact:
         self.input = readers.read_input_h5(g['input'], verbose=self.verbose)
         self.output, self._units = readers.read_output_h5(g['output'], verbose=self.verbose)   
 
+        if 'initial_particles' in g:
+            self.initial_particles = ParticleGroup(h5=g['initial_particles'])        
+        
         
         self.vprint('Loaded from archive. Note: Must reconfigure to run again.')
         self.configured = False     
@@ -374,24 +410,21 @@ class Impact:
         if configure:    
             self.configure()           
                        
-            
     @property
     def total_charge(self):
-        H = self.input['header']
-        return H['Bcurr']/H['Bfreq']
+        return self.header['Bcurr']/self.header['Bfreq']
     
     @property
     def species(self):
-        H = self.input['header']
-        return identify_species(H['Bmass'], H['Bcharge'])
+        return identify_species(self.header['Bmass'], self.header['Bcharge'])
     
     @property
     def mc2(self):
-        return self.input['header']['Bmass']
+        return self.header['Bmass']
     
     @property
     def macrocharge(self):
-        H = self.input['header']
+        H = self.header
         Np = H['Np']
         if Np == 0:
             self.vprint('Error: zero particles. Returning zero macrocharge')
@@ -423,7 +456,7 @@ class Impact:
         
     def __str__(self):
         path = self.path
-        s = header_str(self.input['header'])
+        s = header_str(self.header)
         if self.finished:
             s += 'Impact-T finished in '+path
         elif self.configured:
