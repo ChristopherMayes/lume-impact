@@ -290,8 +290,10 @@ class Impact:
         # check for cathode start
         if H['Flagimg']:
             cathode_kinetic_energy_ref = H['Bkenergy']
+            start_str = 'Cathode start'
         else:
             cathode_kinetic_energy_ref = None
+            start_str = 'Normal start'
             
         # Call the openPMD-beamphysics writer routine    
         res = self.initial_particles.write_impact(fname, verbose=self.verbose,
@@ -301,7 +303,7 @@ class Impact:
             for k, v in res.items():
                 if k in H:
                     H[k] = v
-                    self.vprint(f'Cathode start: Replaced {k} with {v} according to initial particles')    
+                    self.vprint(f'{start_str}: Replaced {k} with {v} according to initial particles')    
            
             # Make sure this is set
             H['Flagdist'] == 16
