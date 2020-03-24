@@ -417,6 +417,10 @@ def parse_type(line):
         #print('Undocumented: ', line)
         return 'undocumented'
 
+# Collect a dict of type:list of valid keys
+VALID_KEYS={}    
+    
+    
 #-----------------------------------------------------------------
 def parse_drift(line):
     """
@@ -441,6 +445,10 @@ def drift_v(ele):
     if 'radius' in ele: v[2] = ele['radius']
     return v
 
+VALID_KEYS['drift'] = [
+    'zedge',
+    'radius'
+] 
     
     
 #-----------------------------------------------------------------      
@@ -470,7 +478,13 @@ def misalignment_v(ele):
     
     return v
     
-
+VALID_KEYS['misalignment'] = [
+    'x_offset',
+    'y_offset',
+    'x_rotation', 
+    'y_rotation', 
+    'z_rotation']
+        
     
 #-----------------------------------------------------------------   
 def parse_quadrupole(line):
@@ -536,6 +550,16 @@ def quadrupole_v(ele):
     
     return v
 
+VALID_KEYS['quadrupole'] = [
+    'zedge',
+    'b1_gradient',
+    'L_effective',
+    'file_id',
+    'radius',
+    'rf_frequency',
+    'rf_phase_deg'
+] + VALID_KEYS['misalignment']
+
 
 #-----------------------------------------------------------------  
 def parse_solenoid(line):
@@ -590,6 +614,12 @@ def solenoid_v(ele):
 
     return v
 
+VALID_KEYS['solenoid'] = [
+    'zedge',
+    'b_field',
+    'filename',
+    'radius'
+] + VALID_KEYS['misalignment']
 
 
 
@@ -652,6 +682,15 @@ def solrf_v(ele):
     
     return v
 
+VALID_KEYS['solrf'] = [
+    'zedge',
+    'rf_field_scale',
+    'rf_frequency',
+    'theta0_deg',
+    'filename',
+    'radius',
+    'solenoid_field_scale'
+] + VALID_KEYS['misalignment']
 
 #-----------------------------------------------------------------  
 def parse_dipole(line):
@@ -695,6 +734,13 @@ def dipole_v(ele):
     
     return v    
     
+VALID_KEYS['dipole'] = [
+    'zedge',
+    'b_field_x',
+    'b_field',
+    'filename',
+    'half_gap'
+] # Not used: + VALID_KEYS['misalignment']    
     
     
 #-----------------------------------------------------------------     
@@ -754,6 +800,14 @@ def emfield_cylindrical_v(ele):
     v += misalignment_v(ele)
 
     return v    
+
+VALID_KEYS['emfield_cylindrical'] = [
+    'zedge',
+    'radius',
+    'rf_frequency',
+    'theta0_deg',
+    'filename'
+] + VALID_KEYS['misalignment']    
     
 #-----------------------------------------------------------------      
 def parse_offset_beam(line, warn=False):
@@ -799,6 +853,16 @@ def offset_beam_v(ele):
     return v
 
 
+VALID_KEYS['offset_beam'] = [
+    's',
+    'x_offset',
+    'px_offset',
+    'y_offset',
+    'py_offset',
+    'z_offset',
+    'pz_offset' 
+] 
+
 
 #-----------------------------------------------------------------  
 def parse_write_beam(line):
@@ -832,6 +896,12 @@ def write_beam_v(ele):
     v = [ele, dummy, dummy, ele['s']]   
     return v
 
+VALID_KEYS['write_beam'] = [
+    's',
+    'filename',
+    'sample_frequency'
+] 
+
 
 #-----------------------------------------------------------------  
 def parse_write_beam_for_restart(line):
@@ -860,6 +930,11 @@ def write_beam_for_restart_v(ele):
     v = [ele, dummy, dummy, ele['s']]   
     return v
 
+
+VALID_KEYS['write_beam_for_restart'] = [
+    's',
+    'filename'
+] 
 
 
 #-----------------------------------------------------------------  
@@ -890,6 +965,11 @@ def change_timestep_v(ele):
     v = [ele, dummy, dummy, ele['s'], ele['dt']]   
     return v
 
+VALID_KEYS['change_timestep'] = [
+    's',
+    'dt'
+] 
+
 
 #----------------------------------------------------------------- 
 
@@ -916,6 +996,11 @@ def rotationally_symmetric_to_3d_v(ele):
     dummy = 0.0
     v = [ele, dummy, dummy, ele['s']]   
     return v
+
+VALID_KEYS['rotationally_symmetric_to_3d'] = [
+    's'
+] 
+
 
 #-----------------------------------------------------------------  
 def parse_wakefield(line):
@@ -980,6 +1065,18 @@ def wakefield_v(ele):
     
     return v
 
+VALID_KEYS['wakefield'] = [
+    's_begin',
+    's_end',
+    'method',
+    'filename',
+    'iris_radius',
+    'gap',
+    'period'
+] 
+
+
+
 
 #-----------------------------------------------------------------  
 def parse_stop(line):
@@ -1010,6 +1107,9 @@ def stop_v(ele):
     
     return v
 
+VALID_KEYS['stop'] = [
+    's'
+] 
 
 
 #-----------------------------------------------------------------  
@@ -1050,6 +1150,11 @@ def spacecharge_v(ele):
     
     return v
 
+VALID_KEYS['spacecharge'] = [
+    's',
+    'is_on'
+] 
+
 
 #----------------------------------------------------------------- 
 def parse_write_slice_info(line):
@@ -1081,6 +1186,22 @@ def write_slice_info_v(ele):
     v = [ele, dummy, dummy, ele['s']]   
     return v
 
+    
+VALID_KEYS['write_slice_info'] = [
+    's',
+    'n_slices',
+    'filename'
+]     
+    
+    
+# Add comment
+VALID_KEYS['comment'] = []
+    
+for k in VALID_KEYS:
+    VALID_KEYS[k] += ['description', 'original', 'name', 'type']
+    # Add L, s
+    if k in itype_of and itype_of[k] >=0:
+        VALID_KEYS[k] += ['L', 's']
     
 #-----------------------------------------------------------------  
 
@@ -1166,7 +1287,7 @@ def parse_ele(line):
     
     """
     if is_commented(line):
-        return {'type':'comment', 'comment':line, 'L':0}
+        return {'type':'comment', 'description':line}
     
     # Ele
     e = {}
@@ -1449,11 +1570,11 @@ def load_fort29(filePath, keys=FORT_KEYS[29]):
     1st col: time (secs) 
     2nd col: z distance (m) 
     3rd col: X (m)
-    4th col: Px (MC)
+    4th col: Px (mc)
     5th col: Y (m)
-    6th col: Py (MC)
+    6th col: Py (mc)
     7th col: Z (m)
-    8th col: Pz (MC)
+    8th col: Pz (mc)
     '''            
     return load_fortX(filePath, keys)
 
@@ -1463,11 +1584,11 @@ def load_fort30(filePath, keys=FORT_KEYS[30] ):
     '''
     fort.30: Fourth root of 4th moments of the beam distribution
     1st col: time (secs) 2nd col: z distance (m) 3rd col: X (m)
-    4th col: Px (MC)
+    4th col: Px (mc)
     5th col: Y (m)
-    6th col: Py (MC)
+    6th col: Py (mc)
     7th col: Z (m)
-    8th col: Pz (MC)
+    8th col: Pz (mc)
     '''            
     return load_fortX(filePath, keys)
 

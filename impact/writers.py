@@ -30,6 +30,7 @@ def write_impact_input(filePath, header, eles):
     Note that the filename ultimately needs to be ImpactT.in
     
     """
+    
     lines =  header_lines(header) + lattice_lines(eles)
     with open(filePath, 'w') as f:
         for line in lines:

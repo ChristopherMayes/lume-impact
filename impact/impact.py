@@ -101,8 +101,13 @@ class Impact:
             self.path = self.tempdir.name
             
         else:
-            # Work in place
-            self.path = self.original_path        
+            
+            if workdir:
+                self.path = workdir
+                self.tempdir = None
+            else:
+                # Work in place
+                self.path = self.original_path        
      
         self.vprint(header_str(self.header))
         self.vprint('Configured to run in:', self.path)
@@ -217,9 +222,10 @@ class Impact:
             runscript = [tools.full_path(self.impact_bin)]
             
         if write_to_path:
-            with open(os.path.join(self.path, 'run'), 'w') as f:
+            path=os.path.join(self.path, 'run')
+            with open(path, 'w') as f:
                 f.write(' '.join(runscript))
-            
+            tools.make_executable(path)
         return runscript
 
     def run_impact(self, verbose=False, timeout=None):
@@ -239,6 +245,9 @@ class Impact:
         
         # Write input
         self.write_input()
+        
+        # Clear output
+        self.output = {}
         
         runscript = self.get_run_script()
         run_info['run_script'] = ' '.join(runscript)
@@ -271,7 +280,7 @@ class Impact:
             self.load_output()
  
         except Exception as ex:
-            print('Run Aborted', ex)
+            self.vprint('Exception in Impact:', ex)
             run_info['error'] = True
             run_info['why_run_error'] = str(ex)
         finally:
@@ -314,8 +323,7 @@ class Impact:
         assert os.path.exists(path)
         
         filePath = os.path.join(path, input_filename)
-        # Write main input file
-        writers.write_impact_input(filePath, self.header, self.lattice)
+
         
         # Write fieldmaps
         for name, fieldmap in self.input['fieldmaps'].items():
@@ -339,6 +347,10 @@ class Impact:
                 writers.write_input_particles_from_file(src, dest, self.header['Np'] )
             else:
                 self.vprint('partcl.data already exits, will not overwrite.')
+                
+        # Write main input file. This should come last.
+        writers.write_impact_input(filePath, self.header, self.lattice)                
+                
         
                 
     def set_attribute(self, attribute_string, value):

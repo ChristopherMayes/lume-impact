@@ -1,6 +1,6 @@
 #import numpy as np
 from . import parsers
-from .parsers import itype_of
+from .parsers import itype_of, VALID_KEYS
 
 import numpy as np    
         
@@ -9,7 +9,7 @@ import numpy as np
 def ele_str(e):
     line = ''
     if e['type']=='comment':
-        c = e['comment']
+        c = e['description']
         if c == '!':
             return ''
         else:
@@ -85,7 +85,7 @@ def ele_line(ele):
     """
     type = ele['type']
     if type == 'comment':
-        return ele['comment']
+        return ele['description']
     itype = parsers.itype_of[type] 
     if itype < 0:
         # Custom usage
@@ -133,10 +133,13 @@ def ele_line(ele):
 
 
 
-def lattice_lines(eles):
+def lattice_lines(eles, strict=True):
     line0 = '!=================== LATTICE ==================='
     lines = [line0]
     for e in eles:
+        if strict:
+            assert_strict_ele(e)
+        
         lines.append(ele_line(e))
     return lines
 
@@ -269,6 +272,33 @@ def ele_shapes(eles):
 #-----------------------------------------------------------------  
 #-----------------------------------------------------------------  
 # Helpers
+
+def bad_keys(ele):
+    """
+    Checks the keys in an element for ones that do not belong.
+    
+    """
+    type=ele['type']
+    assert type in VALID_KEYS, f'No valid keys for type: {type}'
+    
+    valid_keys = VALID_KEYS[type]
+    bad = []
+    for k in ele:
+        if k not in valid_keys:
+            bad.append(k)
+            
+    return bad
+
+def assert_strict_ele(ele):
+    """
+    Raises an exception if a key does not belong in an ele.
+    """
+    
+    klist = bad_keys(ele)
+    etype=ele['type']
+    if len(klist) >0:
+        raise ValueError(f'Bad keys for ele type {etype}: {klist}')        
+
 
 def sanity_check_ele(ele):
     """
