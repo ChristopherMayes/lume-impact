@@ -1,5 +1,5 @@
 from . import tools, fieldmaps
-from .particles import SPECIES_MASS
+from .particles import SPECIES_MASS, identify_species
 
 from pmd_beamphysics.units import pmd_unit, multiply_units
 
@@ -211,6 +211,8 @@ def header_str(H):
     qb_pC = H['Bcurr']/H['Bfreq']*1e12
     Nbunch = H['Nbunch']
   
+    species = identify_species(H['Bmass'], H['Bcharge'])
+
     if H['Flagimg']:
         start_condition = 'Cathode start at z = 0 m\n   emission time: '+str(H['Temission'])+' s\n   image charges neglected after z = '+str(H['Zimage'])+' m'
         
@@ -227,26 +229,23 @@ def header_str(H):
 
     dist_type = DIST_TYPE[H['Flagdist']]
     
-    lines = [
-        '================ Impact-T Summary ================',
-        f'{Nbunch} bunch'
-        f'total charge: {qb_pC} pC',
-        f'Distribution type: {dist_type}',
-        start_condition,
-        'Tracking '+str(H['Np'])+' particles',
-        'Processor domain: '+str(H['Nprow'])+ ' x '+str(H['Npcol'])+' = '+str(H['Nprow']*H['Npcol'])+' CPUs',
-        'Computational domain: '+str(H['Xrad'])+' m x '+str(H['Yrad'])+' m x '+str(H['Perdlen'])+' m',
-        'Space charge grid: '+str(H['Nx'])+' x '+str(H['Ny'])+' x '+str(H['Nz']),
-        'Maximum time steps: '+str(H['Ntstep']),
-        'Random Seed: '+str(H['Dim']),
-        'Reference Frequency: '+str(H['Bfreq'])+' Hz',
-        'Initial reference time: '+str(H['Tini'])+' s',
-         restart_condition,
-        '==================================================',
-        '\n'
-    ]
+    summary=f"""================ Impact-T Summary ================    
+{H['Np']} particles
+{Nbunch} bunch of {species}s
+total charge: {qb_pC} pC
+Distribution type: {dist_type}
+{start_condition}
+Processor domain: {H['Nprow']} x {H['Npcol']} = {H['Nprow']*H['Npcol']} CPUs
+Space charge grid: {H['Nx']} x {H['Ny']} x {H['Nz']}
+Maximum time steps: {H['Ntstep']}
+Reference Frequency: {H['Bfreq']} Hz
+Initial reference time: {H['Tini']} s
+{restart_condition}
+=================================================
+"""
+
     
-    return '\n'.join(lines)
+    return summary
 
 
 #-----------------
@@ -753,7 +752,7 @@ def parse_emfield_cylindrical(line):
     as a function of (r,z) of EM field data (from SUPERFISH output).
     
     V1: zedge
-    V2: radius
+    V2: rf_field_scale       ! Typo in the manual
     V3: RF frequency
     V4: theta0_deg
     V5: file ID
@@ -771,12 +770,12 @@ def parse_emfield_cylindrical(line):
     
     v = line.split('/')[0].split()[3:] # V data starts with index 
     d={}
-    d['zedge']        = float(v[1]) 
-    d['radius']       = float(v[2]) 
+    d['zedge']          = float(v[1]) 
+    d['rf_field_scale'] = float(v[2]) 
     d['rf_frequency'] = float(v[3])
     d['theta0_deg']       = float(v[4])
     d['filename'] =  '1T'+str(int(float(v[5])))+'.T7'
-    # v[6] # Not used
+    d['radius'] = float(v[6])
     # Not used: d2 = parse_misalignments(v[7:12])
     # d.update(d2)
     
@@ -794,7 +793,7 @@ def emfield_cylindrical_v(ele):
     file_id = int( ele['filename'].split('1T')[1].split('.')[0] ) 
     
     v = [ele, 
-         ele['zedge'], ele['radius'], ele['rf_frequency'], ele['theta0_deg'], file_id, 0.0]
+         ele['zedge'], ele['rf_field_scale'], ele['rf_frequency'], ele['theta0_deg'], file_id, ele['radius']]
 
     #misalignment list (Should be zeros)
     v += misalignment_v(ele)
@@ -803,10 +802,11 @@ def emfield_cylindrical_v(ele):
 
 VALID_KEYS['emfield_cylindrical'] = [
     'zedge',
-    'radius',
+    'rf_field_scale',
     'rf_frequency',
     'theta0_deg',
-    'filename'
+    'filename',
+    'radius'
 ] + VALID_KEYS['misalignment']    
     
 #-----------------------------------------------------------------      

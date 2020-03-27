@@ -1,9 +1,10 @@
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info
-from . import writers, fieldmaps
-from .lattice import ele_dict_from, ele_str
-from . import tools, readers
+from . import archive, writers, fieldmaps
+from .lattice import ele_dict_from, ele_str, get_stop, set_stop
+from . import tools
+from .control import ControlGroup
 
-from .particles import identify_species
+from .particles import identify_species, track_to_s, track1_to_s
 
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.impact import impact_particles_to_particle_data
@@ -15,6 +16,7 @@ import numpy as np
 
 import tempfile
 from time import time
+from copy import deepcopy
 import os
 
 
@@ -60,7 +62,12 @@ class Impact:
         self.output = {}
         
         self._units = {}
-        self.ele = {} # Convenience lookup of elements in lattice by name
+        
+        # Control groups.
+        self.group = {}
+        
+        # Convenience lookup of elements in lattice by name
+        self.ele = {} 
         
         
         # Run control
@@ -73,10 +80,26 @@ class Impact:
             self.configure()
         else:
             self.vprint('Warning: Input file does not exist. Not configured. Please set header and lattice.')
-            
+    
+    
+    def add_group(self, name, **kwargs):
+        """
+        Add a control group. See control.py
+        """
+        assert name not in self.ele
+        if name in self.group:
+            self.vprint(f'Warning: group {name} already exists, overwriting.')
+        g = ControlGroup(**kwargs)
+        g.link(self.ele)
+        self.group[name] = g
+        
+        return self.group[name]
+    
+    
+    
     def configure(self):
         self.configure_impact(workdir=self.workdir)
-        
+    
     def configure_impact(self, input_filePath=None, workdir=None):     
         
         if input_filePath:
@@ -90,8 +113,8 @@ class Impact:
             self.configured = False
             return
    
-        # Set ele dict:
-        self.ele = ele_dict_from(self.input['lattice'])
+        # Set ele dict from the lattice
+        self.ele_bookkeeper()
             
         # Set paths
         if self.use_tempdir:
@@ -171,7 +194,13 @@ class Impact:
                                                         verbose=self.verbose)
             self.particles[name] = ParticleGroup(data = pg_data)
             self.vprint(f'Converted {name} to ParticleGroup')
-      
+
+    def ele_bookkeeper(self):
+        """
+        Link .ele = dict to the lattice elements by their 'name' field
+        """
+        self.ele = ele_dict_from(self.input['lattice'])
+    
     
     # Convenience routines    
     @property    
@@ -295,14 +324,23 @@ class Impact:
         if not fname:
             fname = os.path.join(self.path, 'partcl.data')
         
+        assert self.initial_particles.species == self.species, 'Species mismatch'
+        
         H = self.header
         # check for cathode start
-        if H['Flagimg']:
+        if self.cathode_start:
             cathode_kinetic_energy_ref = H['Bkenergy']
-            start_str = 'Cathode start'
+            start_str = 'Cathode start'  
+            
+            if not all(self.initial_particles.z == 0):
+                self.vprint('Some initial particles z !=0, disabling cathode_start')
+                self.cathode_start = False
+                cathode_kinetic_energy_ref = None
+                start_str = 'Normal start'  
+            
         else:
             cathode_kinetic_energy_ref = None
-            start_str = 'Normal start'
+            start_str = 'Normal start'    
             
         # Call the openPMD-beamphysics writer routine    
         res = self.initial_particles.write_impact(fname, verbose=self.verbose,
@@ -316,8 +354,28 @@ class Impact:
            
             # Make sure this is set
             H['Flagdist'] == 16
+            
+            # Single particle must track with no space charge.     
+            if len(self.initial_particles) == 1:
+                self.vprint('Single particle, turning space charge off')
+                self.total_charge = 0            
+            
+            # This will also set the header.
+            # total_charge = 0 switches off space charge, so don't update. 
+            if self.total_charge != 0:
+                charge = self.initial_particles.charge
+                self.vprint(f'Setting total charge to {charge} C')
+                self.total_charge = charge
+                
+
+            
     
     def write_input(self,  input_filename='ImpactT.in'):
+        """
+        Write all input. 
+        
+        If .initial_particles are given, 
+        """
         
         path = self.path
         assert os.path.exists(path)
@@ -332,7 +390,7 @@ class Impact:
 
         # Initial particles (ParticleGroup)
         if self.initial_particles:
-            p_info = self.write_initial_particles(update_header=True)            
+            self.write_initial_particles(update_header=True)            
 
         # Symlink
         elif self.header['Flagdist'] == 16:
@@ -350,24 +408,74 @@ class Impact:
                 
         # Write main input file. This should come last.
         writers.write_impact_input(filePath, self.header, self.lattice)                
+          
                 
-        
-                
-    def set_attribute(self, attribute_string, value):
+    def __getitem__(self, key):
         """
-        Convenience syntax to set the header or element attribute. 
+        Convenience syntax to get a header or element attribute. 
+        
+        See: __setitem__
+        """        
+        
+        if key == 'initial_particles':
+            return self.initial_particles
+        
+        name, attrib = key.split(':')
+        if name == 'header':
+            return self.header[attrib]   
+        elif name in self.ele:
+            return self.ele[name][attrib] 
+        elif name in self.group:
+            return self.group[name][attrib] 
+        else:
+            raise ValueError(f'{name} does not exist in eles or groups')
+        
+    def __setitem__(self, key, item):
+        """
+        Convenience syntax to set a header or element attribute. 
         attribute_string should be 'header:key' or 'ele_name:key'
         
         Examples of attribute_string: 'header:Np', 'SOL1:solenoid_field_scale'
         
         """
-        name, attrib = attribute_string.split(':')
+        if key == 'initial_particles':
+            self.initial_particles = item
+            
+        name, attrib = key.split(':')
+        # Try header or lattice
         if name == 'header':
-            self.header[attrib] = value
+            self.header[attrib] = item
+        elif name in self.ele:
+            self.ele[name][attrib] = item
+        elif name in self.group:
+            self.group[name][attrib]  = item
         else:
-            self.ele[name][attrib] = value
-    
+            raise ValueError(f'{name} does not exist in eles or groups')
         
+        
+            
+    @property        
+    def stop(self):
+        return get_stop(self.lattice)
+    @stop.setter
+    def stop(self, s):
+        """
+        Sets the stop by inserting a stop element at the end of the lattice.
+        
+        Any other stop elements are removed.
+        """
+           
+        self.input['lattice'], removed_eles = set_stop(self.input['lattice'], s)
+        
+        # Bookkeeping
+        if self.ele:
+            for ele in removed_eles:
+                name = ele['name']
+                if name in self.ele:
+                    self.ele.pop(name)
+                    self.vprint(f'Removed element: {name}')
+        
+        self.vprint(f'Set stop to s = {s}')
                 
     def archive(self, h5=None):
         """
@@ -385,16 +493,18 @@ class Impact:
         else:
             g = h5
             
+        # Write basic attributes
+        archive.impact_init(g)            
             
         # Initial particles
         if self.initial_particles:
             self.initial_particles.write(g, name='initial_particles')            
             
         # All input
-        writers.write_input_h5(g, self.input, name='input')
+        archive.write_input_h5(g, self.input, name='input')
 
         # All output
-        writers.write_output_h5(g, self.output, name='output', units=self._units) 
+        archive.write_output_h5(g, self.output, name='output', units=self._units) 
         
         return h5
 
@@ -407,27 +517,59 @@ class Impact:
         """
         if isinstance(h5, str):
             g = h5py.File(h5, 'r')
-            self.vprint(f'Reading archive file {h5}')
+            
+            glist = archive.find_impact_archives(g)
+            n = len(glist)
+            if n == 0:
+                # legacy: try top level
+                message = 'legacy'
+            elif n == 1:
+                gname = glist[0]
+                message = f'group {gname} from'
+                g = g[gname]
+            else:
+                raise ValueError(f'Multiple archives found in file {h5}: {glist}')
+            
+            self.vprint(f'Reading {message} archive file {h5}')
         else:
             g = h5
         
-        self.input = readers.read_input_h5(g['input'], verbose=self.verbose)
-        self.output, self._units = readers.read_output_h5(g['output'], verbose=self.verbose)   
+        self.input = archive.read_input_h5(g['input'], verbose=self.verbose)
+        self.output, self._units = archive.read_output_h5(g['output'], verbose=self.verbose)   
 
         if 'initial_particles' in g:
             self.initial_particles = ParticleGroup(h5=g['initial_particles'])        
-        
-        
+               
         self.vprint('Loaded from archive. Note: Must reconfigure to run again.')
         self.configured = False     
         
         if configure:    
             self.configure()           
-                       
+    
+    
+    
+    @property
+    def cathode_start(self):
+        """Returns a bool if cathode_start is requested. Can also be set as a bool."""
+        return self.header['Flagimg'] == 1
+    @cathode_start.setter
+    def cathode_start(self, val):
+        if val:
+            self.header['Flagimg'] = 1
+        else:
+            self.header['Flagimg'] = 0
+    
     @property
     def total_charge(self):
+        """Returns the total bunch charge in C. Can be set."""
         return self.header['Bcurr']/self.header['Bfreq']
-    
+    @total_charge.setter
+    def total_charge(self, val):
+        self.header['Bcurr'] = val * self.header['Bfreq']
+        # Keep particles up-to-date. 
+        if self.initial_particles and val > 0:
+            self.initial_particles.charge = val
+         
     @property
     def species(self):
         return identify_species(self.header['Bmass'], self.header['Bcharge'])
@@ -445,7 +587,51 @@ class Impact:
             return 0
         else:
             return H['Bcurr']/H['Bfreq']/Np
+      
+    #-------
+    # Tracking
+    
+    def track(self, particles, s=None):
+        """
+        Track a ParticleGroup. An optional stopping s can be given. 
+        """
+        if not s:
+            s = self.stop
+        return track_to_s(self, particles, s)
+
+    def track1(self,
+                  x0=0,
+                  px0=0,
+                  y0=0,
+                  py0=0,
+                  z0=0,
+                  pz0=1e-15,
+                  t0=0,
+                  s=None, # final s
+                  species=None):
+        """
+        Tracks a single particle with starting coordinates:
+        x0, y0, z0 in meters
+        px0, py0, pz0 in eV/c
+        t0 in seconds
         
+        to a position 's' in meters
+
+        Used for phasing and scaling elements. 
+
+        If successful, returns a ParticleGroup with the final particle.
+
+        Otherwise, returns None
+
+        """    
+        if not s:
+            s = self.stop        
+        
+        if not species:
+            species = self.species
+        return track1_to_s(self, s=s, x0=x0, px0=px0, y0=y0, py0=py0, z0=z0, pz0=pz0, t0=t0, species=species)
+    
+    
         
     def fingerprint(self):
         """
@@ -462,10 +648,24 @@ class Impact:
             print(line)
     
     def vprint(self, *args):
-        # Verbose print
+        """verbose print"""
         if self.verbose:
             print(*args)
     
+    
+    def copy(self):
+        """
+        Returns a deep copy of this object.
+        
+        If a tempdir is being used, will clear this and deconfigure. 
+        """
+        I2 = deepcopy(self)
+        # Clear this 
+        if I2.use_tempdir:
+            I2.path = None
+            I2.configured = False
+        
+        return I2
     
         
     def __str__(self):

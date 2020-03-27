@@ -4,6 +4,8 @@ from hashlib import blake2b
 import numpy as np
 import json
 import shutil
+import datetime
+
 
 def execute(cmd):
     """
@@ -149,3 +151,19 @@ def fingerprint(keyed_data, digest_size=16):
     return h.hexdigest()  
 
 
+
+
+def native_type(value):
+    """
+    Converts a numpy type to a native python type.
+    See:
+    https://stackoverflow.com/questions/9452775/converting-numpy-dtypes-to-native-python-types/11389998
+    """
+    return getattr(value, 'tolist', lambda: value)()    
+
+
+"""UTC to ISO 8601 with Local TimeZone information without microsecond"""
+def isotime():
+    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).astimezone().replace(microsecond=0).isoformat()    
+    
+    

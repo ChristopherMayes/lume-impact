@@ -270,6 +270,49 @@ def ele_shapes(eles):
 
 
 #-----------------------------------------------------------------  
+def remove_element_types(lattice, types=['stop', 'comment', 'write_beam', 'wakefield']):
+    """
+    Removes particular types of elements from a lattice (list of elements)
+    """
+
+    return [ele for ele in lattice if ele['type'] not in types]
+
+
+def get_stop(lattice):
+    """
+    Searches for stop elements. Only the last one is supposed to matter. 
+    """
+    
+    s = None
+    for ele in lattice:
+        if ele['type'] == 'stop':
+            s = ele['s']
+    return s
+    
+
+
+def set_stop(lattice, s):
+    """
+    Sets the stop longitudinal position s by removing any existing stop elements,
+    and inserting a new stop element at the beginning. 
+    
+    Returns a tuple:
+        lattice, list of removed_eles
+    """
+    lat = []
+    removed_eles = []
+    for ele in lattice:
+        if ele['type'] == 'stop':
+            removed_eles.append(ele)
+            
+        else:
+            lat.append(ele)
+            
+    stop_ele = {'name':'stop_1', 'type':'stop', 's':s}        
+    lat.append(stop_ele)
+    return lat, removed_eles
+
+
 #-----------------------------------------------------------------  
 # Helpers
 
