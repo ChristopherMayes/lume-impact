@@ -147,7 +147,7 @@ help['sigy(m)'] = 'Distribution sigma_y in meters'
 help['sigpy']   = 'Distribution sigma_py, where px is gamma*beta_y'
 help['muypy']   = 'Distribution correlation <y py>, where py is gamma*beta_y'
 help['yscale']  = 'Scale factor for distribution y'
-help['pxycale'] = 'Scale factor for distribution py'
+help['pyscale'] = 'Scale factor for distribution py'
 help['ymu1(m)'] = 'Distribution mean for y in meters'
 help['ymu2']    = 'Distribution mean for py, where py is gamma*beta_y'
 
@@ -162,7 +162,7 @@ help['zmu2']    = 'Distribution mean for pz, where pz is gamma*beta_z'
 
 # Line 9
 help['Bcurr'] = 'Beam current in Amps'
-help['Bkenergy'] = 'Initial beam kinetic energy in eV. WARNING: this one is only used to drift the particle out of the wall. The real initial beam energy needs to be input from ”xmu6” in the initial distribution or the particle data file for the readin distribution.'
+help['Bkenergy'] = 'Initial beam kinetic energy in eV. WARNING: this one is only used to drift the particle out of the wall. The real initial beam energy needs to be input from xmu6 in the initial distribution or the particle data file for the readin distribution.'
 help['Bmass'] = 'Mass of the particles in eV.'
 help['Bcharge'] = 'Particle charge in units of proton charge.'
 help['Bfreq'] = 'Reference frequency in Hz.'
@@ -506,7 +506,7 @@ def parse_quadrupole(line):
     V10: rf quadrupole frequency (Hz)
     V11: rf quadrupole phase (degree)
     """    
-        
+    
     v = line.split('/')[0].split()[3:] # V data starts with index 4 
     d={}
     d['zedge'] = float(v[1]) 
@@ -1457,7 +1457,6 @@ def parse_impact_particles(filePath,
     
     """
     
-    
     dtype={'names': names,
            'formats': 6*[np.float]}
     pdat = np.loadtxt(filePath, skiprows=skiprows, dtype=dtype,
@@ -1473,7 +1472,7 @@ def parse_impact_particles(filePath,
 def load_fortX(filePath, keys):
     data = {}
     #Load the data 
-    fortdata = np.loadtxt(filePath)
+    fortdata = np.loadtxt(filePath, ndmin=1)
     for count, key in enumerate(keys):
         data[key] = fortdata[:,count]
     return data
@@ -1747,6 +1746,14 @@ def load_fort(filePath, type = None, verbose=True):
             print('Loaded fort', type,':', FORT_DESCRIPTION[type])
         else:
             print('unknown type:',type)
+        
+        
+    # Check for empyt file    
+    if os.stat(filePath).st_size == 0:
+        if verbose:
+            print(f'Warning, empty file:', filePath)
+        return None
+                
             
     if type in FORT_LOADER:
         dat = FORT_LOADER[type](filePath)
@@ -1758,6 +1765,9 @@ def load_fort(filePath, type = None, verbose=True):
 FORT_STAT_TYPES     = [18, 24, 25, 26, 27, 28, 29, 30]
 FORT_PARTICLE_TYPES = [40,50]
 FORT_SLICE_TYPES    = [60,70]
+# All of these
+# Not uesed: FORT_OUTPUT_TYPES = FORT_STAT_TYPES + FORT_PARTICLE_TYPES + FORT_SLICE_TYPES 
+
    
 def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
     """

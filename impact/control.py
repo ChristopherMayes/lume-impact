@@ -1,72 +1,142 @@
 import json
 
-
 class ControlGroup:
     """
-    Group elements to control a change in an attribute for a list of elements. 
+    Group elements to control the attributes for a list of elements. 
     
-    Based on Bmad's GROUP element. 
+    Based on Bmad's Ovelay and Group elements
     
+    If absolute, the underlying attributes will be set absolutely. Otherwise, only changes will be set. 
     
-    Example:
+    Optionally, a list of factors can be used 
+    
+    Example 1:
         ELES = {'a':{'x':1}, 'b':{'x':2}}
-        G = ControlGroup(ele_names=['a', 'b'], attribute='x')
+        G = ControlGroup(ele_names=['a', 'b'], var_name='x')
         G.link(ELES)
-        G['x'] = 5
-        
-        will make ELES = {'a': {'x': 6}, 'b': {'x': 7}}
+        G['x'] = 3
+        G.eles
+    Returns:
+        {'a': {'x': 4.0}, 'b': {'x': 5.0}}
     
+    Example 2:
+        ELES = {'a':{'x':1}, 'b':{'x':2}}
+        G = ControlGroup(ele_names=['a', 'b'], var_name='dx', attributes='x', factors = [1.0, 2.0], absolute=False)
+        G.link(ELES)
+        G['dx'] = 3
+        G.eles
+    Returns:  
+        {'a': {'x': 4.0}, 'b': {'x': 8.0}})
+
     """
-    def __init__(self, ele_names=[], attribute=None, value=0, old_value=0):
+    def __init__(self, 
+                 ele_names=[], 
+                 var_name=None,
+                 # If underlying attribute is different
+                 attributes=None, 
+                 # If factors != 1 
+                 factors = None,
+                 value=0,
+                 absolute=False # 
+                ):
         
         self.ele_names = ele_names # Link these. 
-        self.attribute = attribute
-        self.value = value
-        self.old_value = old_value
+        self.var_name = var_name
         
-        # These need to be linked
-        self.eles = None
-    
-    def link(self, eles):
+        self.attributes = attributes
+        self.factors = factors
+        
+        self.absolute = absolute
+        
+        n_ele = len(self.ele_names)
+        
+        if not self.attributes:
+            self.attributes = n_ele * [self.var_name]
+        elif isinstance(self.attributes, str):
+            self.attributes = n_ele * [self.attributes]
+            
+        assert len(self.attributes) == n_ele, 'attributes should be a list with the same length as ele_names'
+        
+        if not self.factors:
+            self.factors = n_ele * [1.0]
+        assert len(self.factors) == n_ele, 'factors should be a list with the same length as ele_names'
+            
+        self.value = value
+        
+        # These need to be linked by the .link function
+        self.ele_dict=None
+
+    def link(self, ele_dict):
         """
         Link and ele dict, so that update will work
         """
-        self.eles=eles
-        self.update()
+        self.ele_dict=ele_dict
+        # call setter
+        self[self.var_name] = self.value
+        
+    @property
+    def eles(self):
+        """Return a list of the controlled eles"""
+        return [self.ele_dict[name] for name in self.ele_names]        
 
-    def update(self):
+    
+    def set_absolute(self, key, item):
         """
-        Updates linked eles with any change in the group value
+        Sets the underlying attributes directly. 
         """
+        self.value = item
+        
+        for name, attrib, f in zip(self.ele_names, self.attributes, self.factors):
+            self.ele_dict[name][attrib] = f * self.value        
+        
+    def set_delta(self, key, item):
+        """
+        Sets a change (delta) in the underlying attributes. 
+        """
+        delta = item - self.value 
+        if delta == 0:
+            return
+        
+        self.value = item     
+        for name, attrib, f in zip(self.ele_names, self.attributes, self.factors):
+            self.ele_dict[name][attrib] += f * delta  
+        
+    def __setitem__(self, key, item):
+        """
+        Calls the appropriate set routine: set_absolute or set_delta
+        """
+        assert key == self.var_name
+        
         assert self.eles, 'No eles are linked. Please call .link(eles)'
         
-        dval = self.value - self.old_value
-        for name in self.ele_names:
-            self.eles[name][self.attribute] += dval
-        self.old_value = self.value
-    
-    def __setitem__(self, key, item):
-        assert key == self.attribute
-        self.value = item
-        self.update()
+        if self.absolute:
+            self.set_absolute(key, item)
+        else:
+            self.set_delta(key, item)    
         
     def __getitem__(self, key):
-        assert key == self.attribute
+        assert key == self.var_name
         return self.value
     
     def __str__(self):
-        return f'Group of eles {[e for e in self.eles]} with delta {self.attribute} = {self.value}'
-    
+        
+        if self.absolute:
+            s2 = 'absolute'
+        else:
+            s2 = 'changes in'
+            
+        s = f'{self.__class__.__name__} of eles {self.ele_names} with variable {self.var_name} controlling {s2} {self.attributes} with factors {self.factors}'            
+        return s
     
     def dumps(self):
         """
         Dump the internal data as a JSON string
         """
-        eles = self.__dict__.pop('eles')
+        ele_dict = self.__dict__.pop('ele_dict')
         d = self.__dict__
         s = json.dumps(d)
         # Relink
-        self.eles = eles
+        self.ele_dict = ele_dict
         return s
     
     def loads(self, s):
@@ -79,7 +149,6 @@ class ControlGroup:
     def __repr__(self):
         
         s0 = self.dumps()
-        s = f'ControlGroup(**{s0})'
+        s = f'{self.__class__.__name__}(**{s0})'
         
-        return s
-        
+        return s 

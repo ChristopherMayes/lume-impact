@@ -1,4 +1,4 @@
-from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info
+from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info, fort_files
 from . import archive, writers, fieldmaps
 from .lattice import ele_dict_from, ele_str, get_stop, set_stop
 from . import tools
@@ -278,6 +278,10 @@ class Impact:
         # Clear output
         self.output = {}
         
+        # Remove previous files
+        for f in fort_files(self.path):
+            os.remove(f)
+        
         runscript = self.get_run_script()
         run_info['run_script'] = ' '.join(runscript)
         
@@ -352,9 +356,20 @@ class Impact:
                     H[k] = v
                     self.vprint(f'{start_str}: Replaced {k} with {v} according to initial particles')    
            
-            # Make sure this is set
-            H['Flagdist'] == 16
-            
+            # These need to be set
+            H['Flagdist'] = 16
+            # Clear out scale factors
+            for k in ['xscale', 'pxscale', 'yscale', 'pyscale', 'zscale', 'pzscale']:
+                if H[k] != 1.0:
+                    H[k] = 1.0
+                    self.vprint(f'Changing particle scale factor {k} to 1.0')
+            # Zero out offsets. 
+            for k in ['xmu1(m)', 'xmu2', 'ymu1(m)', 'ymu2', 'zmu1(m)', 'zmu2']:
+                if H[k] != 0:
+                    H[k] = 0
+                    self.vprint(f'Changing particle offset factor {k} to 0')
+                
+                
             # Single particle must track with no space charge.     
             if len(self.initial_particles) == 1:
                 self.vprint('Single particle, turning space charge off')
@@ -420,7 +435,20 @@ class Impact:
         if key == 'initial_particles':
             return self.initial_particles
         
-        name, attrib = key.split(':')
+        # Send back ele or group object. 
+        # Do not add these to __setitem__. The user shouldn't be allowed to change them as a whole, 
+        #   because it will break all the links.
+        if key in self.group:
+            return self.group[key]
+        if key in self.ele:
+            return self.ele[key]        
+        
+        # key isn't an ele or group, should have property s
+        
+        x = key.split(':')
+        assert len(x) == 2, f'{x} was not found in group or ele dict, so should have : '    
+        name, attrib = x[0], x[1]        
+        
         if name == 'header':
             return self.header[attrib]   
         elif name in self.ele:
@@ -440,7 +468,7 @@ class Impact:
         """
         if key == 'initial_particles':
             self.initial_particles = item
-            
+                        
         name, attrib = key.split(':')
         # Try header or lattice
         if name == 'header':
@@ -452,7 +480,7 @@ class Impact:
         else:
             raise ValueError(f'{name} does not exist in eles or groups')
         
-        
+    
             
     @property        
     def stop(self):
@@ -488,8 +516,9 @@ class Impact:
             h5 = 'impact_'+self.fingerprint()+'.h5'
          
         if isinstance(h5, str):
-            g = h5py.File(h5, 'w')
-            self.vprint(f'Archiving to file {h5}')
+            fname = os.path.expandvars(h5)
+            g = h5py.File(fname, 'w')
+            self.vprint(f'Archiving to file {fname}')
         else:
             g = h5
             
@@ -506,6 +535,10 @@ class Impact:
         # All output
         archive.write_output_h5(g, self.output, name='output', units=self._units) 
         
+        # Control groups
+        if self.group:
+             archive.write_control_groups_h5(g, self.group, name='control_groups')
+        
         return h5
 
     
@@ -516,7 +549,8 @@ class Impact:
         See: Impact.archive
         """
         if isinstance(h5, str):
-            g = h5py.File(h5, 'r')
+            fname = os.path.expandvars(h5)
+            g = h5py.File(fname, 'r')
             
             glist = archive.find_impact_archives(g)
             n = len(glist)
@@ -528,7 +562,7 @@ class Impact:
                 message = f'group {gname} from'
                 g = g[gname]
             else:
-                raise ValueError(f'Multiple archives found in file {h5}: {glist}')
+                raise ValueError(f'Multiple archives found in file {fname}: {glist}')
             
             self.vprint(f'Reading {message} archive file {h5}')
         else:
@@ -539,7 +573,10 @@ class Impact:
 
         if 'initial_particles' in g:
             self.initial_particles = ParticleGroup(h5=g['initial_particles'])        
-               
+            
+        if 'control_groups' in g:
+            self.group = archive.read_control_groups_h5(g['control_groups'], verbose=self.verbose)
+            
         self.vprint('Loaded from archive. Note: Must reconfigure to run again.')
         self.configured = False     
         

@@ -313,6 +313,26 @@ def set_stop(lattice, s):
     return lat, removed_eles
 
 
+def ele_bounds(eles):
+    """
+    Get the min, max s postion of a list of eles. 
+    
+    Only considers elements with 'zedge' in them.
+    """
+    if not isinstance(eles, list):
+        eles = [eles]
+    
+    mins = []
+    maxs = []
+    for ele in eles:
+        if 'zedge' not in ele:
+            continue
+        zedge = ele['zedge']
+        L = ele['L']
+        mins.append(zedge)
+        maxs.append(zedge+L)
+    return min(mins), max(maxs)
+
 #-----------------------------------------------------------------  
 # Helpers
 

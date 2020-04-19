@@ -7,6 +7,7 @@ from .parsers import header_lines
 from .lattice import lattice_lines
 from .fieldmaps import read_fieldmap_h5
 from .tools import fstr, isotime, native_type
+from .control import ControlGroup
 
 from ._version import __version__
 
@@ -128,11 +129,11 @@ def write_control_groups_h5(h5, group_data, name='control_groups'):
         g = h5
         
     for name, G in group_data.items():
-        g.attrs[name] = np.string_(G.dumps())
+        g.attrs[name] = fstr(G.dumps())
 
 
 
-def read_control_groups_h5(h5):
+def read_control_groups_h5(h5, verbose=False):
     """
     Reads ControlGroup object data
     
@@ -144,6 +145,10 @@ def read_control_groups_h5(h5):
         G = ControlGroup()
         G.loads(dat)
         group_data[name] = G
+        
+        if verbose:
+            print('h5 read control_groups:', name, '=', G)
+        
     return group_data
 
             
@@ -291,13 +296,15 @@ def write_output_h5(h5, impact_output, name='output', units=None):
                 else:
                     unit = None
                 write_dataset_and_unit_h5(g3, key, data, unit)
-            
+    
+    # Run info
     if 'run_info' in impact_output:
         for k, v in impact_output['run_info'].items():
             g.attrs[k] = v
     
     # Particles
-    write_particles_h5(g, impact_output['particles'], name='particles')    
+    if 'particles' in impact_output:
+        write_particles_h5(g, impact_output['particles'], name='particles')    
     
     
 

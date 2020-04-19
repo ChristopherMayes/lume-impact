@@ -1,4 +1,5 @@
 from .impact import Impact
+from .control import ControlGroup
 
 from ._version import __version__
 
