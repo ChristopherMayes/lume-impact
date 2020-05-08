@@ -199,7 +199,7 @@ def write_input_h5(h5, input, name='input', include_fieldmaps=True):
         g.attrs['original_input'] = input['original_input']
     
     # particle filename
-    if 'input_particle_file' in input:
+    if 'input_particle_file' in input and input['input_particle_file']:
         g.attrs['input_particle_file'] = input['input_particle_file']
     
     # Any fieldmaps

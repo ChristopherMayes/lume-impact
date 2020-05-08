@@ -236,3 +236,79 @@ def fieldmap_reconsruction(fdat, z):
     res = Fcoef0/2 + np.sum(Fcoef1* np.cos(ilist*kk))  + np.sum(Fcoef2* np.sin(ilist*kk))
 
     return  res
+
+
+
+
+def riffle(a, b):
+    return np.vstack((a,b)).reshape((-1,),order='F')
+
+
+def create_fourier_coefficients(zdata, edata, n=None):
+    """
+    Literal transcription of Ji's routine RFcoeflcls.f90
+    
+    Fixes bug with scaling the field by the max or min seen.
+    
+    Vectorized two loops
+    
+    """
+    ndatareal=len(zdata)
+    
+    # Cast to np arrays for efficiency
+    zdata = np.array(zdata)
+    edata = np.array(edata)
+    
+    # Proper scaling
+    e_min = edata.min()
+    e_max = edata.max()
+    if abs(e_min) > abs(e_max):
+        scale = e_min
+    else:
+        scale = e_max
+    edata /=  scale
+    
+    if not n:
+        n = len(edata)
+
+    Fcoef = np.zeros(n)
+    Fcoef2 = np.zeros(n)
+    zlen = zdata[-1] - zdata[0]
+    
+    zhalf = zlen/2.0
+    zmid = (zdata[-1]+zdata[0])/2
+    h = zlen/(ndatareal-1)
+    
+    pi = np.pi
+    print("The RF data number is: ",ndatareal,zlen,zmid,h)
+    
+    jlist = np.arange(n)
+    
+    zz = zdata[0] - zmid
+    Fcoef  = (-0.5*edata[0]*np.cos(jlist*2*pi*zz/zlen)*h)/zhalf
+    Fcoef2 = (-0.5*edata[0]*np.sin(jlist*2*pi*zz/zlen)*h)/zhalf
+    zz = zdata[-1] - zmid
+    Fcoef  += -(0.5*edata[-1]*np.cos(jlist*2*pi*zz/zlen)*h)/zhalf          
+    Fcoef2 += -(0.5*edata[-1]*np.sin(jlist*2*pi*zz/zlen)*h)/zhalf
+        
+
+    for i in range(ndatareal):
+        zz = i*h+zdata[0]
+        klo=0
+        khi=ndatareal-1
+        while (khi-klo > 1):
+            k=(khi+klo)//2
+            if(zdata[k] - zz > 1e-15):
+                khi=k
+            else:
+                klo=k
+
+        hstep=zdata[khi]-zdata[klo]
+        slope=(edata[khi]-edata[klo])/hstep
+        ez1 =edata[klo]+slope*(zz-zdata[klo])
+        zz = zdata[0]+i*h - zmid
+
+        Fcoef += (ez1*np.cos(jlist*2*pi*zz/zlen)*h)/zhalf
+        Fcoef2 += (ez1*np.sin(jlist*2*pi*zz/zlen)*h)/zhalf
+
+    return np.hstack([Fcoef[0], riffle(Fcoef[1:], Fcoef2[1:])]) 
