@@ -263,6 +263,10 @@ class Impact:
         self.impact_bin = tools.full_path(self.impact_bin)
         assert os.path.exists(self.impact_bin)
         
+        
+        # Clear output
+        self.output = {}
+        
         run_info = self.output['run_info'] = {}
         t1 = time()
         run_info['start_time'] = t1
@@ -274,10 +278,7 @@ class Impact:
         
         # Write input
         self.write_input()
-        
-        # Clear output
-        self.output = {}
-        
+            
         # Remove previous files
         for f in fort_files(self.path):
             os.remove(f)
@@ -397,7 +398,6 @@ class Impact:
         
         filePath = os.path.join(path, input_filename)
 
-        
         # Write fieldmaps
         for name, fieldmap in self.input['fieldmaps'].items():
             file = os.path.join(path, name)
@@ -423,8 +423,10 @@ class Impact:
                 
         # Write main input file. This should come last.
         writers.write_impact_input(filePath, self.header, self.lattice)                
-          
-                
+                    
+        # Write run script
+        self.get_run_script()
+            
     def __getitem__(self, key):
         """
         Convenience syntax to get a header or element attribute. 

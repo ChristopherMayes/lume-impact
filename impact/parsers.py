@@ -1445,15 +1445,15 @@ def parse_impact_particles(filePath,
     
     Note that partcl.data has the number of particles in the first line, so skiprows=1 should be used.
     
-    Returns a strucured numpy array
+    Returns a structured numpy array
     
     Impact-T input/output particles distribions are ASCII files with columns:
     x (m)
-    gamma*beta_x (dimensionless)
+    GBy = gamma*beta_x (dimensionless)
     y (m)
-    gamma*beta_y (dimensionless)
+    GBy = gamma*beta_y (dimensionless)
     z (m)
-    gamma*beta_z (dimensionless)
+    GBz = gamma*beta_z (dimensionless)
     
     """
     
