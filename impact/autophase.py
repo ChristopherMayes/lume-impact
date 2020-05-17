@@ -113,6 +113,8 @@ def autophase_and_scale(impact_object,
         vprint('Custom algorithm')
         phase1, scale1 = algorithm(phase_and_scale,  target=target, phase_range=phase_range, scale_range=scale_range)
     
+    # mod
+    phase1 = phase1 % 360
     
     # Set original object
     impact_object[phase_ele_name][phase_attribute] = phase1
@@ -131,11 +133,11 @@ def autophase_and_scale_brent2(phase_scale_f, target=10e6, phase_range=(-180, 18
     """
     
     s0, s1 = scale_range
-    scale0 = (s0+s1)/2
+    scale0 = s0 #(s0+s1)/2
     
     brack = phase_range
 
-    phase0 = brent(lambda x: -phase_scale_f(x%360, scale0)/target + 1.0  , brack=brack, maxiter=20, tol=1e-3, full_output=False) %360
+    phase0 = brent(lambda x: -phase_scale_f(x%360, scale0)/target + 1.0  , brack=brack, maxiter=30, tol=1e-3, full_output=False) %360
     if verbose: 
         print('Step 1 phasing found:', phase0)
     
@@ -243,6 +245,9 @@ def autophase(impact_object,
     else:
         vprint('Custom algorithm')
         phase1 = algorithm(phase_f,  phase_range=phase_range)
+    
+    # mod
+    phase1 = phase1 % 360    
     
     # Set original object
     impact_object[ele_name][attribute] = phase1
