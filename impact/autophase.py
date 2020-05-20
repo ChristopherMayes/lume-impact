@@ -166,8 +166,10 @@ def autophase(impact_object,
                   initial_particles = None,
                   isolate=True,
                   metric = 'mean_energy',
+                  maximize = True,
                   debug=False,
                   algorithm='brent',
+                  s_stop = None,
                   verbose=False):
     """
     
@@ -197,6 +199,10 @@ def autophase(impact_object,
     else:
         raise ValueError(f'{ele_name} is not an ele or group')
     s0, s1 = ele_bounds([I.ele[name] for name in these_names])
+    
+    if s_stop:
+        s1 = s_stop
+    
     vprint(f'Bounds: {s0}, {s1} m')
     
     # Track up to the element
@@ -237,10 +243,15 @@ def autophase(impact_object,
     
     if debug:
         return phase_f, I
-      
+    
+    if maximize:
+        alg_sign = -1
+    else:
+        alg_sign = 1
+    
     if algorithm == 'brent':
         vprint('Default brent2 algorithm')
-        phase1 = brent(lambda x: -phase_f(x%360), brack=phase_range, maxiter=20, tol=1e-6, full_output=False) %360
+        phase1 = brent(lambda x: alg_sig*phase_f(x%360), brack=phase_range, maxiter=20, tol=1e-6, full_output=False) %360
     
     else:
         vprint('Custom algorithm')

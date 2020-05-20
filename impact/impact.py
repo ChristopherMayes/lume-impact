@@ -14,11 +14,12 @@ from scipy.interpolate import interp1d
 import h5py
 import numpy as np
 
+import yaml
+
 import tempfile
 from time import time
 from copy import deepcopy
 import os
-
 
 
 
@@ -38,7 +39,8 @@ class Impact:
                 workdir=None,
                 use_mpi = False,
                 mpi_exe = 'mpirun', # If needed
-                verbose=True):
+                group = None,
+                verbose=False):
         
         # Save init
         self.original_input_file = input_file
@@ -63,7 +65,7 @@ class Impact:
         
         self._units = {}
         
-        # Control groups.
+
         self.group = {}
         
         # Convenience lookup of elements in lattice by name
@@ -76,8 +78,14 @@ class Impact:
         
         # Call configure
         if input_file:
-            self.load_input(input_file)
+            self.load_input(input_file)            
             self.configure()
+            
+            # Add groups, if any. 
+            if group:
+                for k, v in group.items():
+                    self.add_group(k, **v)            
+            
         else:
             self.vprint('Warning: Input file does not exist. Not configured. Please set header and lattice.')
     
@@ -706,6 +714,8 @@ class Impact:
         
         return I2
     
+
+        
         
     def __str__(self):
         path = self.path
@@ -717,4 +727,33 @@ class Impact:
         else:
             s += 'Impact-T not configured.'
         return s
+    
+    def __repr__(self):
+        """
+        Simple repr showing the number of particles and the stop z.
+        """
+        memloc = hex(id(self))
+        np = self.header['Np']
+        z = self.stop
+        return f'<Impact with {np} particles, stopping at {z} m, at {memloc}>'    
+    
+    
+    @classmethod
+    def from_yaml(cls, yaml_file):
+        """
+        Returns an Impact object instantiated from a YAML config file
+        
+        Will load intial_particles from an h5 file. 
+        
+        """
+        
+        config = yaml.safe_load(yaml_file)
+        
+        # Form ParticleGroup from file
+        if 'initial_particles' in config:
+            f = config['initial_particles']
+            config['initial_particles'] = ParticleGroup(f)            
+        
+        return cls(**config)
+            
         
