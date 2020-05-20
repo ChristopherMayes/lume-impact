@@ -1,9 +1,9 @@
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info, fort_files
-from . import archive, writers, fieldmaps
+from . import archive, writers, fieldmaps, tools
 from .lattice import ele_dict_from, ele_str, get_stop, set_stop
-from . import tools
 from .control import ControlGroup
 
+from .plot import plot_stat
 from .particles import identify_species, track_to_s, track1_to_s
 
 from pmd_beamphysics import ParticleGroup
@@ -78,6 +78,8 @@ class Impact:
         
         # Call configure
         if input_file:
+            infile = tools.full_path(input_file)
+            assert os.path.exists(infile), f'Impact input file does not exist: {infile}'
             self.load_input(input_file)            
             self.configure()
             
@@ -140,7 +142,6 @@ class Impact:
                 # Work in place
                 self.path = self.original_path        
      
-        self.vprint(header_str(self.header))
         self.vprint('Configured to run in:', self.path)
         
         self.configured = True
@@ -275,7 +276,7 @@ class Impact:
         # Clear output
         self.output = {}
         
-        run_info = self.output['run_info'] = {}
+        run_info = self.output['run_info'] = {'error':False}
         t1 = time()
         run_info['start_time'] = t1
         
@@ -390,9 +391,7 @@ class Impact:
                 charge = self.initial_particles.charge
                 self.vprint(f'Setting total charge to {charge} C')
                 self.total_charge = charge
-                
-
-            
+                           
     
     def write_input(self,  input_filename='ImpactT.in'):
         """
@@ -435,62 +434,6 @@ class Impact:
         # Write run script
         self.get_run_script()
             
-    def __getitem__(self, key):
-        """
-        Convenience syntax to get a header or element attribute. 
-        
-        See: __setitem__
-        """        
-        
-        if key == 'initial_particles':
-            return self.initial_particles
-        
-        # Send back ele or group object. 
-        # Do not add these to __setitem__. The user shouldn't be allowed to change them as a whole, 
-        #   because it will break all the links.
-        if key in self.group:
-            return self.group[key]
-        if key in self.ele:
-            return self.ele[key]        
-        
-        # key isn't an ele or group, should have property s
-        
-        x = key.split(':')
-        assert len(x) == 2, f'{x} was not found in group or ele dict, so should have : '    
-        name, attrib = x[0], x[1]        
-        
-        if name == 'header':
-            return self.header[attrib]   
-        elif name in self.ele:
-            return self.ele[name][attrib] 
-        elif name in self.group:
-            return self.group[name][attrib] 
-        else:
-            raise ValueError(f'{name} does not exist in eles or groups')
-        
-    def __setitem__(self, key, item):
-        """
-        Convenience syntax to set a header or element attribute. 
-        attribute_string should be 'header:key' or 'ele_name:key'
-        
-        Examples of attribute_string: 'header:Np', 'SOL1:solenoid_field_scale'
-        
-        """
-        if key == 'initial_particles':
-            self.initial_particles = item
-                        
-        name, attrib = key.split(':')
-        # Try header or lattice
-        if name == 'header':
-            self.header[attrib] = item
-        elif name in self.ele:
-            self.ele[name][attrib] = item
-        elif name in self.group:
-            self.group[name][attrib]  = item
-        else:
-            raise ValueError(f'{name} does not exist in eles or groups')
-        
-    
             
     @property        
     def stop(self):
@@ -686,6 +629,13 @@ class Impact:
         """
         return tools.fingerprint(self.input)
     
+    
+    def plot(self, y='sigma_x', x='mean_z', nice=True):
+        """
+        Simple stat plot
+        """
+        return plot_stat(self, y=y, x=x, nice=nice)
+    
     def print_lattice(self):
         """
         Pretty printing of the lattice
@@ -715,7 +665,100 @@ class Impact:
         return I2
     
 
+    def __getitem__(self, key):
+        """
+        Convenience syntax to get a header or element attribute. 
+
+        Special syntax:
         
+        end_X
+            will return the final item in a stat array X
+            Example:
+            'end_norm_emit_x'
+            
+        particles:X
+            will return a ParticleGroup named X
+            Example:
+                'particles:initial_particles'
+                returns the readback of initial particles. 
+        particles:X:Y
+            ParticleGroup named X's property Y
+            Example:
+                'particles:final_particles:sigma_x'
+
+        
+        See: __setitem__
+        """        
+        
+        # Object attributes
+        if hasattr(self, key):
+            return getattr(self, key) 
+        
+        # Send back ele or group object. 
+        # Do not add these to __setitem__. The user shouldn't be allowed to change them as a whole, 
+        #   because it will break all the links.
+        if key in self.group:
+            return self.group[key]
+        if key in self.ele:
+            return self.ele[key]        
+        
+        if key.startswith('end_'):
+            key2 = key[len('end_'):]
+            assert key2 in self.output['stats'], f'{key} does not have valid output stat: {key2}'
+            return self.output['stats'][key2][-1]
+                
+        if key.startswith('particles:'):
+            key2 = key[len('particles:'):]
+            x = key2.split(':')
+            if len(x) == 1:
+                return self.particles[x[0]]
+            else:
+                return self.particles[x[0]][x[1]]
+        
+        # key isn't an ele or group, should have property s
+        
+        x = key.split(':')
+        assert len(x) == 2, f'{x} was not found in group or ele dict, so should have : '    
+        name, attrib = x[0], x[1]        
+        
+        if name == 'header':
+            return self.header[attrib]   
+        elif name in self.ele:
+            return self.ele[name][attrib] 
+        elif name in self.group:
+            return self.group[name][attrib]         
+       
+        
+        
+    def __setitem__(self, key, item):
+        """
+        Convenience syntax to set a header or element attribute. 
+        attribute_string should be 'header:key' or 'ele_name:key'
+        
+        Examples of attribute_string: 'header:Np', 'SOL1:solenoid_field_scale'
+        
+        Settable attributes can also be given:
+        
+        ['stop'] = 1.2345 will set Impact.stop = 1.2345
+        
+        """
+
+        # Set attributes
+        if hasattr(self, key):
+            setattr(self, key, item)
+            return
+        
+        # Must be header:key or elename:attrib
+        name, attrib = key.split(':')
+        # Try header or lattice
+        if name == 'header':
+            self.header[attrib] = item
+        elif name in self.ele:
+            self.ele[name][attrib] = item
+        elif name in self.group:
+            self.group[name][attrib]  = item
+        else:
+            raise ValueError(f'{name} does not exist in eles or groups of the Impact object.')        
         
     def __str__(self):
         path = self.path
@@ -739,6 +782,15 @@ class Impact:
     
     
     @classmethod
+    def from_archive(cls, archive_h5):
+        """
+        Class method to return an Impact object loaded from an archive file
+        """        
+        c = cls()
+        c.load_archive(archive_h5)
+        return c
+    
+    @classmethod
     def from_yaml(cls, yaml_file):
         """
         Returns an Impact object instantiated from a YAML config file
@@ -746,12 +798,28 @@ class Impact:
         Will load intial_particles from an h5 file. 
         
         """
-        
-        config = yaml.safe_load(yaml_file)
-        
+        # Try file
+        if os.path.exists(os.path.expandvars(yaml_file)):
+            config = yaml.safe_load(open(yaml_file))
+            
+            # The input file might be relative to the yaml file
+            if 'input_file' in config:
+                f = os.path.expandvars(config['input_file'])
+                if not os.path.isabs(f):
+                    # Get the yaml file root
+                    root, _ = os.path.split(tools.full_path(yaml_file))
+                    config['input_file'] = os.path.join(root, f)
+                
+        else:
+            #Try raw string
+            config  = yaml.safe_load(yaml_file)
+            
         # Form ParticleGroup from file
         if 'initial_particles' in config:
             f = config['initial_particles']
+            if not os.path.isabs(f):
+                root, _ = os.path.split(tools.full_path(yaml_file))
+                f = os.path.join(root, f)
             config['initial_particles'] = ParticleGroup(f)            
         
         return cls(**config)
