@@ -99,6 +99,7 @@ class Impact:
         assert name not in self.ele
         if name in self.group:
             self.vprint(f'Warning: group {name} already exists, overwriting.')
+     
         g = ControlGroup(**kwargs)
         g.link(self.ele)
         self.group[name] = g
@@ -252,7 +253,9 @@ class Impact:
         n_procs = self.input['header']['Npcol'] * self.input['header']['Nprow']
         
         if self.use_mpi:
-            runscript = [self.mpi_exe, '-n', str(n_procs), tools.full_path(self.impact_bin)]
+            # mpi_exe could be a complicated string like:
+            # srun -N 1 --cpu_bind=cores
+            runscript = self.mpi_exe.split() + ['-n', str(n_procs), tools.full_path(self.impact_bin)]
         else:
             if n_procs > 1:
                 print('Error: n_procs > 1 but use_mpi = False')
@@ -293,6 +296,7 @@ class Impact:
             os.remove(f)
         
         runscript = self.get_run_script()
+        print(f'Impact.run in {self.path} with: ', ' '.join(runscript))
         run_info['run_script'] = ' '.join(runscript)
         
         try: 
@@ -528,15 +532,17 @@ class Impact:
             self.initial_particles = ParticleGroup(h5=g['initial_particles'])        
             
         if 'control_groups' in g:
-            self.group = archive.read_control_groups_h5(g['control_groups'], verbose=self.verbose)
-            
+            self.group = archive.read_control_groups_h5(g['control_groups'], verbose=self.verbose)            
         self.vprint('Loaded from archive. Note: Must reconfigure to run again.')
         self.configured = False     
         
         if configure:    
-            self.configure()           
-    
-    
+            self.configure()   
+            
+            # Re-link groups
+            # TODO: cleaner logic
+            for _, cg  in self.group.items():
+                cg.link(self.ele)            
     
     @property
     def cathode_start(self):

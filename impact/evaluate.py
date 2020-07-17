@@ -22,8 +22,11 @@ def default_impact_merit(I):
     
     P = I.particles['final_particles']
 
-    # Lost particles have status < -6
-    nlost = len(np.where(P['status'] < -6)[0])    
+    # All impact particles read back have status==1
+    #
+    ntotal = int(I.stat('n_particle').max())
+    nlost = ntotal - len(P)
+    
     m['end_n_particle_loss'] = nlost 
     
     # Get live only for stat calcs

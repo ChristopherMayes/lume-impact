@@ -37,6 +37,7 @@ def execute2(cmd, timeout=None):
     output = {'error':True, 'log':''}
     try:
         p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout = timeout)
+      #  p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout = timeout)
         output['log'] = p.stdout
         output['error'] = False
         output['why_error'] =''

@@ -9,7 +9,8 @@ import os
 
 def run_impact_with_distgen(settings=None,
                             distgen_input_file=None,
-                            impact_config=None,   
+                            impact_config=None,
+                            workdir=None,
                             verbose=False):
     
     """
@@ -25,6 +26,10 @@ def run_impact_with_distgen(settings=None,
     else:
         I = Impact(**impact_config)
 
+    if workdir:
+        I.workdir = workdir
+        I.configure() # again
+        
     I.verbose=verbose
     G = Generator(distgen_input_file)
     G.verbose=verbose
@@ -63,7 +68,8 @@ def run_impact_with_distgen(settings=None,
 
 def evaluate_impact_with_distgen(settings,
                             distgen_input_file=None,
-                            impact_config=None,   
+                            impact_config=None,  
+                            workdir=None,
                             archive_path=None, 
                             merit_f=None,
                             verbose=False):
@@ -84,6 +90,7 @@ def evaluate_impact_with_distgen(settings,
     I = run_impact_with_distgen(settings=settings, 
                          distgen_input_file=distgen_input_file,
                          impact_config=impact_config,
+                         workdir=workdir,
                          verbose=verbose)
         
     if merit_f:
@@ -92,6 +99,7 @@ def evaluate_impact_with_distgen(settings,
         output = default_impact_merit(I)
     
     if 'error' in output and output['error']:
+        
         raise ValueError('run_impact_with_distgen returned error in output')
 
     #Recreate Generator object for fingerprint, proper archiving
