@@ -1033,7 +1033,7 @@ def parse_wakefield(line):
     v = x[3:] # V data starts with index 4
     d={}
     d['s_begin'] = float(v[3])
-    d['s_end'] = float(v[4])
+    d['s'] = float(v[4])
     
     if Bnseg > 0:
         d['method'] = 'from_file'
@@ -1057,7 +1057,7 @@ def wakefield_v(ele):
     # Let v[0] be the original ele, so the indexing looks the same.
     # V1 and V2 are not used.
     dummy = 1
-    v = [ele, dummy, dummy,  ele['s_begin'], ele['s_end'] ]
+    v = [ele, dummy, dummy,  ele['s_begin'], ele['s'] ]
 
     if ele['method'] == 'analytical':
          v += [ele['iris_radius'], ele['gap'], ele['period'] ]
@@ -1067,7 +1067,7 @@ def wakefield_v(ele):
 
 VALID_KEYS['wakefield'] = [
     's_begin',
-    's_end',
+    's',
     'method',
     'filename',
     'iris_radius',

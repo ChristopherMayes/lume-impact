@@ -1,6 +1,6 @@
 from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info, fort_files
 from . import archive, writers, fieldmaps, tools
-from .lattice import ele_dict_from, ele_str, get_stop, set_stop
+from .lattice import ele_dict_from, ele_str, get_stop, set_stop, insert_ele_by_s
 from .control import ControlGroup
 
 from .plot import plot_stat
@@ -91,6 +91,15 @@ class Impact:
         else:
             self.vprint('Warning: Input file does not exist. Not configured. Please set header and lattice.')
     
+    def add_ele(self, ele):
+        """
+        Adds an element to .lattice
+        """
+        name = ele['name']
+        assert name not in self.lattice, 'Element already exists'
+        insert_ele_by_s(ele, self.lattice, verbose=self.verbose)
+        # Add to the ele dict
+        self.ele[name] = ele
     
     def add_group(self, name, **kwargs):
         """
@@ -105,6 +114,7 @@ class Impact:
         self.group[name] = g
         
         return self.group[name]
+    
     
     
     
@@ -296,7 +306,7 @@ class Impact:
             os.remove(f)
         
         runscript = self.get_run_script()
-        print(f'Impact.run in {self.path} with: ', ' '.join(runscript))
+        #DEBUG: print(f'Impact.run in {self.path} with: ', ' '.join(runscript))
         run_info['run_script'] = ' '.join(runscript)
         
         try: 

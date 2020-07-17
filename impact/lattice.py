@@ -333,6 +333,63 @@ def ele_bounds(eles):
         maxs.append(zedge+L)
     return min(mins), max(maxs)
 
+
+def insert_ele_by_s(ele, eles, verbose=False):
+    """
+    Inserts ele in a list of eles using 's'
+    """
+    s = ele['s']
+    for i, ele0 in enumerate(eles):
+        if 's' not in ele0:
+            continue       
+        if ele0['s'] > s:
+            break
+            
+    ii = i
+    eles.insert(ii, ele)
+    
+    if verbose:
+        name = ele['name']
+        name0 = ele0['name']
+        print(f"Inserted ele '{name}' before ele '{name0}' at index {ii} out of {len(eles)-1}")
+
+#-----------------------------------------------------------------  
+# Constructors   
+        
+def new_write_beam(name=None, s=0, filename=None, sample_frequency=1, ref_eles=[]):
+    """
+    returns a new write_beam element.
+    
+    If a list of ref_eles is given, this considers the naming so there are no conflicts. 
+    
+    Filenames must be of the form 'fort.i' with i an integer. i <= 70 should be used with caution. 
+    """
+    
+    
+    # Get existing list
+    ilist = [70]
+    if ref_eles:
+        ilist += [extract_bmpstp(ele['filename']) for ele in ref_eles if ele['type'] == 'write_beam']
+    
+    assert len(ilist) < 99, f'Too many write_beam elements. Only 100 allowed.'
+    
+    if filename:
+        inew = extract_bmpstp(filename)
+        assert inew not in ilist, f'Filename is already reserved: {filename}'
+    else:
+        inew = max(max(ilist), 70) + 1 # Avoid 70 and lower
+        filename = f'fort.{inew}'
+    if not name:
+        name = f'write_beam_{inew}'
+        
+    ele = {'name':name, 
+           's':s,
+           'type':'write_beam',
+           'filename':filename,
+           'sample_frequency':sample_frequency}
+        
+    return ele
+        
 #-----------------------------------------------------------------  
 # Helpers
 

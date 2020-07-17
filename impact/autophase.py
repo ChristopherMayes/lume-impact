@@ -251,7 +251,7 @@ def autophase(impact_object,
     
     if algorithm == 'brent':
         vprint('Default brent2 algorithm')
-        phase1 = brent(lambda x: alg_sig*phase_f(x%360), brack=phase_range, maxiter=20, tol=1e-6, full_output=False) %360
+        phase1 = brent(lambda x: alg_sign*phase_f(x%360), brack=phase_range, maxiter=20, tol=1e-6, full_output=False) %360
     
     else:
         vprint('Custom algorithm')
