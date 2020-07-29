@@ -138,7 +138,7 @@ def fingerprint_impact_with_distgen(impact_object, distgen_object):
 def archive_impact_with_distgen(impact_object,
                                distgen_object,
                                archive_file=None,
-                               impact_group ='astra',
+                               impact_group ='impact',
                                distgen_group ='distgen'):
     """
     Creates a new archive_file (hdf5) with groups for 

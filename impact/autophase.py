@@ -151,7 +151,7 @@ def autophase_and_scale_brent2(phase_scale_f, target=10e6, phase_range=(-180, 18
     
     scale1 = brentq(lambda x: phase_scale_f(phase1, x)/target - 1.0, s0, s1, maxiter=20, rtol=1e-6, full_output=False)
     if verbose: 
-        print('Step 4 scale founr: ', scale1)
+        print('Step 4 scale found: ', scale1)
     #print("Solution") 
     #ps_f(phase1, scale1)
     

@@ -105,7 +105,7 @@ class ControlGroup:
         """
         Calls the appropriate set routine: set_absolute or set_delta
         """
-        assert key == self.var_name
+        assert key == self.var_name, f'{key} mismatch var_name: {self.var_name}'
         
         assert self.eles, 'No eles are linked. Please call .link(eles)'
         
