@@ -36,9 +36,12 @@ def default_impact_merit(I):
     if len(P) == 0:
         return {'error':True}
 
+    # Special
     m['end_total_charge'] = P['charge']
     m['end_higher_order_energy_spread'] = P['higher_order_energy_spread']
-
+    m['end_norm_emit_xy'] = np.sqrt(m['end_norm_emit_x']*m['end_norm_emit_y'])
+    m['end_norm_emit_4d'] =  P['norm_emit_4d']
+    
     # Remove annoying strings
     if 'why_error' in m:
         m.pop('why_error')
