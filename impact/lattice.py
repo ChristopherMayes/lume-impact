@@ -169,13 +169,13 @@ def ele_dict_from(eles):
 ELE_HEIGHT = {
     'change_timestep':1,
     'comment':1,
-    'dipole':2,
-    'drift':1,
+    'dipole':0.5,
+    'drift':.1,
     'offset_beam':1,
-    'quadrupole':5,
-    'solenoid':8,
-    'solrf':3,
-    'emfield_cylindrical':4,
+    'quadrupole':0.5,
+    'solenoid':0.5,
+    'solrf':1,
+    'emfield_cylindrical':0.5,
     'spacecharge':1,
     'stop':1,
     'wakefield':1,
@@ -186,7 +186,7 @@ ELE_COLOR = {
     'change_timestep':'black',
     'comment':'black',
     'dipole':'red',
-    'solenoid':'blue',
+    'solenoid':'purple',
     'emfield_cylindrical':'purple',
     'drift':'black',
     'offset_beam':'black',
@@ -201,15 +201,21 @@ ELE_COLOR = {
 
 def ele_shape(ele):
     """
-    
+    Bounding information for use in layout plotting
     """
     type = ele['type']
     q_sign = -1 # electron
+    #print(type, ele['type'])
+    
+    # Look for pure solenoid
+    if type == 'solrf':
+        if ele['rf_field_scale'] == 0:
+            type = 'solenoid' 
     
     factor = 1.0
 
     if type == 'quadrupole':
-        b1 = q_sign*ele['b1_gradient']
+        b1 = q_sign*ele['b1_gradient']/5
         if b1 > 0:
             # Focusing
             top = b1
@@ -221,11 +227,14 @@ def ele_shape(ele):
         top =ELE_HEIGHT[type]
         bottom = -top
     
+
+        
+    c = ELE_COLOR[type]
+    
     # DEBUG
     if 'L' not in ele:
         print('ERROR: no L in ele: ', ele)
-    
-    c = ELE_COLOR[type]
+
     
     d = {}
     d['left'] = ele['s']-ele['L']
@@ -332,6 +341,17 @@ def ele_bounds(eles):
         mins.append(zedge)
         maxs.append(zedge+L)
     return min(mins), max(maxs)
+
+def ele_overlaps_s(ele, smin, smax):
+    """
+    returns True if any part of an element is within smin, smax
+    """
+    s = ele['s']
+    if 'L' not in ele:
+        return (s >= smin) and (s <= smax)
+    else:
+        s0 = s - ele['L']
+        return  ((s0 >= smin) and (s0 <= smax) or ((s >= smin) and (s <= smax)))
 
 
 def insert_ele_by_s(ele, eles, verbose=False):

@@ -3,7 +3,7 @@ from . import archive, writers, fieldmaps, tools
 from .lattice import ele_dict_from, ele_str, get_stop, set_stop, insert_ele_by_s
 from .control import ControlGroup
 
-from .plot import plot_stat
+from .plot import plot_stat, plot_stats_with_layout
 from .particles import identify_species, track_to_s, track1_to_s
 
 from pmd_beamphysics import ParticleGroup
@@ -646,11 +646,31 @@ class Impact:
         return tools.fingerprint(self.input)
     
     
-    def plot(self, y='sigma_x', x='mean_z', nice=True):
+    def old_plot(self, y='sigma_x', x='mean_z', nice=True, include_layout=True):
         """
         Simple stat plot
         """
         return plot_stat(self, y=y, x=x, nice=nice)
+    
+    def plot(self, y=['sigma_x', 'sigma_y'], x='mean_z', xlim=None, y2=[],
+            nice=True, 
+            include_layout=True,
+            include_labels=False, 
+            include_particles=True,
+            include_legend=True, 
+             **kwargs):
+        """
+        
+        
+        """
+        plot_stats_with_layout(self, ykeys=y, ykeys2=y2, 
+                           xkey=x, xlim=xlim, 
+                           nice=nice, 
+                           include_layout=include_layout,
+                           include_labels=include_labels, 
+                           include_particles=include_particles, 
+                           include_legend=include_legend, **kwargs)    
+    
     
     def print_lattice(self):
         """

@@ -24,6 +24,7 @@ group:
     var_name: rf_field_scale
     factors: [0.86571945106805, 1, 1, 0.86571945106805]  # sin(k*d) with d = 3.5e-2 m 
     absolute: True    
+    value: 1000000
     
  # Overall L0B scale      
   L0B_scale:
@@ -31,4 +32,4 @@ group:
     var_name: rf_field_scale
     factors: [0.86571945106805, 1, 1, 0.86571945106805]  # sin(k*d) with d = 3.5e-2 m 
     absolute: True
-    
+    value: 1000000
