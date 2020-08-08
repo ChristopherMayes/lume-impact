@@ -202,6 +202,29 @@ def process_fieldmap_solrf(data):
     
     return d
     
+    
+def raw_fieldmap_processed_fieldmap(fmap, filePath=None):
+    """
+    Creates 'rfdataX' array from fieldmap dict.
+    
+    This is essentially the inverse of process_fieldmap_solrf
+    
+    
+    """    
+    data = np.array([])
+    
+    for dat in [fmap['Ez'], fmap['Bz']]:
+        coefs = dat['fourier_coefficients']
+        data = np.append(data, [len(coefs), dat['z0'], dat['z1'], dat['L']])
+        data = np.append(data, coefs)
+        
+    fieldmap = {'info':{'format':'rfdata'}}
+    fieldmap['data'] = data
+        
+    return fieldmap
+    
+        
+    
 #process_fieldmap_solrf(I.input['fieldmaps']['rfdata102'])  
 
 def fieldmap_reconsruction(fdat, z):
