@@ -280,6 +280,12 @@ class Impact:
         return runscript
 
     def run_impact(self, verbose=False, timeout=None):
+        """
+        Runs Impact-T
+        
+        
+        Note: do not use os.chdir
+        """
         
         # Check that binary exists
         self.impact_bin = tools.full_path(self.impact_bin)
@@ -292,10 +298,7 @@ class Impact:
         run_info = self.output['run_info'] = {'error':False}
         t1 = time()
         run_info['start_time'] = t1
-        
-        init_dir = os.getcwd()
-        os.chdir(self.path)
-        
+                
         self.vprint('Running Impact-T in '+self.path)
         
         # Write input
@@ -311,7 +314,7 @@ class Impact:
         
         try: 
             if timeout:
-                res = tools.execute2(runscript, timeout=timeout)
+                res = tools.execute2(runscript, timeout=timeout, cwd=self.path)
                 log = res['log']
                 self.error = res['error']
                 run_info['error'] = self.error
@@ -342,8 +345,6 @@ class Impact:
             run_info['why_run_error'] = str(ex)
         finally:
             run_info['run_time'] = time() - t1
-            # Return to init_dir
-            os.chdir(init_dir)    
  
         self.finished = True
     
