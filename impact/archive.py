@@ -274,15 +274,16 @@ def write_output_h5(h5, impact_output, name='output', units=None):
     """
     g = h5.create_group(name)
     
-    if 'stats' in impact_output:
-        name2 = 'stats'
-        g2 = g.create_group(name2)
-        for key, data in impact_output[name2].items():
-            if units:
-                unit = units[key]
-            else:
-                unit = None
-            write_dataset_and_unit_h5(g2, key, data, unit)       
+    for stats_label in ['stats', 'dipole_stats']:
+        if stats_label in impact_output:
+            name2 = stats_label
+            g2 = g.create_group(name2)
+            for key, data in impact_output[name2].items():
+                if units:
+                    unit = units[key]
+                else:
+                    unit = None
+                write_dataset_and_unit_h5(g2, key, data, unit)       
        
     # TODO: This could be simplified
     if 'slice_info' in impact_output:
@@ -323,18 +324,19 @@ def read_output_h5(h5, expected_units=None, verbose=False):
     
     units = {}
     
-    if 'stats' in h5:
-        name2 = 'stats'
-        if verbose:
-            print(f'reading {name2}')        
-        g = h5[name2]
-        o[name2] = {}
-        for key in g:
-            if expected_units:
-                expected_unit = expected_units[key] 
-            else:
-                expected_unit = None
-            o[name2][key], units[key] = read_dataset_and_unit_h5(g[key], expected_unit=expected_unit) 
+    for stats_label in ['stats', 'dipole_stats']:
+        if stats_label in h5:
+            name2 = stats_label
+            if verbose:
+                print(f'reading {name2}')        
+            g = h5[name2]
+            o[name2] = {}
+            for key in g:
+                if expected_units:
+                    expected_unit = expected_units[key] 
+                else:
+                    expected_unit = None
+                o[name2][key], units[key] = read_dataset_and_unit_h5(g[key], expected_unit=expected_unit) 
             
     #TODO: this could be simplified
     if 'slice_info' in h5:

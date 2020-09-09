@@ -620,6 +620,59 @@ VALID_KEYS['solenoid'] = [
     'radius'
 ] + VALID_KEYS['misalignment']
 
+#-----------------------------------------------------------------  
+def parse_dipole(line):
+    """
+    Dipole (type 4)
+    
+    V1:  zedge
+    V2:  x field strength (T)
+    V3:  y field strength (T)
+    V4:  file ID file ID to contain the geometry information of bend. 
+    V5:  half of gap width (m).
+    V6:  x misalignment error Not used.
+    V7:  y misalignment error Not used.
+    V8:  rotation error x Not used.
+    V9:  rotation error y Not used.
+    V10: rotation error z Not used.
+    
+    """
+    v = line.split()[3:-1] # V data starts with index 4
+    d={}
+    d['zedge'] = float(v[1]) 
+    d['b_field_x'] = float(v[2]) 
+    d['b_field'] = float(v[3]) 
+    d['filename'] = 'rfdata'+str(int(float(v[4])))
+    d['half_gap'] = float(v[5]) 
+    return d
+   
+    
+def dipole_v(ele):
+    """
+    dipole Impact-T style V list
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    dummy = 0.0
+    # Get file integer
+    f = ele['filename']
+    ii = int(f.split('rfdata')[1])
+    
+    v = [ele, ele['zedge'], ele['b_field_x'], ele['b_field'], ii, ele['half_gap'] ] 
+    
+    return v    
+    
+VALID_KEYS['dipole'] = [
+    'zedge',
+    'b_field_x',
+    'b_field',
+    'filename',
+    'half_gap'
+] # Not used: + VALID_KEYS['misalignment']    
+    
+
+
+
 
 
 #-----------------------------------------------------------------  
@@ -691,56 +744,7 @@ VALID_KEYS['solrf'] = [
     'solenoid_field_scale'
 ] + VALID_KEYS['misalignment']
 
-#-----------------------------------------------------------------  
-def parse_dipole(line):
-    """
-    Dipole (type 4)
-    
-    V1: zedge
-    V2: x field strength (T)
-    V3: y field strength (T)
-    V4: file ID file ID to contain the geometry information of bend. 
-    V5: half of gap width (m).
-    V6: x misalignment error Not used.
-    V7: y misalignment error Not used.
-    V8: rotation error x Not used.
-    V9: rotation error y Not used.
-    V10: rotation error z Not used.
-    
-    """
-    v = line.split()[3:-1] # V data starts with index 4
-    d={}
-    d['zedge'] = float(v[1]) 
-    d['b_field_x'] = float(v[2]) 
-    d['b_field'] = float(v[3]) 
-    d['filename'] = 'rfdata'+str(int(float(v[4])))
-    d['half_gap'] = float(v[5]) 
-    return d
-   
-    
-def dipole_v(ele):
-    """
-    dipole Impact-T style V list
 
-    """
-    # Let v[0] be the original ele, so the indexing looks the same.
-    dummy = 0.0
-    # Get file integer
-    f = ele['filename']
-    ii = int(f.split('rfdata')[1])
-    
-    v = [ele, ele['zedge'], ele['b_field_x'], ele['b_field'], ii, ele['half_gap'] ] 
-    
-    return v    
-    
-VALID_KEYS['dipole'] = [
-    'zedge',
-    'b_field_x',
-    'b_field',
-    'filename',
-    'half_gap'
-] # Not used: + VALID_KEYS['misalignment']    
-    
     
 #-----------------------------------------------------------------     
 def parse_emfield_cylindrical(line):
@@ -1591,6 +1595,49 @@ def load_fort30(filePath, keys=FORT_KEYS[30] ):
     '''            
     return load_fortX(filePath, keys)
 
+
+#---------------------------------
+# Dipole
+
+FORT_KEYS[ 34] = FORT_KEYS[ 24] # X
+FORT_UNITS[34] = FORT_UNITS[24]
+FORT_KEYS[ 35] = FORT_KEYS[ 25] # Y
+FORT_UNITS[35] = FORT_UNITS[25]
+FORT_KEYS[ 36] = FORT_KEYS[ 26] # Z
+FORT_UNITS[36] = FORT_UNITS[26]
+FORT_KEYS[ 37] = FORT_KEYS[ 27] # Amplitude
+FORT_UNITS[37] = FORT_UNITS[27]
+
+def load_fort34(filePath, keys=FORT_KEYS[34] ):
+    """Same as load_fort24, but in the dipole coordinate system"""
+    return load_fortX(filePath, keys)
+def load_fort35(filePath, keys=FORT_KEYS[35] ):
+    """Same as load_fort25, but in the dipole coordinate system"""
+    return load_fortX(filePath, keys)
+def load_fort36(filePath, keys=FORT_KEYS[36] ):
+    """Same as load_fort26, but in the dipole coordinate system"""
+    return load_fortX(filePath, keys)
+def load_fort37(filePath, keys=FORT_KEYS[37] ):
+    """Same as load_fort27, but in the dipole coordinate system"""
+    return load_fortX(filePath, keys)
+
+
+FORT_KEYS[38] =  ['t', 'ref_x', 'ref_gammabeta_x', 'ref_y', 'ref_gammabeta_y', 'ref_z', 'ref_gammabeta_z', ]
+FORT_UNITS[38] = ['s', 'm',     '1',               'm',     '1',           'm',        '1']
+def load_fort38(filePath, keys=FORT_KEYS[38]):
+    '''
+    fort.38: reference particle information in dipole reference coordinate system (inside dipole ONLY)
+    1st col: time (secs)
+    2nd col: x distance (m) 3rd col: Px/MC
+    4th col: y (m)
+    5th col: Py/MC
+    6th col: z (m) 7th col: Pz/MC
+    '''            
+    return load_fortX(filePath, keys)
+
+#---------------------------------
+# Slice statistics
+
 FORT_KEYS[60] =  ['slice_z', 'particles_per_cell', 'current', 'norm_emit_x', 'norm_emit_y', 'mean_energy', 'sigma_energy'] 
 FORT_UNITS[60] = ['m', '1', 'A', 'm', 'm', 'eV', 'eV']
 def load_fort60_and_70(filePath, keys=FORT_KEYS[60]):
@@ -1703,6 +1750,11 @@ FORT_LOADER = {
     28:load_fort28,
     29:load_fort29,
     30:load_fort30,
+    34:load_fort34,
+    35:load_fort35,
+    36:load_fort36,
+    37:load_fort37,
+    38:load_fort38,
     40:load_fort40,
     50:load_fort50,
     60:load_fort60,
@@ -1711,7 +1763,7 @@ FORT_LOADER = {
 
 # Form large unit dict for these types of files
 UNITS = {}
-for i in [18, 24, 25, 26, 27, 28, 29, 30, 60]:
+for i in [18, 24, 25, 26, 27, 28, 29, 30, 34, 35, 36, 37, 38, 60]:
     for j, k in enumerate(FORT_KEYS[i]):
         UNITS[k] = FORT_UNITS[i][j]
     
@@ -1763,8 +1815,10 @@ def load_fort(filePath, type = None, verbose=True):
     
 
 FORT_STAT_TYPES     = [18, 24, 25, 26, 27, 28, 29, 30]
+FORT_DIPOLE_STAT_TYPES   = [34, 35, 36, 37, 38]
 FORT_PARTICLE_TYPES = [40,50]
 FORT_SLICE_TYPES    = [60,70]
+
 # All of these
 # Not uesed: FORT_OUTPUT_TYPES = FORT_STAT_TYPES + FORT_PARTICLE_TYPES + FORT_SLICE_TYPES 
 
@@ -1806,9 +1860,11 @@ def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
 
 
 
-def load_stats(path, species='electron', verbose=False):
+def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
     """
     Loads all Impact-T statistics output. 
+    
+    Works with types= FORT_STAT_TYPES and FORT_DIPOLE_STAT_TYPES
     
     Returns dicts:
         data, units
@@ -1817,7 +1873,7 @@ def load_stats(path, species='electron', verbose=False):
     
     """
     
-    data = load_many_fort(path, FORT_STAT_TYPES, verbose=verbose)
+    data = load_many_fort(path, types=types, verbose=verbose)
     units = {}
     
     mc2 = SPECIES_MASS[species]
@@ -1842,7 +1898,7 @@ def load_stats(path, species='electron', verbose=False):
             newkey = prefix+'p'+suffix
             # Remove old key
             data[newkey] = data.pop(k)*mc2
-            # to let the next if work
+            # to let the next if statement work properly
             k = newkey
             
             u = multiply_units(u, pmd_unit('eV/c'))

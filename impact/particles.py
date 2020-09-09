@@ -59,7 +59,8 @@ def track_to_s(impact_object, particles, s):
     """
    
     impact_object.initial_particles = particles
-    impact_object.stop = s
+    if s is not None:
+        impact_object.stop = s
 
     impact_object.run()
 

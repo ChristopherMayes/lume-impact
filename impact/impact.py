@@ -1,4 +1,4 @@
-from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info, fort_files
+from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_DIPOLE_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info, fort_files
 from . import archive, writers, fieldmaps, tools
 from .lattice import ele_dict_from, ele_str, get_stop, set_stop, insert_ele_by_s
 from .control import ControlGroup
@@ -167,8 +167,14 @@ class Impact:
         """
         Loads stats, slice_info, and particles.
         """
-        self.output['stats'], u = load_stats(self.path, species=self.species, verbose=self.verbose)
+        self.output['stats'], u = load_stats(self.path, species=self.species, types=FORT_STAT_TYPES, verbose=self.verbose)
         self._units.update(u)
+        
+        # This is not always present
+        dipole_stats, u = load_stats(self.path, species=self.species, types=FORT_DIPOLE_STAT_TYPES, verbose=self.verbose)
+        if dipole_stats:
+            self.output['dipole_stats'] = dipole_stats
+            self._units.update(u)        
         
         self.output['slice_info'], u = load_slice_info(self.path, self.verbose)
         self._units.update(u)
@@ -324,7 +330,7 @@ class Impact:
                 # Interactive output, for Jupyter
                 log = []
                 counter = 0
-                for path in tools.execute(runscript):
+                for path in tools.execute(runscript, cwd=self.path):
                     # Fancy clearing of old lines
                     counter +=1
                     if verbose:

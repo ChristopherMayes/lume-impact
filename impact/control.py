@@ -6,15 +6,21 @@ class ControlGroup:
     
     Based on Bmad's Ovelay and Group elements
     
-    If absolute, the underlying attributes will be set absolutely. Otherwise, only changes will be set. 
+    If absolute, the underlying attributes will be set absolutely. 
+    
+    Othereise, underlying attributes will be set to changes from reference_values.
+    
+    If reference values are not given, they will be set when linking elements. 
+    
+    Otherwise, only changes will be set. 
     
     Optionally, a list of factors can be used 
     
     Example 1:
         ELES = {'a':{'x':1}, 'b':{'x':2}}
         G = ControlGroup(ele_names=['a', 'b'], var_name='x')
-        G.link(ELES)
-        G['x'] = 3
+        G.link(ELES) # This will set .reference_values = [1, 2]
+        G['x'] = 3 
         G.eles
     Returns:
         {'a': {'x': 4.0}, 'b': {'x': 5.0}}
@@ -36,6 +42,7 @@ class ControlGroup:
                  attributes=None, 
                  # If factors != 1 
                  factors = None,
+                 reference_values = None,
                  value=0,
                  absolute=False # 
                 ):
@@ -45,6 +52,7 @@ class ControlGroup:
         
         self.attributes = attributes
         self.factors = factors
+        self.reference_values = None
         
         self.absolute = absolute
         
@@ -71,13 +79,23 @@ class ControlGroup:
         Link and ele dict, so that update will work
         """
         self.ele_dict=ele_dict
+        
+        # Populate reference values if none were defined
+        if not self.reference_values:
+            self.reference_values = self.ele_values
+        
         # call setter
         self[self.var_name] = self.value
         
     @property
     def eles(self):
         """Return a list of the controlled eles"""
-        return [self.ele_dict[name] for name in self.ele_names]        
+        return [self.ele_dict[name] for name in self.ele_names]  
+    
+    @property
+    def ele_values(self):
+        """Returns the underlying element values"""
+        return [self.ele_dict[ele_name][attrib] for ele_name, attrib in zip(self.ele_names, self.attributes)]
 
     
     def set_absolute(self, key, item):
@@ -98,7 +116,7 @@ class ControlGroup:
             return
         
         self.value = item     
-        for name, attrib, f in zip(self.ele_names, self.attributes, self.factors):
+        for name, attrib, f, ref in zip(self.ele_names, self.attributes, self.factors, self.reference_values):
             self.ele_dict[name][attrib] += f * delta  
         
     def __setitem__(self, key, item):
