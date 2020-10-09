@@ -1,6 +1,7 @@
 import subprocess
 import os, errno
 from hashlib import blake2b
+from copy import deepcopy
 import numpy as np
 import json
 import shutil
@@ -168,3 +169,22 @@ def isotime():
     return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).astimezone().replace(microsecond=0).isoformat()    
     
     
+
+#--------------------------------
+# adding defaults to dicts
+def fill_defaults(dict1, defaults, strict=True):
+    """
+    Fills a dict with defaults in a defaults dict. 
+    
+    dict1 must only contain keys in defaults.
+    
+    deepcopy is necessary!
+    
+    """
+    # start with defaults
+    for k in dict1:
+        if k not in defaults and strict:
+            raise Exception(f'Extraneous key: {k}. Allowable keys: '+', '.join(list(defaults)))
+    for k, v in defaults.items():
+        if k not in dict1:
+            dict1[k] =  deepcopy(v)

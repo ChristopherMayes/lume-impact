@@ -418,7 +418,7 @@ def parse_type(line):
 
 # Collect a dict of type:list of valid keys
 VALID_KEYS={}    
-    
+ELE_DEFAULTS={}    
     
 #-----------------------------------------------------------------
 def parse_drift(line):
@@ -444,10 +444,10 @@ def drift_v(ele):
     if 'radius' in ele: v[2] = ele['radius']
     return v
 
-VALID_KEYS['drift'] = [
-    'zedge',
-    'radius'
-] 
+ELE_DEFAULTS['drift'] = {
+    'zedge':0,
+    'radius':0
+}
     
     
 #-----------------------------------------------------------------      
@@ -477,12 +477,12 @@ def misalignment_v(ele):
     
     return v
     
-VALID_KEYS['misalignment'] = [
-    'x_offset',
-    'y_offset',
-    'x_rotation', 
-    'y_rotation', 
-    'z_rotation']
+ELE_DEFAULTS['misalignment'] = {
+    'x_offset':0,
+    'y_offset':0,
+    'x_rotation':0, 
+    'y_rotation':0, 
+    'z_rotation':0}
         
     
 #-----------------------------------------------------------------   
@@ -549,15 +549,20 @@ def quadrupole_v(ele):
     
     return v
 
-VALID_KEYS['quadrupole'] = [
-    'zedge',
-    'b1_gradient',
-    'L_effective',
-    'file_id',
-    'radius',
-    'rf_frequency',
-    'rf_phase_deg'
-] + VALID_KEYS['misalignment']
+ELE_DEFAULTS['quadrupole'] = {
+    'zedge':0,
+    'b1_gradient':0,
+    'L_effective':0,
+    'file_id':0,
+    'radius':0,
+    'rf_frequency':0,
+    'rf_phase_deg':0,
+    'x_offset':0,
+    'y_offset':0,
+    'x_rotation':0, 
+    'y_rotation':0, 
+    'z_rotation':0}
+
 
 
 #-----------------------------------------------------------------  
@@ -613,12 +618,16 @@ def solenoid_v(ele):
 
     return v
 
-VALID_KEYS['solenoid'] = [
-    'zedge',
-    'b_field',
-    'filename',
-    'radius'
-] + VALID_KEYS['misalignment']
+ELE_DEFAULTS['solenoid'] = {
+    'zedge':0,
+    'b_field':0,
+    'filename':'1T99.T7',
+    'radius':0,
+    'x_offset':0,
+    'y_offset':0,
+    'x_rotation':0, 
+    'y_rotation':0, 
+    'z_rotation':0}
 
 #-----------------------------------------------------------------  
 def parse_dipole(line):
@@ -662,14 +671,13 @@ def dipole_v(ele):
     
     return v    
     
-VALID_KEYS['dipole'] = [
-    'zedge',
-    'b_field_x',
-    'b_field',
-    'filename',
-    'half_gap'
-] # Not used: + VALID_KEYS['misalignment']    
-    
+ELE_DEFAULTS['dipole'] = {
+    'zedge':0,
+    'b_field_x':0,
+    'b_field':0,
+    'filename':'rfdata99',
+    'half_gap':0
+}
 
 
 
@@ -734,15 +742,19 @@ def solrf_v(ele):
     
     return v
 
-VALID_KEYS['solrf'] = [
-    'zedge',
-    'rf_field_scale',
-    'rf_frequency',
-    'theta0_deg',
-    'filename',
-    'radius',
-    'solenoid_field_scale'
-] + VALID_KEYS['misalignment']
+ELE_DEFAULTS['solrf'] = {
+    'zedge':0,
+    'rf_field_scale':0,
+    'rf_frequency':0,
+    'theta0_deg':0,
+    'filename':'rfdata99',
+    'radius':0,
+    'solenoid_field_scale':0,
+    'x_offset':0,
+    'y_offset':0,
+    'x_rotation':0, 
+    'y_rotation':0, 
+    'z_rotation':0}
 
 
     
@@ -804,14 +816,18 @@ def emfield_cylindrical_v(ele):
 
     return v    
 
-VALID_KEYS['emfield_cylindrical'] = [
-    'zedge',
-    'rf_field_scale',
-    'rf_frequency',
-    'theta0_deg',
-    'filename',
-    'radius'
-] + VALID_KEYS['misalignment']    
+ELE_DEFAULTS['emfield_cylindrical'] = {
+    'zedge':0,
+    'rf_field_scale':0,
+    'rf_frequency':0,
+    'theta0_deg':0,
+    'filename':0,
+    'radius':0,
+    'x_offset':0,
+    'y_offset':0,
+    'x_rotation':0, 
+    'y_rotation':0, 
+    'z_rotation':0}
     
 #-----------------------------------------------------------------      
 def parse_offset_beam(line, warn=False):
@@ -857,15 +873,15 @@ def offset_beam_v(ele):
     return v
 
 
-VALID_KEYS['offset_beam'] = [
-    's',
-    'x_offset',
-    'px_offset',
-    'y_offset',
-    'py_offset',
-    'z_offset',
-    'pz_offset' 
-] 
+ELE_DEFAULTS['offset_beam'] = {
+    's':0,
+    'x_offset':0,
+    'px_offset':0,
+    'y_offset':0,
+    'py_offset':0,
+    'z_offset':0,
+    'pz_offset':0} 
+
 
 
 #-----------------------------------------------------------------  
@@ -900,11 +916,11 @@ def write_beam_v(ele):
     v = [ele, dummy, dummy, ele['s']]   
     return v
 
-VALID_KEYS['write_beam'] = [
-    's',
-    'filename',
-    'sample_frequency'
-] 
+ELE_DEFAULTS['write_beam'] = {
+    's':0,
+    'filename':'fort.99',
+    'sample_frequency':1}
+
 
 
 #-----------------------------------------------------------------  
@@ -935,10 +951,9 @@ def write_beam_for_restart_v(ele):
     return v
 
 
-VALID_KEYS['write_beam_for_restart'] = [
-    's',
-    'filename'
-] 
+ELE_DEFAULTS['write_beam_for_restart'] = {
+    's':0,
+    'filename':'fort.99+myid'}
 
 
 #-----------------------------------------------------------------  
@@ -969,10 +984,10 @@ def change_timestep_v(ele):
     v = [ele, dummy, dummy, ele['s'], ele['dt']]   
     return v
 
-VALID_KEYS['change_timestep'] = [
-    's',
-    'dt'
-] 
+ELE_DEFAULTS['change_timestep'] = {
+    's':0,
+    'dt':0}
+
 
 
 #----------------------------------------------------------------- 
@@ -1001,9 +1016,9 @@ def rotationally_symmetric_to_3d_v(ele):
     v = [ele, dummy, dummy, ele['s']]   
     return v
 
-VALID_KEYS['rotationally_symmetric_to_3d'] = [
-    's'
-] 
+ELE_DEFAULTS['rotationally_symmetric_to_3d'] = {
+    's':0
+}
 
 
 #-----------------------------------------------------------------  
@@ -1069,15 +1084,16 @@ def wakefield_v(ele):
     
     return v
 
-VALID_KEYS['wakefield'] = [
-    's_begin',
-    's',
-    'method',
-    'filename',
-    'iris_radius',
-    'gap',
-    'period'
-] 
+ELE_DEFAULTS['wakefield'] = {
+    's_begin':0,
+    's':0,
+    'method':'analytical',
+    'filename':'fort.99',
+    'iris_radius':0,
+    'gap':0,
+    'period':0
+}
+ 
 
 
 
@@ -1111,9 +1127,9 @@ def stop_v(ele):
     
     return v
 
-VALID_KEYS['stop'] = [
-    's'
-] 
+ELE_DEFAULTS['stop'] = {
+    's':0
+}
 
 
 #-----------------------------------------------------------------  
@@ -1154,10 +1170,10 @@ def spacecharge_v(ele):
     
     return v
 
-VALID_KEYS['spacecharge'] = [
-    's',
-    'is_on'
-] 
+ELE_DEFAULTS['spacecharge'] = {
+    's':0,
+    'is_on':False
+}
 
 
 #----------------------------------------------------------------- 
@@ -1191,15 +1207,24 @@ def write_slice_info_v(ele):
     return v
 
     
-VALID_KEYS['write_slice_info'] = [
-    's',
-    'n_slices',
-    'filename'
-]     
+ELE_DEFAULTS['write_slice_info'] = {
+    's':0,
+    'n_slices':0,
+    'filename':'fort.99'
+}
+     
     
     
 # Add comment
-VALID_KEYS['comment'] = []
+ELE_DEFAULTS['comment'] = {}
+
+# Add Blength, Bnseg, Bmpstp, Btype to all 
+
+# Form valid keys
+VALID_KEYS = {}
+for k in ELE_DEFAULTS:
+    ELE_DEFAULTS[k].update({'L':0, 'Bnseg':0, 'Bmpstp':0})
+    VALID_KEYS[k] = list(ELE_DEFAULTS[k])
     
 for k in VALID_KEYS:
     VALID_KEYS[k] += ['description', 'original', 'name', 'type']

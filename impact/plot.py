@@ -131,7 +131,7 @@ def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_label
             
             
 def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=['mean_kinetic_energy'], 
-                           xkey='mean_z', xlim=None, 
+                           xkey='mean_z', xlim=None, ylim=None, ylim2=None,
                            nice=True, 
                            include_layout=True,
                            include_labels=True, 
@@ -161,6 +161,8 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     else:
         fig, all_axis = plt.subplots( **kwargs)
         ax_plot = [all_axis]
+        
+
 
     # collect axes
     if isinstance(ykeys, str):
@@ -216,6 +218,8 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     for ax in ax_plot:
         ax.set_xlim(xlim[0]/factor_x, xlim[1]/factor_x)          
         ax.set_xlabel(f'{xkey} ({units_x})')    
+        
+        
     
 
     # Draw for Y1 and Y2 
@@ -260,7 +264,22 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
                     ax.scatter(X_particles/factor_x, Y_particles/factor, color=color) 
                 except:
                     pass     
-        ax.set_ylabel(', '.join(keys)+f' ({unit})')            
+        ax.set_ylabel(', '.join(keys)+f' ({unit})')    
+        
+        # Set limits, considering the scaling. 
+        if ix==0 and ylim:
+            new_ylim = np.array(ylim)/factor
+            ax.set_ylim(new_ylim)
+        # Set limits, considering the scaling. 
+        if ix==1 and ylim2:
+            pass
+        # TODO
+            if ylim2:
+                new_ylim2 = np.array(ylim2)/factor
+                all_axis[0].right_ax.set_ylim(new_ylim2)            
+            else:
+                pass
+                all_axis[0].right_ax.set_ylim(0,.1)
         #if len(keys) > 1:
         
     # Collect legend

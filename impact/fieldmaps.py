@@ -101,7 +101,7 @@ def read_fieldmap_h5(h5):
     
     
 # -----------------------
-# Ty fieldmaps
+# T7 fieldmaps
 def read_solenoid_fieldmap(filePath):
     """
     Read a T7 style file.
