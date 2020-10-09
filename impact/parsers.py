@@ -1403,7 +1403,7 @@ def parse_lattice(lines):
 
     
     
-def parse_impact_input(filePath):
+def parse_impact_input(filePath, verbose=False):
     """
     Parse and ImpactT.in file into header, lattice, fieldmaps
     
@@ -1430,7 +1430,7 @@ def parse_impact_input(filePath):
     if header['Flagdist'] == 16:
         pfile = os.path.join(path, 'partcl.data')
         pfile = os.path.abspath(pfile)
-        if not os.path.exists(pfile):
+        if verbose and not os.path.exists(pfile)
             print('Warning: partcl.data missing in path:', path)
     else:
         pfile = None

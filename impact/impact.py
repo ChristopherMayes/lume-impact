@@ -161,7 +161,7 @@ class Impact:
     def load_input(self, input_filePath):
         f = tools.full_path(input_filePath)
         self.original_path, _ = os.path.split(f) # Get original path
-        self.input = parse_impact_input(f)
+        self.input = parse_impact_input(f, verbose=self.verbose)
     
     def load_output(self):
         """
