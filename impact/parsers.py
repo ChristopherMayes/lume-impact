@@ -1430,7 +1430,7 @@ def parse_impact_input(filePath, verbose=False):
     if header['Flagdist'] == 16:
         pfile = os.path.join(path, 'partcl.data')
         pfile = os.path.abspath(pfile)
-        if verbose and not os.path.exists(pfile)
+        if verbose and not os.path.exists(pfile):
             print('Warning: partcl.data missing in path:', path)
     else:
         pfile = None
