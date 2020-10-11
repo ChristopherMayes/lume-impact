@@ -1,0 +1,78 @@
+input_file: ImpactT_template.in
+
+verbose: False
+
+group:
+
+  GUN_phase:
+    ele_names: [ SWIFEL_GUN ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+    value: 0
+
+  BUNCHER9_phase:
+    ele_names: [ BUNCHER9 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+    #value: -56.64512789009524
+
+  CAV1_phase:
+    ele_names: [ CAV1 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+    #value: 0
+    #value: -6.516777279789954
+    
+    
+  CAV2_phase:
+    ele_names: [ CAV2 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+   # value: 31.090015374312785
+    
+  CAV3_phase:
+    ele_names: [ CAV3 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+  #  value: 1.3181929346671777
+    
+    
+  CAV4_phase:
+    ele_names: [ CAV4 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+  #  value: 4.403450504818665
+    
+  CAV5_phase:
+    ele_names: [ CAV5 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+    value: 0
+    
+  CAV6_phase:
+    ele_names: [ CAV6 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+    value: 0
+    
+  CAV7_phase:
+    ele_names: [ CAV7 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+    value: 0
+    
+  CAV8_phase:
+    ele_names: [ CAV8 ]
+    var_name: dtheta0_deg
+    absolute: False
+    attributes: theta0_deg
+    value: 0    
