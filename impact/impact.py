@@ -663,6 +663,7 @@ class Impact:
             nice=True, 
             include_layout=True,
             include_labels=False, 
+            include_markers=True,
             include_particles=True,
             include_legend=True, 
              **kwargs):
@@ -675,6 +676,7 @@ class Impact:
                            nice=nice, 
                            include_layout=include_layout,
                            include_labels=include_labels, 
+                           include_markers=include_markers,
                            include_particles=include_particles, 
                            include_legend=include_legend, **kwargs)    
     

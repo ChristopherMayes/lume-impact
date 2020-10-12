@@ -99,7 +99,7 @@ def add_ele_label(ele, axis,  bounds=None, factor=1):
             #transform=ax.transAxes,
             family='sans-serif', size=14, rotation=90)
 
-def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_labels=True):
+def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_labels=True, include_markers=True):
     """
     Adds a layout plot to an axis.
     
@@ -118,11 +118,14 @@ def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_label
         if 's' not in ele:
             continue
         
+        if 'L' not in ele and not include_markers:
+            continue
+        
         if not ele_overlaps_s(ele, bounds[0], bounds[1]):
             continue
         
         if 'L' not in ele:
-            add_ele_marker(ele, axes, factor=factor)
+                add_ele_marker(ele, axes, factor=factor)
         else:
             add_ele_box(ele, axes, factor=factor)
         
@@ -135,6 +138,7 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
                            nice=True, 
                            include_layout=True,
                            include_labels=True, 
+                           include_markers=True,
                            include_particles=True, 
                            include_legend=True, **kwargs):
     """
@@ -304,4 +308,6 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
         else:
             ax_layout.set_xlabel('mean_z')
             xlim = (0, I.stop)
-        add_layout_to_axes(I,  ax_layout, bounds=xlim, include_labels=include_labels)  
+        add_layout_to_axes(I,  ax_layout, bounds=xlim, 
+                           include_labels=include_labels,
+                           include_markers=include_markers)  
