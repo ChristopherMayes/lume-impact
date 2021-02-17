@@ -23,6 +23,7 @@ import os
 
 
 
+
 class Impact:
     """
     
@@ -31,20 +32,34 @@ class Impact:
     
     
     """
+    
+    # Environmental variables to search for executables
+    command_env='IMPACTT_BIN'
+    command_mpi_env='IMPACTT_MPI_BIN'
+    
     def __init__(self,
                 input_file=None, #'ImpactT.in',
                 initial_particles=None,
-                impact_bin='$IMPACTT_BIN',
+                group = None,
+                *,
+                command='ImpactTexe',
+                command_mpi='ImpactTexe-mpi',
+                use_mpi = False,
+                mpi_run = 'mpirun -n {n} {command_mpi}', # If needed 
                 use_tempdir=True,
                 workdir=None,
-                use_mpi = False,
-                mpi_exe = 'mpirun', # If needed
-                group = None,
                 verbose=False):
         
         # Save init
         self.original_input_file = input_file
         self.initial_particles = initial_particles
+        
+        # Executable control
+        self.command = command 
+        self.command_mpi = command_mpi
+        self.use_mpi = use_mpi
+        self.mpi_run = mpi_run
+        
         self.use_tempdir = use_tempdir
         
         if workdir:
@@ -53,10 +68,7 @@ class Impact:
         self.workdir = workdir
             
         self.verbose=verbose
-        self.impact_bin = impact_bin
-        self.mpi_exe = mpi_exe
-        self.use_mpi = use_mpi
-
+        
         
         # These will be set
         self.timeout=None
@@ -119,6 +131,7 @@ class Impact:
     
     
     def configure(self):
+
         self.configure_impact(workdir=self.workdir)
     
     def configure_impact(self, input_filePath=None, workdir=None):     
@@ -152,7 +165,7 @@ class Impact:
             else:
                 # Work in place
                 self.path = self.original_path        
-     
+
         self.vprint('Configured to run in:', self.path)
         
         self.configured = True
@@ -243,7 +256,7 @@ class Impact:
         return self.output['particles']
     
     def stat(self, key):
-        """Con"""
+        """Array from .output['stats'][key] """
         return self.output['stats'][key]
     
     def units(self, key):
@@ -261,27 +274,53 @@ class Impact:
         self.run_impact(verbose=self.verbose, timeout=self.timeout)        
     
     
+    def get_executable(self):
+        """
+        Gets the full path of the executable from .command, .command_mpi
+        Will search environmental variables:
+                Impact.command_env='IMPACTT_BIN'
+                Impact.command_mpi_env='IMPACTT_MPI_BIN'
+        
+        """
+        if self.use_mpi:
+            exe = tools.find_executable(exename=self.command_mpi, envname=self.command_mpi_env)
+        else:
+            exe = tools.find_executable(exename=self.command, envname=self.command_env)
+        return exe
+       
+    @property
+    def numprocs(self):
+        """Number of MPI processors = Npcol*Nprow"""
+        return self.input['header']['Npcol'] * self.input['header']['Nprow']
+    
     def get_run_script(self, write_to_path=True):
         """
-        Assembles the run script. Optionally writes a file 'run' with this line to path.
+        Assembles the run script using self.mpi_run string of the form:
+            'mpirun -n {n} {command_mpi}'
+            
+        Optionally writes a file 'run' with this line to path.
         """
         
-        n_procs = self.input['header']['Npcol'] * self.input['header']['Nprow']
+        n_procs = self.numprocs
+        
+        exe = self.get_executable()
         
         if self.use_mpi:
             # mpi_exe could be a complicated string like:
-            # srun -N 1 --cpu_bind=cores
-            runscript = self.mpi_exe.split() + ['-n', str(n_procs), tools.full_path(self.impact_bin)]
+            # 'srun -N 1 --cpu_bind=cores {n} {command_mpi}'
+            # 'mpirun -n {n} {command_mpi}'
+        
+            runscript = self.mpi_run.format(n=n_procs,command_mpi=exe)
+
         else:
             if n_procs > 1:
-                print('Error: n_procs > 1 but use_mpi = False')
-                raise
-            runscript = [tools.full_path(self.impact_bin)]
+                raise ValueError('Error: n_procs > 1 but use_mpi = False')
+            runscript = exe
             
         if write_to_path:
             path=os.path.join(self.path, 'run')
             with open(path, 'w') as f:
-                f.write(' '.join(runscript))
+                f.write(runscript)
             tools.make_executable(path)
         return runscript
 
@@ -289,24 +328,22 @@ class Impact:
         """
         Runs Impact-T
         
-        
-        Note: do not use os.chdir
         """
         
-        # Check that binary exists
-        self.impact_bin = tools.full_path(self.impact_bin)
-        assert os.path.exists(self.impact_bin)
-        
-        
         # Clear output
-        self.output = {}
+        self.output = {}        
         
-        run_info = self.output['run_info'] = {'error':False}
+        run_info = self.output['run_info'] = {'error':False}   
+      
+        # Run script, gets executables
+        runscript = self.get_run_script()
+        run_info['run_script'] = runscript    
+        
         t1 = time()
         run_info['start_time'] = t1
                 
         self.vprint('Running Impact-T in '+self.path)
-        
+        self.vprint(runscript)
         # Write input
         self.write_input()
             
@@ -314,13 +351,9 @@ class Impact:
         for f in fort_files(self.path):
             os.remove(f)
         
-        runscript = self.get_run_script()
-        #DEBUG: print(f'Impact.run in {self.path} with: ', ' '.join(runscript))
-        run_info['run_script'] = ' '.join(runscript)
-        
         try: 
             if timeout:
-                res = tools.execute2(runscript, timeout=timeout, cwd=self.path)
+                res = tools.execute2(runscript.split(), timeout=timeout, cwd=self.path)
                 log = res['log']
                 self.error = res['error']
                 run_info['error'] = self.error
@@ -330,7 +363,7 @@ class Impact:
                 # Interactive output, for Jupyter
                 log = []
                 counter = 0
-                for path in tools.execute(runscript, cwd=self.path):
+                for path in tools.execute(runscript.split(), cwd=self.path):
                     # Fancy clearing of old lines
                     counter +=1
                     if verbose:
@@ -666,19 +699,22 @@ class Impact:
             include_markers=True,
             include_particles=True,
             include_legend=True, 
+            return_figure=False,
              **kwargs):
         """
         
         
         """
-        plot_stats_with_layout(self, ykeys=y, ykeys2=y2, 
+        return plot_stats_with_layout(self, ykeys=y, ykeys2=y2, 
                            xkey=x, xlim=xlim, ylim=ylim, ylim2=ylim2,
                            nice=nice, 
                            include_layout=include_layout,
                            include_labels=include_labels, 
                            include_markers=include_markers,
                            include_particles=include_particles, 
-                           include_legend=include_legend, **kwargs)    
+                           include_legend=include_legend, 
+                           return_figure=return_figure,
+                           **kwargs)    
     
     
     def print_lattice(self):

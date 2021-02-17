@@ -55,6 +55,3 @@ conda search lume-impact --channel conda-forge
 https://github.com/impact-lbl/IMPACT-T
 
 
-# Notes: 
-Do not run scripts within the package directory.
-

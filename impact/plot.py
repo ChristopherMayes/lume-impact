@@ -140,7 +140,9 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
                            include_labels=True, 
                            include_markers=True,
                            include_particles=True, 
-                           include_legend=True, **kwargs):
+                           include_legend=True, 
+                           return_figure=False,
+                           **kwargs):
     """
     Plots stat output multiple keys.
     
@@ -311,3 +313,8 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
         add_layout_to_axes(I,  ax_layout, bounds=xlim, 
                            include_labels=include_labels,
                            include_markers=include_markers)  
+                           
+                           
+                           
+    if return_figure:
+        return fig                           
