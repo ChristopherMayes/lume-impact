@@ -177,7 +177,8 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     if ykeys2:
         if isinstance(ykeys2, str):
             ykeys2 = [ykeys2]
-        ax_plot.append(ax_plot[0].twinx())
+        ax_twinx = ax_plot[0].twinx()
+        ax_plot.append(ax_twinx)
 
     # No need for a legend if there is only one plot
     if len(ykeys)==1 and not ykeys2:
@@ -282,11 +283,10 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
         # TODO
             if ylim2:
                 new_ylim2 = np.array(ylim2)/factor
-                all_axis[0].right_ax.set_ylim(new_ylim2)            
+                ax_twinx.set_ylim(new_ylim2)            
             else:
                 pass
-                all_axis[0].right_ax.set_ylim(0,.1)
-        #if len(keys) > 1:
+
         
     # Collect legend
     if include_legend:
