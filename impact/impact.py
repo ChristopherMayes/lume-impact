@@ -417,8 +417,13 @@ class Impact:
         if update_header:
             for k, v in res.items():
                 if k in H:
-                    H[k] = v
-                    self.vprint(f'{start_str}: Replaced {k} with {v} according to initial particles')    
+                    # Special case to shift initial time. 
+                    if k == 'Tini':
+                        H[k] += v
+                        self.vprint(f'{start_str}: Shifted {k} by {v} according to initial particles')  
+                    else:
+                        H[k] = v
+                        self.vprint(f'{start_str}: Replaced {k} with {v} according to initial particles')    
            
             # These need to be set
             H['Flagdist'] = 16
