@@ -417,8 +417,8 @@ class Impact:
         if update_header:
             for k, v in res.items():
                 if k in H:
-                    # Special case to shift initial time. 
-                    if k == 'Tini':
+                    # Special case to shift initial time with cathode start 
+                    if k == 'Tini' and self.cathode_start:
                         H[k] += v
                         self.vprint(f'{start_str}: Shifted {k} by {v} according to initial particles')  
                     else:
