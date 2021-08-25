@@ -3,7 +3,7 @@ from . import archive, writers, fieldmaps, tools
 from .lattice import ele_dict_from, ele_str, get_stop, set_stop, insert_ele_by_s
 from .control import ControlGroup
 
-from .plot import plot_stat, plot_stats_with_layout
+from .plot import plot_stat, plot_layout, plot_stats_with_layout
 from .particles import identify_species, track_to_s, track1_to_s
 
 from pmd_beamphysics import ParticleGroup
@@ -710,6 +710,16 @@ class Impact:
         
         
         """
+        
+        
+        # Just plot fieldmaps if there are no stats
+        if 'stats' not in self.output:
+            return plot_layout(self, xlim=xlim,
+                               include_markers=include_markers,
+                               include_labels=include_labels,
+                               **kwargs)
+        
+        
         return plot_stats_with_layout(self, ykeys=y, ykeys2=y2, 
                            xkey=x, xlim=xlim, ylim=ylim, ylim2=ylim2,
                            nice=nice, 

@@ -227,7 +227,7 @@ def header_str(H):
         restart_condition = 'Bad restart condition: '+str(['Rstartflg'])
         
 
-    dist_type = DIST_TYPE[H['Flagdist']]
+    dist_type = distrubution_type(H['Flagdist'])
     
     summary=f"""================ Impact-T Summary ================    
 {H['Np']} particles
@@ -250,6 +250,27 @@ Initial reference time: {H['Tini']} s
 
 #-----------------
 # Distribution types
+
+
+def distrubution_type(x):
+    """
+    Returns a named distribution type from an integer x
+    
+    """
+    if x in DIST_TYPE:
+        return DIST_TYPE[x]
+
+    # Expect Combine
+    x = str(x)
+    assert len(x) == 3    
+   
+    dtypes = [DIST_TYPE[int(i)] for i in x]
+    return '_'.join(dtypes)
+    
+
+    
+    
+    
 
 DIST_TYPE = {
     1:'uniform',
@@ -322,8 +343,16 @@ def ix_lattice(lines):
     print('Error: no lattice found in stripped lines:', slines)
     raise
         
-        
-        
+def v_from_line(line):
+    """
+    Extracts the V values from an element line.
+    
+    Returns:
+        v: list, with v[0] as the original line, so the indexing starts at 1
+    """
+    v = line.split('/')[0].split()[3:] # V data starts with index 4
+    v[0] = line # Preserve original line
+    return v
 
 def header_lines(header_dict, annotate=True):
     """
@@ -428,7 +457,7 @@ def parse_drift(line):
     V1: zedge
     V2: radius Not used.
     """
-    v = line.split()[3:] # V data starts with index 4
+    v = v_from_line(line) 
     d={}
     d['zedge'] = float(v[1]) 
     d['radius'] = float(v[2]) 
@@ -507,7 +536,7 @@ def parse_quadrupole(line):
     V11: rf quadrupole phase (degree)
     """    
     
-    v = line.split('/')[0].split()[3:] # V data starts with index 4 
+    v = v_from_line(line) 
     d={}
     d['zedge'] = float(v[1]) 
     d['b1_gradient'] = float(v[2]) 
@@ -587,7 +616,7 @@ def parse_solenoid(line):
     The read in format of 1T#.T7 is in the manual. 
     """
     
-    v = line.split('/')[0].split()[3:] # V data starts with index 
+    v = v_from_line(line) 
     d={}
     d['zedge'] = float(v[1]) 
     d['b_field'] = float(v[2]) 
@@ -646,7 +675,7 @@ def parse_dipole(line):
     V10: rotation error z Not used.
     
     """
-    v = line.split()[3:-1] # V data starts with index 4
+    v = v_from_line(line) 
     d={}
     d['zedge'] = float(v[1]) 
     d['b_field_x'] = float(v[2]) 
@@ -701,7 +730,7 @@ def parse_solrf(line):
     V11: rotation error z
     V12: scale of solenoid B field. [Only used with SolRF element.]
     """
-    v = line.split()[3:] # V data starts with index 4
+    v = v_from_line(line) 
     d={}
     d['zedge'] = float(v[1]) 
     d['rf_field_scale'] = float(v[2]) 
@@ -784,7 +813,7 @@ def parse_emfield_cylindrical(line):
     
     """
     
-    v = line.split('/')[0].split()[3:] # V data starts with index 
+    v = v_from_line(line) 
     d={}
     d['zedge']          = float(v[1]) 
     d['rf_field_scale'] = float(v[2]) 
@@ -845,7 +874,7 @@ def parse_offset_beam(line, warn=False):
     Assumes zero if these are not present.
     """
 
-    v = line.split()[3:-2] # V data starts with index 4, ends with '/'
+    v = v_from_line(line) 
     d={}
     ##print (v, len(v))
     d['s']  = float(v[2]) 
@@ -895,12 +924,12 @@ def parse_write_beam(line):
     since these are used for initial and final phase space output.
     """
     x = line.split() 
-    v = x[3:] # V data starts with index 4, ends with '/'
+    v = v_from_line(line) 
     d={}
     d['filename']='fort.'+x[2]
     d['sample_frequency'] = int(x[1])
     d['s'] = float(v[3]) 
-    if int(v[0]) in [40, 50]:
+    if int(x[2]) in [40, 50]:
         print('warning, overwriting file fort.'+x[2])
     return d
 
@@ -934,7 +963,7 @@ def parse_write_beam_for_restart(line):
 
     """
     x = line.split() 
-    v = x[3:] # V data starts with index 4, ends with '/'
+    v = v_from_line(line) 
     d={}
     d['filename']='fort.'+x[2]+'+myid'
     d['s'] = float(v[3]) 
@@ -966,7 +995,7 @@ def parse_change_timestep(line):
     into V4 (secs) after location V3(m). The maximum number of time step change is 100.
 
     """
-    v = line.split()[3:] # V data starts with index 4
+    v = v_from_line(line) 
     d={}
     d['dt'] = float(v[4])
     d['s'] = float(v[3])
@@ -999,7 +1028,7 @@ def parse_rotationally_symmetric_to_3d(line):
     If there are multiple such lines in the input file, only the last line matters.
     
     """
-    v = line.split()[3:] # V data starts with index 4
+    v = v_from_line(line) 
     d={}
     d['s'] = float(v[3])
 
@@ -1049,7 +1078,7 @@ def parse_wakefield(line):
     
     x = line.split()
     Bnseg = int(x[1])
-    v = x[3:] # V data starts with index 4
+    v = v_from_line(line) 
     d={}
     d['s_begin'] = float(v[3])
     d['s'] = float(v[4])
@@ -1107,7 +1136,7 @@ def parse_stop(line):
     
     
     """
-    v = line.split()[3:] # V data starts with index 4
+    v = v_from_line(line) 
     d={'s':float(v[3])}
     return d
 
@@ -1141,7 +1170,7 @@ def parse_spacecharge(line):
     according to the sign of V2 (> 0 on, otherwise off).
     
     """
-    v = line.split()[3:] # V data starts with index 4
+    v = v_from_line(line) 
     d={}
     d['s'] = float(v[3])
     if float(v[2]) >0:
@@ -1186,7 +1215,7 @@ def parse_write_slice_info(line):
     x = line.split()
     Bnseg = int(x[1])
     Bmpstp = int(x[2])
-    v = x[3:] # V data starts with index 4
+    v = v_from_line(line) 
     
     d={}
     d['n_slices'] = Bnseg

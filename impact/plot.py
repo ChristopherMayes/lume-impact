@@ -132,6 +132,24 @@ def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_label
         if include_labels:
             add_ele_label(ele, axes, bounds=bounds, factor=factor)      
             
+def plot_layout(impact_object, 
+                xlim=None, 
+                include_labels=True, 
+                include_markers=True,
+                return_figure=False,  **kwargs):
+    """
+    Simple layout plot
+    """
+
+    fig, axes = plt.subplots(**kwargs)
+
+    add_layout_to_axes(impact_object, axes, bounds=xlim, 
+                       include_labels=include_labels,
+                       include_markers=include_markers)            
+            
+    if return_figure:
+        return fig
+            
             
 def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=['mean_kinetic_energy'], 
                            xkey='mean_z', xlim=None, ylim=None, ylim2=None,
@@ -148,14 +166,16 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     
     If a list of ykeys2 is given, these will be put on the right hand axis. This can also be given as a single key. 
     
-    Logical switches, all default to True:
-        nice: a nice SI prefix and scaling will be used to make the numbers reasonably sized.
+    Logical switches:
+        nice: a nice SI prefix and scaling will be used to make the numbers reasonably sized. Default: True
         
-        include_legend: The plot will include the legend
+        include_legend: The plot will include the legend.  Default: True
         
-        include_layout: the layout plot will be displayed at the bottom
+        include_layout: the layout plot will be displayed at the bottom.  Default: True
         
-        include_labels: the layout will include element labels. 
+        include_labels: the layout will include element labels.  Default: True
+        
+        return_figure: return the figure object for further manipulation. Default: False
 
     """
     I = impact_object # convenience
