@@ -12,20 +12,18 @@ from .control import ControlGroup
 
 import numpy as np
 
-# TODO: Cleaner version import
-from . import _version
-__version__ = _version.get_versions()['version']
-
-
-
 #----------------------------        
 # Basic archive metadata
 
-def impact_init(h5, version=__version__):
+def impact_init(h5, version=None):
     """
     Set basic information to an open h5 handle
     
     """
+    
+    if not version:
+        from impact import __version__ 
+        version = __version__
     
     d = {
         'dataType':'lume-impact',
