@@ -9,11 +9,12 @@ from .fieldmaps import read_fieldmap_h5
 from .tools import fstr, isotime, native_type
 from .control import ControlGroup
 
-from ._version import __version__
 
 import numpy as np
 
-
+# TODO: Cleaner version import
+from . import _version
+__version__ = _version.get_versions()['version']
 
 
 
