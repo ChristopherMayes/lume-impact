@@ -293,6 +293,29 @@ class Impact:
         """Number of MPI processors = Npcol*Nprow"""
         return self.input['header']['Npcol'] * self.input['header']['Nprow']
     
+    @numprocs.setter
+    def numprocs(self, n):
+        """Sets the number of processors"""
+        assert n > 0, 'numprocs must be positive'
+        Nz = self.header['Nz']
+        Ny = self.header['Ny']
+        Npcol, Nprow = suggested_processor_domain(Nz, Ny, n)        
+        
+        
+        self.vprint(f'Setting Npcol, Nprow = {Npcol}, {Nprow}')
+        self.header['Nprow'] = Nprow
+        self.header['Npcol'] = Npcol
+        
+        if self.use_mpi and n ==1:
+            self.vprint('Disabling MPI')
+            self.use_mpi = False
+            
+        if n > 1 and not self.use_mpi:
+            self.vprint('Enabling MPI')
+            self.use_mpi = True
+            
+    
+    
     def get_run_script(self, write_to_path=True):
         """
         Assembles the run script using self.mpi_run string of the form:
@@ -916,3 +939,37 @@ class Impact:
         return cls(**config)
             
         
+
+        
+        
+        
+        
+def suggested_processor_domain(nz, ny, nproc):
+    """
+    Heuristic for the processor layout.
+    
+    Note from Ji Qiang:
+        Normally, the number of grid points Nz/Nprow and Ny/Npcol are kept about
+        the same. If Nz=Ny, normally, I will put Npcol > Nprow, e.g. 16 x 8. 
+        
+        
+    Returns:
+        Npcol, Nprow 
+        
+    """
+    
+    a = nz/ny
+    
+    # Try to work with pwers of 2
+    pr = int(np.floor(np.log(nproc * a)/np.log(2) /2))
+    
+    nr = 2**pr
+    
+    if nr < 1:
+        nr = 1
+    if nr > nproc:
+        nr = nproc
+        
+    nc = nproc//nr
+    
+    return nc, nr        
