@@ -1,0 +1,31 @@
+! Impact-T input file
+!Npcol Nprow
+1 1
+!Dt Ntstep Nbunch
+5e-13 1000000 1
+!Dim Np Flagmap Flagerr Flagdiag Flagimg Zimage
+6 10000 1 0 2 1 0.02
+!Nx Ny Nz Flagbc Xrad Yrad Perdlen
+16 16 16 1 0.015 0.015 45.0
+!Flagdist Rstartflg Flagsbstp Nemission Temission
+16 0 0 400 1.2e-12
+!sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
+0.0006 0.0 0.0 1.0 1.0 0.0 0.0
+!sigy(m) sigpy muxpy yscale pyscale ymu1(m) ymu2
+0.0006 0.0 0.0 1.0 1.0 0.0 0.0
+!sigz(m) sigpz muxpz zscale pzscale zmu1(m) zmu2
+1.27e-06 0.0 0.0 1.0 1.0 0.0 0.0
+!Bcurr Bkenergy Bmass Bcharge Bfreq Tini
+0 1.0 511005.0 -1.0 1.3e9 0.0
+!=================== LATTICE ===================
+!!0 0 0 -4 0.0 0.0 0.25 5e-13 /!name:change_timestep_1
+!start 3D SC
+!!0.0 1 20 -5 -2.0 -2.0 -2.0 /
+!187MHz VHF gun, rfdata30 !-6.5959 degree w.s.p peak phase
+0 0 0 -5 0 0 -1000.0 /!name:2d_to_3d_spacecharge
+!0.199 105 20 105 0.0 -20.04e6 0.187e9 343.621523984 30.0 0.1 0.0 0.0 0.0 0.0 0.0 0.0 /
+0.199 105 20 105 0.0 20e6 0.187e9 171.45508468896992 30.0 0.1 0.0 0.0 0.0 0.0 0.0 0.0 /!name:APEX_GUN
+!focusing coil1, rfdata5
+!0.48 105 20 105 0.016 0.0 0.0 0.0 5.0 0.1 0.0 0.0 0.0 0.0 0.0 0.5753523572E-01 /!name:SOLX
+0.48 0 0 105 0.00653 0.0 0.0 0.0 666 0.15 0.0 0.0 0.0 0.0 0.0 0.057 /!name:SOL1
+0 0 0 -99 0.1 0.0 0.5 /!name:stop_1

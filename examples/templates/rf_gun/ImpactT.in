@@ -1,0 +1,36 @@
+! Impact-T input file
+!Npcol Nprow
+1 1
+!Dt Ntstep Nbunch
+5e-13 1000000 1
+!Dim Np Flagmap Flagerr Flagdiag Flagimg Zimage
+6 10000 1 0 2 1 0.02
+!Nx Ny Nz Flagbc Xrad Yrad Perdlen
+16 16 16 1 0.015 0.015 45.0
+!Flagdist Rstartflg Flagsbstp Nemission Temission
+16 0 0 400 1.4e-11
+!sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
+0.0006 0.0 0.0 1.0 1.0 0.0 0.0
+!sigy(m) sigpy muxpy yscale pyscale ymu1(m) ymu2
+0.0006 0.0 0.0 1.0 1.0 0.0 0.0
+!sigz(m) sigpz muxpz zscale pzscale zmu1(m) zmu2
+1.27e-06 0.0 0.0 1.0 1.0 0.0 0.0
+!Bcurr Bkenergy Bmass Bcharge Bfreq Tini
+0.714 1.0 511005.0 -1.0 2856000000.0 0.0
+!=================== LATTICE ===================
+0 0 0 -4 0.0 0.0 0.25 5e-13 /!name:change_timestep_1
+!**************************1.5 cell gun ************************
+0.15 0 0 105 0.0 47000000.0 2856000000.0 293.54 201 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:GUN
+0 0 0 -99 0.1 0.0 0.1 /!name:stop_1
+!0.026 0 0 0 4.527856 0.15 /!name:drift_3
+!***************************** L0A exit ***************************
+! Space charge switches
+!!!0 0 0 -8 0 1 4.527856 / name:SC_ON
+!!!0 0 0 -8 0 -1 4.527856 / name:SC_OFF
+!!0 0 0 -5 0.0 0.0 4.527856 /!name:SC_2D_to_3D
+!
+
+
+
+
+
