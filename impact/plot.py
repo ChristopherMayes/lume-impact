@@ -173,7 +173,7 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     Logical switches:
         nice: a nice SI prefix and scaling will be used to make the numbers reasonably sized. Default: True
         
-        tex: use mathtext (TeX) for plot labels. 
+        tex: use mathtext (TeX) for plot labels. Default: True
         
         include_legend: The plot will include the legend.  Default: True
         
