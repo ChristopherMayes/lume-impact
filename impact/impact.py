@@ -717,6 +717,7 @@ class Impact:
     
     def plot(self, y=['sigma_x', 'sigma_y'], x='mean_z', xlim=None, ylim=None, ylim2=None, y2=[],
             nice=True, 
+            tex=True,
             include_layout=True,
             include_labels=False, 
             include_markers=True,
@@ -741,6 +742,7 @@ class Impact:
         return plot_stats_with_layout(self, ykeys=y, ykeys2=y2, 
                            xkey=x, xlim=xlim, ylim=ylim, ylim2=ylim2,
                            nice=nice, 
+                           tex=tex,
                            include_layout=include_layout,
                            include_labels=include_labels, 
                            include_markers=include_markers,

@@ -5,6 +5,8 @@ import matplotlib.patches as patches
 from .lattice import ele_shape, ele_shapes, remove_element_types, ele_bounds, ele_overlaps_s
 import numpy as np
 
+from pmd_beamphysics.labels import mathlabel
+
 def plot_stat(impact_object, y='sigma_x', x='mean_z', nice=True):
     """
     Plots stat output of key y vs key
@@ -152,8 +154,10 @@ def plot_layout(impact_object,
             
             
 def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=['mean_kinetic_energy'], 
-                           xkey='mean_z', xlim=None, ylim=None, ylim2=None,
+                           xkey='mean_z', 
+                           xlim=None, ylim=None, ylim2=None,
                            nice=True, 
+                           tex=True,
                            include_layout=True,
                            include_labels=True, 
                            include_markers=True,
@@ -168,6 +172,8 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     
     Logical switches:
         nice: a nice SI prefix and scaling will be used to make the numbers reasonably sized. Default: True
+        
+        tex: use mathtext (TeX) for plot labels. 
         
         include_legend: The plot will include the legend.  Default: True
         
@@ -242,12 +248,17 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
         factor_x = 1   
     
     # set all but the layout
+
+    
+    # Handle tex labels
+    
+    
+    xlabel=mathlabel(xkey, units=units_x, tex=tex)
+    
     for ax in ax_plot:
         ax.set_xlim(xlim[0]/factor_x, xlim[1]/factor_x)          
-        ax.set_xlabel(f'{xkey} ({units_x})')    
+        ax.set_xlabel(xlabel)    
         
-        
-    
 
     # Draw for Y1 and Y2 
     
@@ -282,7 +293,10 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
             #
             ii += 1
             color = 'C'+str(ii)
-            ax.plot(X, dat/factor, label=f'{key} ({unit})', color=color, linestyle=linestyle)
+            
+            # Handle tex labels
+            label=mathlabel(key, units=unit, tex=tex)
+            ax.plot(X, dat/factor, label=label, color=color, linestyle=linestyle)
             
             # Particles
             if Pnames:
@@ -291,7 +305,10 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
                     ax.scatter(X_particles/factor_x, Y_particles/factor, color=color) 
                 except:
                     pass     
-        ax.set_ylabel(', '.join(keys)+f' ({unit})')    
+      
+        # Handle tex labels
+        ylabel = mathlabel(*keys, units=unit, tex=tex)
+        ax.set_ylabel(ylabel)    
         
         # Set limits, considering the scaling. 
         if ix==0 and ylim:
@@ -337,4 +354,5 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
                            
                            
     if return_figure:
-        return fig                           
+        return fig  
+    
