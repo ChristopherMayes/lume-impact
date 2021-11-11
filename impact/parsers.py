@@ -787,7 +787,77 @@ ELE_DEFAULTS['solrf'] = {
 
 
     
-#-----------------------------------------------------------------     
+#-----------------------------------------------------------------
+
+def parse_emfield_cartesian(line):
+    """
+    emfield_cartesian
+    111: EMfldCart
+    
+    Read in discrete EM field data Ex(MV/m), Ey(MV/m), Ez(MV/m), Bx(MV/m), By(MV/m), Bz(MV/m), as a function of (x,y,z).
+    
+    V1: zedge
+    V2: rf_field_scale
+    V3: RF frequency
+    V4: theta0_deg
+    V5: file ID
+    V6: radius               Not used yet
+    V7: x misalignment error Not used yet
+    V8: y misalignment error Not used yet
+    V9: rotation error x     Not used yet
+    V10: rotation error y    Not used yet
+    V11: rotation error z    Not used yet
+    
+    The discrete field data is stored in 1Tv3.T7 file.
+    The read in format of 1Tv3.T7 is in the manual.
+    
+    """
+    
+    v = v_from_line(line)
+    d={}
+    d['zedge']          = float(v[1])
+    d['rf_field_scale'] = float(v[2])
+    d['rf_frequency'] = float(v[3])
+    d['theta0_deg']       = float(v[4])
+    d['filename'] =  '1T'+str(int(float(v[5])))+'.T7'
+    d['radius'] = float(v[6])
+    # Not used: d2 = parse_misalignments(v[7:12])
+    # d.update(d2)
+    
+    return d
+    
+def emfield_cartesian_v(ele):
+    """
+    emfield_cartesian V list from ele dict
+    
+    V[0] is the original ele
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    
+    file_id = int( ele['filename'].split('1T')[1].split('.')[0] )
+    
+    v = [ele,
+         ele['zedge'], ele['rf_field_scale'], ele['rf_frequency'], ele['theta0_deg'], file_id, ele['radius']]
+
+    #misalignment list (Should be zeros)
+    v += misalignment_v(ele)
+
+    return v
+    
+ELE_DEFAULTS['emfield_cartesian'] = {
+    'zedge':0,
+    'rf_field_scale':0,
+    'rf_frequency':0,
+    'theta0_deg':0,
+    'filename':0,
+    'radius':0,
+    'x_offset':0,
+    'y_offset':0,
+    'x_rotation':0,
+    'y_rotation':0,
+    'z_rotation':0}
+
 def parse_emfield_cylindrical(line):
     """
     emfield_cylindrical
@@ -1323,6 +1393,7 @@ ele_parsers = {#'bpm': parse_bpm,
                'solenoid':parse_solenoid,
                'dipole':parse_dipole,
                'solrf':parse_solrf,
+               'emfield_cartesian':parse_emfield_cartesian,
                'emfield_cylindrical':parse_emfield_cylindrical,
                'offset_beam':parse_offset_beam,
                'write_beam':parse_write_beam,
