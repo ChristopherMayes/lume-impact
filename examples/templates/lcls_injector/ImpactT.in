@@ -1,6 +1,6 @@
 ! Impact-T input file
 !Npcol Nprow
-1 1
+2 2
 !Dt Ntstep Nbunch
 5e-13 1000000 1
 !Dim Np Flagmap Flagerr Flagdiag Flagimg Zimage
@@ -79,4 +79,5 @@
 !!! 0 1 109 -2 0.0 0.0 16.154758190867 /!name:OTR3
 
 0 0 0 -8 0.0 -1 16.5 /!name:SC_OFF
-0 0 0 -99 16.5 0.0 16.5 /!name:stop_1
+
+0 0 0 -99 3 0.0 3 /!name:stop_1
