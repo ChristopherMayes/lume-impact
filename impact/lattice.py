@@ -212,7 +212,7 @@ def ele_shape(ele):
     
     # Look for pure solenoid
     if type == 'solrf':
-        if ele['rf_field_scale'] == 0:
+        if ele['rf_field_scale'] == 0 and ele['solenoid_field_scale'] != 0:
             type = 'solenoid' 
     
     factor = 1.0
@@ -337,10 +337,15 @@ def ele_bounds(eles):
     mins = []
     maxs = []
     for ele in eles:
-        if 'zedge' not in ele:
+        
+        if ele['type'] == 'stop':
+            zedge = ele['s']
+            L = 0
+        elif 'zedge' not in ele:
             continue
-        zedge = ele['zedge']
-        L = ele['L']
+        else:
+            zedge = ele['zedge']
+            L = ele['L']
         mins.append(zedge)
         maxs.append(zedge+L)
     return min(mins), max(maxs)
