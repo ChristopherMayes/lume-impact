@@ -1,5 +1,7 @@
 import numpy as np
 import os
+from impact.tools import safe_loadtxt
+
 
 def write_fieldmap(filePath, fieldmap):
     """
@@ -44,11 +46,11 @@ def read_fieldmap_rfdata(filePath):
     info = {}
     info['format'] = 'rfdata'
     info['filePath'] = os.path.abspath(filePath) 
-    
+
     # Read data
     d = {}
     d['info'] = info
-    d['data'] = np.loadtxt(filePath)
+    d['data'] = safe_loadtxt(filePath)
     return d
     
     

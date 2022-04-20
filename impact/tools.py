@@ -8,6 +8,22 @@ import shutil
 import datetime
 
 
+
+def parse_float(s):
+    """
+    Parse old-style float from string, replacing d->e for exponent
+    """
+    return float(s.lower().replace('d', 'e'))
+
+def safe_loadtxt(filepath):
+    """
+    Similar to np.loadtxt, but handles old-style exponents d -> e
+    """
+    s = open(filepath).readlines()
+    s = list(map(lambda x: x.lower().replace('d', 'e'), s))
+    return np.loadtxt(s)
+
+
 def execute(cmd, cwd=None):
     """
     

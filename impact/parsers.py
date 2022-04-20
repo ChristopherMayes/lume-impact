@@ -1,6 +1,6 @@
 from . import tools, fieldmaps
 from .particles import SPECIES_MASS, identify_species
-
+from impact.tools import parse_float
 from pmd_beamphysics.units import pmd_unit, multiply_units
 
 import numpy as np
@@ -9,6 +9,7 @@ import os
 
 #-----------------
 # Parsing ImpactT input file
+
 
 
 #-----------------
@@ -316,7 +317,7 @@ def parse_line(line, names, types):
     
     """
     x = line.split()
-    values =  [types[i](x[i]) for i in range(len(x))]
+    values =  [types[i](x[i].lower().replace('d', 'e')) for i in range(len(x))]
     return dict(zip(names, values))
 
 
@@ -459,8 +460,8 @@ def parse_drift(line):
     """
     v = v_from_line(line) 
     d={}
-    d['zedge'] = float(v[1]) 
-    d['radius'] = float(v[2]) 
+    d['zedge'] = parse_float(v[1]) 
+    d['radius'] = parse_float(v[2]) 
     return d
 def drift_v(ele):
     """
@@ -486,11 +487,11 @@ def parse_misalignments(v):
     Common to several elements
     """
     d = {}
-    d['x_offset'] = float(v[0])
-    d['y_offset'] = float(v[1])
-    d['x_rotation'] = float(v[2])
-    d['y_rotation'] = float(v[3])
-    d['z_rotation'] = float(v[4])
+    d['x_offset']   = parse_float(v[0])
+    d['y_offset']   = parse_float(v[1])
+    d['x_rotation'] = parse_float(v[2])
+    d['y_rotation'] = parse_float(v[3])
+    d['z_rotation'] = parse_float(v[4])
     return d
 
 def misalignment_v(ele):
@@ -538,18 +539,18 @@ def parse_quadrupole(line):
     
     v = v_from_line(line) 
     d={}
-    d['zedge'] = float(v[1]) 
-    d['b1_gradient'] = float(v[2]) 
-    if float(v[3]) > 0:
-        d['L_effective'] = float(v[3])
+    d['zedge'] = parse_float(v[1]) 
+    d['b1_gradient'] = parse_float(v[2]) 
+    if parse_float(v[3]) > 0:
+        d['L_effective'] = parse_float(v[3])
     else:
         d['file_id'] = int(v[3])
-    d['radius'] = float(v[4])
+    d['radius'] = parse_float(v[4])
     d2 = parse_misalignments(v[5:10])
     d.update(d2)
     if len(v) > 11:
-        d['rf_frequency'] = float(v[10])
-        d['rf_phase_deg'] = float(v[11])
+        d['rf_frequency'] = parse_float(v[10])
+        d['rf_phase_deg'] = parse_float(v[11])
     return(d)    
 
 
@@ -618,10 +619,10 @@ def parse_solenoid(line):
     
     v = v_from_line(line) 
     d={}
-    d['zedge'] = float(v[1]) 
-    d['b_field'] = float(v[2]) 
-    d['filename'] =  '1T'+str(int(float(v[3])))+'.T7'
-    d['radius'] = float(v[4])
+    d['zedge'] = parse_float(v[1]) 
+    d['b_field'] = parse_float(v[2]) 
+    d['filename'] =  '1T'+str(int(parse_float(v[3])))+'.T7'
+    d['radius'] = parse_float(v[4])
     # Not used: d2 = parse_misalignments(v[5:10])
     # d.update(d2)
     
@@ -677,11 +678,11 @@ def parse_dipole(line):
     """
     v = v_from_line(line) 
     d={}
-    d['zedge'] = float(v[1]) 
-    d['b_field_x'] = float(v[2]) 
-    d['b_field'] = float(v[3]) 
-    d['filename'] = 'rfdata'+str(int(float(v[4])))
-    d['half_gap'] = float(v[5]) 
+    d['zedge'] = parse_float(v[1]) 
+    d['b_field_x'] = parse_float(v[2]) 
+    d['b_field'] = parse_float(v[3]) 
+    d['filename'] = 'rfdata'+str(int(parse_float(v[4])))
+    d['half_gap'] = parse_float(v[5]) 
     return d
    
     
@@ -732,15 +733,15 @@ def parse_solrf(line):
     """
     v = v_from_line(line) 
     d={}
-    d['zedge'] = float(v[1]) 
-    d['rf_field_scale'] = float(v[2]) 
-    d['rf_frequency'] = float(v[3]) 
-    d['theta0_deg'] = float(v[4])  #
-    d['filename'] = 'rfdata'+str(int(float(v[5])))
-    d['radius'] = float(v[6])
+    d['zedge'] = parse_float(v[1]) 
+    d['rf_field_scale'] = parse_float(v[2]) 
+    d['rf_frequency'] = parse_float(v[3]) 
+    d['theta0_deg'] = parse_float(v[4])  #
+    d['filename'] = 'rfdata'+str(int(parse_float(v[5])))
+    d['radius'] = parse_float(v[6])
     d2 = parse_misalignments(v[7:12])
     d.update(d2)
-    d['solenoid_field_scale'] = float(v[12]) 
+    d['solenoid_field_scale'] = parse_float(v[12]) 
     return d
 
 def solrf_v(ele):
@@ -815,12 +816,12 @@ def parse_emfield_cartesian(line):
     
     v = v_from_line(line)
     d={}
-    d['zedge']          = float(v[1])
-    d['rf_field_scale'] = float(v[2])
-    d['rf_frequency'] = float(v[3])
-    d['theta0_deg']       = float(v[4])
-    d['filename'] =  '1T'+str(int(float(v[5])))+'.T7'
-    d['radius'] = float(v[6])
+    d['zedge']          = parse_float(v[1])
+    d['rf_field_scale'] = parse_float(v[2])
+    d['rf_frequency'] = parse_float(v[3])
+    d['theta0_deg']       = parse_float(v[4])
+    d['filename'] =  '1T'+str(int(parse_float(v[5])))+'.T7'
+    d['radius'] = parse_float(v[6])
     # Not used: d2 = parse_misalignments(v[7:12])
     # d.update(d2)
     
@@ -885,12 +886,12 @@ def parse_emfield_cylindrical(line):
     
     v = v_from_line(line) 
     d={}
-    d['zedge']          = float(v[1]) 
-    d['rf_field_scale'] = float(v[2]) 
-    d['rf_frequency'] = float(v[3])
-    d['theta0_deg']       = float(v[4])
-    d['filename'] =  '1T'+str(int(float(v[5])))+'.T7'
-    d['radius'] = float(v[6])
+    d['zedge']          = parse_float(v[1]) 
+    d['rf_field_scale'] = parse_float(v[2]) 
+    d['rf_frequency'] = parse_float(v[3])
+    d['theta0_deg']       = parse_float(v[4])
+    d['filename'] =  '1T'+str(int(parse_float(v[5])))+'.T7'
+    d['radius'] = parse_float(v[6])
     # Not used: d2 = parse_misalignments(v[7:12])
     # d.update(d2)
     
@@ -947,14 +948,14 @@ def parse_offset_beam(line, warn=False):
     v = v_from_line(line) 
     d={}
     ##print (v, len(v))
-    d['s']  = float(v[2]) 
+    d['s']  = parse_float(v[2]) 
     olist = ['x_offset', 'px_offset', 'y_offset','py_offset','z_offset','pz_offset' ]
     for i in range(6):
         if i+3 > len(v)-1:
             val = 0.0
         else:
             ## print('warning: offset_beam missing numbers. Assuming zeros', line)
-            val = float(v[i+3])
+            val = parse_float(v[i+3])
         d[olist[i]] = val
     return d
 
@@ -998,7 +999,7 @@ def parse_write_beam(line):
     d={}
     d['filename']='fort.'+x[2]
     d['sample_frequency'] = int(x[1])
-    d['s'] = float(v[3]) 
+    d['s'] = parse_float(v[3]) 
     if int(x[2]) in [40, 50]:
         print('warning, overwriting file fort.'+x[2])
     return d
@@ -1036,7 +1037,7 @@ def parse_write_beam_for_restart(line):
     v = v_from_line(line) 
     d={}
     d['filename']='fort.'+x[2]+'+myid'
-    d['s'] = float(v[3]) 
+    d['s'] = parse_float(v[3]) 
     return d
 
 def write_beam_for_restart_v(ele):
@@ -1067,8 +1068,8 @@ def parse_change_timestep(line):
     """
     v = v_from_line(line) 
     d={}
-    d['dt'] = float(v[4])
-    d['s'] = float(v[3])
+    d['dt'] = parse_float(v[4])
+    d['s'] = parse_float(v[3])
 
     return d
 
@@ -1100,7 +1101,7 @@ def parse_rotationally_symmetric_to_3d(line):
     """
     v = v_from_line(line) 
     d={}
-    d['s'] = float(v[3])
+    d['s'] = parse_float(v[3])
 
     return d    
     
@@ -1128,39 +1129,51 @@ def parse_wakefield(line):
     If btype = −6, turn on the wake field effects between location V3(m) and V4(m).
     If Bnseg is greater than 0, the longitudinal and transverse wake function will
     be read in from file “fort.Bmpstp”. If Bnseg ≤ 0, the code will use analytical
-    wake function described as follows. For analytical wake functions, the wake function
-    parameters (iris radius) a = V5(m), (gap) g = V6(m), (period) L = V7(m).
+    wake function described as follows.
+    
+    For analytical wake functions, the wake function parameters:
+        (iris radius) a = V5(m)
+        (gap) g = V6(m)
+        (period) L = V7(m).
     Here, the definition of these parameter can be found from
     SLAC-PUB-9663, “Short-Range Dipole Wakefields in Accelerating Structures for the NLC,” by Karl L.F. Bane.
     This will be updated in the future since the parameters a, g, L might change from cell to cell within a single structure.
     For the backward traveling wave structure, the iris radius “a” has to be set greater
-    than 100, gap “g” set to the initialization location of BTW. For backward traveling wave structures,
-    the wakes are hardwired inside the code following the report:
+    than 100, gap “g” set to the initialization location of BTW. 
+        For backward traveling wave structures, the wakes are hardwired inside the code following the report:
     P. Craievich, T. Weiland, I. Zagorodnov, “The short-range wakefields in the BTW accelerating structure of the ELETTRA linac,” ST/M-04/02.
+    
     For −10 < a < 0, it uses the analytical equation from the 1.3 GHz Tesla standing wave structure.
+    
     For a < −10, it assumes the 3.9 GHz structure longitudinal wake function.
+    
     For external supplied wake function, The maximum number data point is 1000.
     The data points are assumed uniformly distributed between 0 and V7(m).
     The V6 has to less than 0.
     Each line of the fort.Bmpstp contains longitudinal wake function (V/m) and transverse wake function (V/m/m).
     
     """
-    
     x = line.split()
     Bnseg = int(x[1])
     v = v_from_line(line) 
     d={}
-    d['s_begin'] = float(v[3])
-    d['s'] = float(v[4])
+    d['s_begin'] = parse_float(v[3])
+    d['s'] = parse_float(v[4])
     
     if Bnseg > 0:
         d['method'] = 'from_file'
         d['filename'] = 'fort.'+str(Bnseg)
     else:
         d['method'] = 'analytical'
-        d['iris_radius'] = float(v[5])
-        d['gap'] = float(v[6])
-        d['period'] = float(v[7])
+        a = parse_float(v[5])
+        d['iris_radius'] = a
+        if a >= 0:
+            d['gap'] = parse_float(v[6])
+            d['period'] = parse_float(v[7])
+        else:
+            # Tesla structures, dummy values:
+            d['gap'] = -1.0
+            d['period'] = -1.0
     
     
     return d
@@ -1207,7 +1220,7 @@ def parse_stop(line):
     
     """
     v = v_from_line(line) 
-    d={'s':float(v[3])}
+    d={'s':parse_float(v[3])}
     return d
 
 
@@ -1242,8 +1255,8 @@ def parse_spacecharge(line):
     """
     v = v_from_line(line) 
     d={}
-    d['s'] = float(v[3])
-    if float(v[2]) >0:
+    d['s'] = parse_float(v[3])
+    if parse_float(v[2]) >0:
         d['is_on'] = True
     else:
         d['is_on'] = False
@@ -1290,7 +1303,7 @@ def parse_write_slice_info(line):
     d={}
     d['n_slices'] = Bnseg
     d['filename'] = 'fort.'+str(Bmpstp)
-    d['s'] = float(v[3])
+    d['s'] = parse_float(v[3])
 
     return d    
     
@@ -1437,7 +1450,7 @@ def parse_ele(line):
 
     if itype >= 0:
         # Real element. Needs L 
-        e['L'] = float(x[0])
+        e['L'] = parse_float(x[0])
     
     if itype in ele_type:
         e['type'] = ele_type[itype] 
