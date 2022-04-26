@@ -8,5 +8,5 @@ def rootdir():
 
 @pytest.fixture(scope="session", autouse=True)
 def lcls_archive_file(rootdir):
-    return f"{rootdir}/files/basic_impact.h5"
+    return f"{rootdir}/files/lcls_injector.h5"
 
