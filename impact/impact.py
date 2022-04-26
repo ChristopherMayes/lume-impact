@@ -64,8 +64,11 @@ class Impact(CommandWrapper):
                 for k, v in group.items():
                     self.add_group(k, **v)
 
-        else:
-            self.vprint('Warning: Input file does not exist. Not configured. Please set header and lattice.')
+        else:            
+            self.vprint('Using default input: 1 m drift lattice')
+            self.input = DEFAULT_INPUT.copy()
+            self.configure()
+
 
     def add_ele(self, ele):
         """
@@ -842,3 +845,80 @@ def suggested_processor_domain(nz, ny, nproc):
     nc = nproc//nr
 
     return nc, nr
+
+
+
+# Default input
+# This should be the same as examples/templates/drift/ImpactT.in
+DEFAULT_INPUT = { 'input_particle_file': None,
+ 'header': {'Npcol': 1,
+  'Nprow': 1,
+  'Dt': 1e-11,
+  'Ntstep': 1000000,
+  'Nbunch': 1,
+  'Dim': 6,
+  'Np': 100000,
+  'Flagmap': 1,
+  'Flagerr': 0,
+  'Flagdiag': 2,
+  'Flagimg': 0,
+  'Zimage': 0.02,
+  'Nx': 32,
+  'Ny': 32,
+  'Nz': 32,
+  'Flagbc': 1,
+  'Xrad': 0.015,
+  'Yrad': 0.015,
+  'Perdlen': 45.0,
+  'Flagdist': 2,
+  'Rstartflg': 0,
+  'Flagsbstp': 0,
+  'Nemission': 0,
+  'Temission': 0.0,
+  'sigx(m)': 0.001,
+  'sigpx': 0.0,
+  'muxpx': 0.0,
+  'xscale': 1.0,
+  'pxscale': 1.0,
+  'xmu1(m)': 0.0,
+  'xmu2': 0.0,
+  'sigy(m)': 0.001,
+  'sigpy': 0.0,
+  'muxpy': 0.0,
+  'yscale': 1.0,
+  'pyscale': 1.0,
+  'ymu1(m)': 0.0,
+  'ymu2': 0.0,
+  'sigz(m)': 0.0001,
+  'sigpz': 0.0,
+  'muxpz': 0.0,
+  'zscale': 1.0,
+  'pzscale': 1.0,
+  'zmu1(m)': 0.0,
+  'zmu2': 19.569511835591836, # gammma => 10 MeV energy
+  'Bcurr': 1.0,
+  'Bkenergy': 1.0,
+  'Bmass': 510998.95, # electrons
+  'Bcharge': -1.0,
+  'Bfreq': 1000000000.0,
+  'Tini': 0.0},
+               
+ 'lattice': [{'description': 'name:2d_to_3d_spacecharge',
+   'original': '0 0 0 -5 0 0 -1000.0 /!name:2d_to_3d_spacecharge',
+   'type': 'rotationally_symmetric_to_3d',
+   's': -1000.0,
+   'name': '2d_to_3d_spacecharge'},
+  {'description': 'name:drift_1',
+ #  'original': '1.0 0 0 0 1.0 0.15 /!name:drift_1',
+   'L': 1.0,
+   'type': 'drift',
+   'zedge': 1.0,
+   'radius': 0.15,
+   's': 2.0,
+   'name': 'drift_1'},
+  {'description': 'name:stop_1',
+  # 'original': '0 0 0 -99 0 0.0 1 /!name:stop_1',
+   'type': 'stop',
+   's': 1.0,
+   'name': 'stop_1'}],
+ 'fieldmaps': {}}

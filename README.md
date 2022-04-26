@@ -6,7 +6,7 @@ Basic usage:
 from impact import Impact
 
 # Prepare Impact object. This will call I.configure() automatically. 
-I = Impact('../templates/lcls_injector/ImpactT.in', verbose=True)
+I = Impact('examples/templates/lcls_injector/ImpactT.in', verbose=True)
 
 # Change some things
 I.header['Np'] = 10000
@@ -27,6 +27,13 @@ I.archive('test.h5')
 ```
 
 
+Current release info
+====================
+
+| Name | Downloads | Version | Platforms |
+| --- | --- | --- | --- |
+| [![Conda Recipe](https://img.shields.io/badge/recipe-lume--impact-green.svg)](https://anaconda.org/conda-forge/lume-impact) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/lume-impact.svg)](https://anaconda.org/conda-forge/lume-impact) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/lume-impact.svg)](https://anaconda.org/conda-forge/lume-impact) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/lume-impact.svg)](https://anaconda.org/conda-forge/lume-impact) |
+
 Installing lume-impact
 ======================
 
@@ -34,6 +41,7 @@ Installing `lume-impact` from the `conda-forge` channel can be achieved by addin
 
 ```
 conda config --add channels conda-forge
+conda config --set channel_priority strict
 ```
 
 Once the `conda-forge` channel has been enabled, `lume-impact` can be installed with:
