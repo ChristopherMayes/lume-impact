@@ -1,5 +1,5 @@
 distgen
 numpy
 h5py
-pmd_beamphysics
+openpmd-beamphysics
 lume-base
