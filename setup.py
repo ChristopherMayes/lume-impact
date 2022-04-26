@@ -7,6 +7,8 @@ cur_dir = path.abspath(path.dirname(__file__))
 with open(path.join(cur_dir, 'requirements.txt'), 'r') as f:
     requirements = f.read().split()
 
+with open(path.join(cur_dir, 'dev-requirements.txt'), 'r') as f:
+    dev_requirements = f.read().split()
 
 
 setup(
@@ -16,6 +18,7 @@ setup(
     packages=find_packages(),  
     package_dir={'xopt':'xopt'},
     url='https://github.com/ChristopherMayes/lume-impact',
+    extras_require={"dev": dev_requirements},
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     install_requires=requirements,
