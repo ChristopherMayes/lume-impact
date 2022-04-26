@@ -1,11 +1,26 @@
 from impact import Impact
+import os
 
-
-def test_basic_init_and_run(lcls_archive_file):
-    I = Impact(verbose=True)
-    I.load_archive(lcls_archive_file)
-
-    # Switches for MPI
-    I.numprocs = 1
-    I.total_charge = 0
+def test_basic_init_run_archive():
+    I = Impact()
+    # Switches to make this fast
+    I.header['Np'] = 100 
+    I.header['Bcurr'] = 0 # turn off SC 
     I.run()
+    
+    # Use the tempdir as scratch
+    afile = os.path.join(I.path, 'test.h5')
+    I.archive(afile)
+    I2 = Impact.from_archive(afile)
+    
+    
+def test_plot():
+    I = Impact()
+    # Switches to make this fast
+    I.header['Np'] = 100 
+    I.header['Bcurr'] = 0 # turn off SC 
+    I.run()
+    I.plot()
+    
+
+ 
