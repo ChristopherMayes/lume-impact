@@ -26,8 +26,7 @@ jobs:
           conda config --set always_yes yes --set changeps1 no
           conda install --yes --file requirements.txt
           conda install --yes --file dev-requirements.txt
-          conda install impact-t
-          pip install -e .
+          pip install .
       - name: Run tests
         shell: bash -l {0}
         run: |
