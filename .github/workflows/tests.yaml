@@ -18,7 +18,7 @@ jobs:
         with:
           auto-activate-base: true
           python-version: ${{ matrix.python-version }}
-          channels: conda-forge,anaconda
+          channels: conda-forge
           channel-priority: flexible
       - name: Create environment
         shell: bash -l {0}
