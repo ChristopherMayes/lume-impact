@@ -66,7 +66,7 @@ class Impact(CommandWrapper):
 
         else:            
             self.vprint('Using default input: 1 m drift lattice')
-            self.input = DEFAULT_INPUT.copy()
+            self.input = deepcopy(DEFAULT_INPUT)
             self.configure()
 
 
@@ -254,7 +254,7 @@ class Impact(CommandWrapper):
             self.vprint('Enabling MPI')
             self.use_mpi = True
 
-    def get_run_script(self, write_to_path=True):
+    def get_run_script(self, write_to_path=False, path=None):
         """
         Assembles the run script using self.mpi_run string of the form:
             'mpirun -n {n} {command_mpi}'
@@ -279,7 +279,9 @@ class Impact(CommandWrapper):
             runscript = exe
 
         if write_to_path:
-            path=os.path.join(self.path, 'run')
+            if path is None:
+                path = self.path
+            path=os.path.join(path, 'run')
             with open(path, 'w') as f:
                 f.write(runscript)
             tools.make_executable(path)
@@ -349,9 +351,11 @@ class Impact(CommandWrapper):
         self.finished = True
 
 
-    def write_initial_particles(self, fname=None, update_header=False):
+    def write_initial_particles(self, fname=None, update_header=False, path=None):
         if not fname:
-            fname = os.path.join(self.path, 'partcl.data')
+            if path is None:
+                path = self.path
+            fname = os.path.join(path, 'partcl.data')
 
         assert self.initial_particles.species == self.species, 'Species mismatch'
 
@@ -366,7 +370,6 @@ class Impact(CommandWrapper):
                 self.cathode_start = False
                 cathode_kinetic_energy_ref = None
                 start_str = 'Normal start'
-
         else:
             cathode_kinetic_energy_ref = None
             start_str = 'Normal start'
@@ -407,14 +410,16 @@ class Impact(CommandWrapper):
                 self.vprint(f'Setting total charge to {charge} C')
                 self.total_charge = charge
 
-    def write_input(self,  input_filename='ImpactT.in'):
+    def write_input(self, input_filename='ImpactT.in', path=None):
         """
         Write all input.
 
         If .initial_particles are given,
         """
 
-        path = self.path
+        if path is None:
+            path = self.path
+            
         assert os.path.exists(path)
 
         filePath = os.path.join(path, input_filename)
@@ -426,7 +431,14 @@ class Impact(CommandWrapper):
 
         # Initial particles (ParticleGroup)
         if self.initial_particles:
-            self.write_initial_particles(update_header=True)
+            self.write_initial_particles(update_header=True, path=path)
+                
+            # Check consistency
+            if self.header['Nemission'] < 1 and self.total_charge > 0:
+                raise ValueError(f"Cathode start with space charge must "
+                                 f"set header['Nemission'] > 0. "
+                                 f"The current value is {self.header['Nemission']}.")            
+            
 
         # Symlink
         elif self.header['Flagdist'] == 16:
@@ -446,7 +458,7 @@ class Impact(CommandWrapper):
         writers.write_impact_input(filePath, self.header, self.lattice)
 
         # Write run script
-        self.get_run_script()
+        self.get_run_script(write_to_path=True, path=path)
 
     @property
     def stop(self):
