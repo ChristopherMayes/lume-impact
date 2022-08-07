@@ -229,6 +229,7 @@ def raw_fieldmap_processed_fieldmap(fmap, filePath=None):
     
 #process_fieldmap_solrf(I.input['fieldmaps']['rfdata102'])  
 
+
 def fieldmap_reconsruction(fdat, z):
     """
     Transcription of Ji's routine
@@ -334,6 +335,8 @@ def create_fourier_coefficients(zdata, edata, n=None):
         zz = zdata[0]+i*h - zmid
 
         Fcoef += (ez1*np.cos(jlist*2*pi*zz/zlen)*h)/zhalf
+        
+        #print(jlist*2*zz/zlen)
         Fcoef2 += (ez1*np.sin(jlist*2*pi*zz/zlen)*h)/zhalf
 
     return np.hstack([Fcoef[0], riffle(Fcoef[1:], Fcoef2[1:])]) 
