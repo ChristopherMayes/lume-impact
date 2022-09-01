@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from .lattice import ele_shape, ele_shapes, remove_element_types, ele_bounds, ele_overlaps_s
+from .fieldmaps import fieldmap_reconstruction_solrf, lattice_field
 import numpy as np
 
 from pmd_beamphysics.labels import mathlabel
@@ -51,7 +52,7 @@ def plot_stat(impact_object, y='sigma_x', x='mean_z', nice=True):
 
     
 
-def add_ele_box(ele, ax, factor=1):
+def add_ele_box(ele, ax, xfactor=1, yfactor=1, alpha=0.7):
     """
     Add single element box to axes (matplotlib)
     """
@@ -61,10 +62,10 @@ def add_ele_box(ele, ax, factor=1):
         return ax
 
     d = ele_shape(ele)
-    origin = (d['left']*factor, d['bottom'])
-    width  = (d['right'] - d['left'])*factor
-    height = d['top']-d['bottom']
-    rect = patches.Rectangle(origin, width, height, color=d['color'], alpha=0.7)
+    origin = (d['left']*xfactor, d['bottom'])
+    width  = (d['right'] - d['left'])*xfactor
+    height = (d['top']-d['bottom']) * yfactor
+    rect = patches.Rectangle(origin, width, height, color=d['color'], alpha=alpha)
 
     # Add the patch to the Axes
     ax.add_patch(rect)
@@ -101,7 +102,13 @@ def add_ele_label(ele, axis,  bounds=None, factor=1):
             #transform=ax.transAxes,
             family='sans-serif', size=14, rotation=90)
 
-def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_labels=True, include_markers=True):
+def add_layout_to_axes(impact_object, axes,
+                       bounds=None,
+                       factor=1,
+                       include_labels=True,
+                       include_field=False,
+                       field_t=0,
+                       include_markers=True):
     """
     Adds a layout plot to an axis.
     
@@ -114,7 +121,20 @@ def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_label
     if not bounds:
         bounds = ele_bounds(lat)
     
-  
+    if include_field:
+        add_fieldmaps_to_axes(impact_object,
+                          ax=axes, bounds=bounds,
+                          t=field_t,
+                          n_pts = 1000,
+                          xfactor = factor,
+                         )
+        ymin, ymax = axes.get_ylim()
+        yfactor = (ymax-ymin)
+        alpha = 0.1
+    else:
+        yfactor = 1
+        alpha = 0.7
+        
         
     for ele in lat:
         if 's' not in ele:
@@ -129,15 +149,20 @@ def add_layout_to_axes(impact_object, axes, bounds=None, factor=1, include_label
         if 'L' not in ele:
                 add_ele_marker(ele, axes, factor=factor)
         else:
-            add_ele_box(ele, axes, factor=factor)
+            add_ele_box(ele, axes, xfactor=factor, yfactor=yfactor, alpha=alpha)
         
         if include_labels:
-            add_ele_label(ele, axes, bounds=bounds, factor=factor)      
+            add_ele_label(ele, axes, bounds=bounds, factor=factor)  
+
+
+            
             
 def plot_layout(impact_object, 
                 xlim=None, 
                 include_labels=True, 
                 include_markers=True,
+                include_field=False,
+                field_t = 0,                
                 return_figure=False,  **kwargs):
     """
     Simple layout plot
@@ -147,6 +172,8 @@ def plot_layout(impact_object,
 
     add_layout_to_axes(impact_object, axes, bounds=xlim, 
                        include_labels=include_labels,
+                       include_field=include_field,
+                       field_t=field_t,
                        include_markers=include_markers)            
             
     if return_figure:
@@ -160,6 +187,8 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
                            tex=True,
                            include_layout=True,
                            include_labels=True, 
+                           include_field=False,
+                           field_t = 0,
                            include_markers=True,
                            include_particles=True, 
                            include_legend=True, 
@@ -339,20 +368,80 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     if include_layout:
         
         # Gives some space to the top plot
-        ax_layout.set_ylim(-1, 1.5)          
+        if not include_field:
+            ax_layout.set_ylim(-1, 1.5)          
         
         if xkey == 'mean_z':
-            ax_layout.set_axis_off()
+            if not include_field:
+                ax_layout.set_axis_off()
             ax_layout.set_xlim(xlim[0], xlim[1])
         else:
             ax_layout.set_xlabel('mean_z')
             xlim = (0, I.stop)
         add_layout_to_axes(I,  ax_layout, bounds=xlim, 
                            include_labels=include_labels,
+                           include_field=include_field,
+                           field_t=field_t,
                            include_markers=include_markers)  
-                           
-                           
+                                                   
                            
     if return_figure:
         return fig  
     
+    
+    
+def add_fieldmaps_to_axes(impact_object, *, 
+                          ax=None, bounds=None,
+                          t=0,
+                          n_pts = 1000,
+                          xfactor = 1,
+                          add_legend=False,
+                         ):
+    """
+    Adds fieldmaps to an axes.
+    
+    """
+    
+   
+    if bounds is None:
+        zmin, zmax = 0, impact_object.stop
+    else:
+        zmin, zmax = bounds
+    ax.set_xlim(zmin, zmax)    
+        
+        
+        
+    zlist = np.linspace(zmin, zmax, n_pts)
+    
+    types = ('solrf', )
+    eles = [ele for ele in impact_object.lattice if ele['type'] in types]
+    
+    dat = {}
+    ax2 = ax.twinx()    
+
+    
+    lines = []
+    for ax1, component, color, label, units in (
+            (ax, 'Ez', 'green', r'$E_z$', 'V/m'),
+            (ax2, 'Bz', 'blue', r'$B_z$', 'T')):
+        fz = np.array([
+            lattice_field(eles, z=z, x=0, y=0, t=t,
+                          component=component,
+                          fmaps=impact_object.fieldmaps
+        ) for z in zlist ])
+        
+        y, factor, prefix = nice_array(fz)
+        
+        line = ax1.plot(zlist*xfactor, y, color=color, label=label)
+        lines += line
+        
+        
+        ylabel = f'{label} ({prefix}{units})'
+        ax1.set_ylabel(ylabel)
+      
+    labels = [line.get_label() for line in lines]
+    if add_legend:
+        ax.legend(lines, labels) 
+    
+
+    # ax.set_xlabel('$z$ (m)')    

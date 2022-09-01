@@ -1363,7 +1363,7 @@ fieldmap_parsers = {
     'dipole':fieldmaps.read_fieldmap_rfdata,
     'multipole':fieldmaps.read_fieldmap_rfdata,
     'srf_cavity':fieldmaps.read_fieldmap_rfdata,
-    'solrf':fieldmaps.read_fieldmap_rfdata,
+    'solrf':fieldmaps.read_solrf_fieldmap,
     'solenoid':fieldmaps.read_solenoid_fieldmap,
     'emfield_cylindrical':fieldmaps.read_fieldmap_symlink, # TODO: better parsing
     'emfield_cartesian':fieldmaps.read_fieldmap_symlink    # TODO: better parsing
