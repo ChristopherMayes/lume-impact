@@ -476,7 +476,7 @@ class Impact(CommandWrapper):
             self.write_initial_particles(update_header=True, path=path)
                 
             # Check consistency
-            if self.header['Nemission'] < 1 and self.total_charge > 0:
+            if self.header['Flagimg'] ==1 and self.header['Nemission'] < 1 and self.total_charge > 0:
                 raise ValueError(f"Cathode start with space charge must "
                                  f"set header['Nemission'] > 0. "
                                  f"The current value is {self.header['Nemission']}.")            
