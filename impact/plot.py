@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from .lattice import ele_shape, ele_shapes, remove_element_types, ele_bounds, ele_overlaps_s
-from .fieldmaps import fieldmap_reconstruction_solrf, lattice_field
+from .fieldmaps import fieldmap_reconstruction_solrf, lattice_field, FIELD_CALC_ELE_TYPES
 import numpy as np
 
 from pmd_beamphysics.labels import mathlabel
@@ -62,7 +62,7 @@ def add_ele_box(ele, ax, xfactor=1, yfactor=1, alpha=0.7):
         return ax
 
     d = ele_shape(ele)
-    origin = (d['left']*xfactor, d['bottom'])
+    origin = (d['left']*xfactor, d['bottom']*yfactor)
     width  = (d['right'] - d['left'])*xfactor
     height = (d['top']-d['bottom']) * yfactor
     rect = patches.Rectangle(origin, width, height, color=d['color'], alpha=alpha)
@@ -129,7 +129,7 @@ def add_layout_to_axes(impact_object, axes,
                           xfactor = factor,
                          )
         ymin, ymax = axes.get_ylim()
-        yfactor = (ymax-ymin)
+        yfactor = (ymax-ymin)/4
         alpha = 0.1
     else:
         yfactor = 1
@@ -412,9 +412,9 @@ def add_fieldmaps_to_axes(impact_object, *,
         
         
     zlist = np.linspace(zmin, zmax, n_pts)
-    
-    types = ('solrf', )
-    eles = [ele for ele in impact_object.lattice if ele['type'] in types]
+
+    # pre-filter
+    eles = [ele for ele in impact_object.lattice if ele['type'] in FIELD_CALC_ELE_TYPES]
     
     dat = {}
     ax2 = ax.twinx()    
@@ -429,10 +429,10 @@ def add_fieldmaps_to_axes(impact_object, *,
                           component=component,
                           fmaps=impact_object.fieldmaps
         ) for z in zlist ])
-        
+
         y, factor, prefix = nice_array(fz)
         
-        line = ax1.plot(zlist*xfactor, y, color=color, label=label)
+        line = ax1.plot(zlist/xfactor, y, color=color, label=label)
         lines += line
         
         

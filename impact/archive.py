@@ -1,15 +1,16 @@
 #import numpy as np
 
 from pmd_beamphysics.units import write_dataset_and_unit_h5, read_dataset_and_unit_h5
-from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics import ParticleGroup, FieldMesh
 
 from .parsers import header_lines
 from .lattice import lattice_lines
-from .fieldmaps import solrf_field_from_data, data_from_solrf_fieldmap
+from .fieldmaps import solrf_field_from_data, data_from_solrf_fieldmap, upgrade_old_solenoid_fieldmap
 from .tools import fstr, isotime, native_type
 from .control import ControlGroup
 
-
+from tempfile import NamedTemporaryFile
+import warnings
 import numpy as np
 
 #----------------------------        
@@ -265,17 +266,22 @@ def write_fieldmap_h5(h5, fieldmap, name=None):
     
     # Must be real fieldmap
     
-    # Handle solrf
+    # Handle formats
     info = fieldmap['info']
-    if info['format'] == 'solrf':
+    format = info['format']
+    if format == 'solrf':
         data = data_from_solrf_fieldmap(fieldmap)
+    elif format == 'solenoid_fieldmesh':
+        fieldmap['field'].write(h5, name='field')
+        data = None
     else:
         data = fieldmap['data']
     
     # Info attributes
     write_attrs_h5(g, info, name='info')
     # Data as single dataset
-    g['data'] = data
+    if data is not None:
+        g['data'] = data
 
     
 def read_fieldmap_h5(h5):
@@ -287,13 +293,22 @@ def read_fieldmap_h5(h5):
     
     # Extract
     info = dict(h5['info'].attrs)
-    data = h5['data'][:]
+    format = info['format']
     
     # Handle solrf
-    if info['format'] == 'solrf':
+    if format == 'solrf':
+        data = h5['data'][:]
         fieldmap = {'info':info, 'field': solrf_field_from_data(data) } 
+    elif format.endswith('_fieldmesh'):
+        fieldmap = {'info':info, 'field': FieldMesh(h5['field'])}         
     else:
+        data = h5['data'][:]
         fieldmap = {'info':info, 'data':data}
+
+    # Now upgrade old fomats
+    if format == 'solenoid_T7':
+        warnings.warn("deprecated format: solenoid_T7. Upgrading to solenoid_fieldmesh", DeprecationWarning)
+        fieldmap = upgrade_old_solenoid_fieldmap(fieldmap)
     
     return fieldmap
     

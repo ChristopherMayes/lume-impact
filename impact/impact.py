@@ -712,7 +712,7 @@ class Impact(CommandWrapper):
             include_labels=False,
             include_markers=True,
             include_particles=True,
-            include_field=False,
+            include_field=True,
             field_t=0,
             include_legend=True,
             return_figure=False,
