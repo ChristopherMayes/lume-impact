@@ -116,7 +116,10 @@ def tao_create_impact_solrf_ele(tao,
     freq = edat.get('RF_FREQUENCY', 0)
     assert np.allclose(freq, field_mesh.frequency), f'{freq} != {field_mesh.frequency}'    
     
-    master_parameter = field_mesh.attrs.get('masterParameter', None)
+    #master_parameter = field_mesh.attrs.get('masterParameter', None)
+    master_parameter = grid_params['master_parameter'].value
+    if master_parameter == '<None>':
+        master_parameter = None
     
     if ele_key == 'E_GUN':
         zmirror = True
