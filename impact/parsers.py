@@ -868,7 +868,7 @@ def parse_emfield_cylindrical(line):
     as a function of (r,z) of EM field data (from SUPERFISH output).
     
     V1: zedge
-    V2: rf_field_scale       ! Typo in the manual
+    V2: rf_field_scale       ! Warning: The manual says 'radius'
     V3: RF frequency
     V4: theta0_deg
     V5: file ID
@@ -918,7 +918,7 @@ def emfield_cylindrical_v(ele):
 
 ELE_DEFAULTS['emfield_cylindrical'] = {
     'zedge':0,
-    'rf_field_scale':0,
+    'rf_field_scale':0, 
     'rf_frequency':0,
     'theta0_deg':0,
     'filename':0,
@@ -1363,9 +1363,9 @@ fieldmap_parsers = {
     'dipole':fieldmaps.read_fieldmap_rfdata,
     'multipole':fieldmaps.read_fieldmap_rfdata,
     'srf_cavity':fieldmaps.read_fieldmap_rfdata,
-    'solrf':fieldmaps.read_fieldmap_rfdata,
+    'solrf':fieldmaps.read_solrf_fieldmap,
     'solenoid':fieldmaps.read_solenoid_fieldmap,
-    'emfield_cylindrical':fieldmaps.read_fieldmap_symlink, # TODO: better parsing
+    'emfield_cylindrical':fieldmaps.read_emfield_cylindrical_fieldmap, # TODO: better parsing
     'emfield_cartesian':fieldmaps.read_fieldmap_symlink    # TODO: better parsing
 }
 

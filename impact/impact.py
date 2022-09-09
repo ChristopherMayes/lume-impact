@@ -3,10 +3,14 @@ from . import archive, writers, fieldmaps, tools
 from .lattice import ele_dict_from, ele_str, get_stop, set_stop, insert_ele_by_s
 from .control import ControlGroup
 
+from .fieldmaps import lattice_field
 from .plot import plot_stat, plot_layout, plot_stats_with_layout
 from .particles import identify_species, track_to_s, track1_to_s
 
+
+
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.units import pmd_unit
 from pmd_beamphysics.interfaces.impact import impact_particles_to_particle_data
 
 from scipy.interpolate import interp1d
@@ -22,6 +26,12 @@ from copy import deepcopy
 import os
 
 from lume.base import CommandWrapper
+
+
+EXTRA_UNITS = {
+            'Bz': pmd_unit('T'),
+            'Ez': pmd_unit('V/m'),
+        }
 
 
 class Impact(CommandWrapper):
@@ -47,6 +57,7 @@ class Impact(CommandWrapper):
         self.input = {'header':{}, 'lattice':[]}
         self.output = {}
         self._units = {}
+        self._units.update(EXTRA_UNITS)
         self.group = {}
 
         # Convenience lookup of elements in lattice by name
@@ -66,7 +77,7 @@ class Impact(CommandWrapper):
 
         else:            
             self.vprint('Using default input: 1 m drift lattice')
-            self.input = DEFAULT_INPUT.copy()
+            self.input = deepcopy(DEFAULT_INPUT)
             self.configure()
 
 
@@ -197,14 +208,45 @@ class Impact(CommandWrapper):
     def particles(self):
         """Convenience pointer to .input['lattice']"""
         return self.output['particles']
+    @property
+    def fieldmaps(self):
+        """Convenience pointer to .input['fieldmaps']"""
+        return self.input['fieldmaps']
+    
+    def field(self, z=0, t=0, x=0, y=0, component='Ez'):
+        """
+        Return the field component at a longitudinal
+        position z at time t.
+        
+        Warking: This is based on the parsed fieldmaps,
+        and not calculated directly from Impact. Not all elements/parameters
+        are implemented. Currently x, y must be 0. 
+        """
+        return lattice_field(self.lattice, x=x, y=y, z=z, t=t, component=component,
+                      fmaps = self.fieldmaps)
 
+    def centroid_field(self, component='Ez'):
+        zlist = self.stat('mean_z')
+        tlist = self.stat('t')
+        return np.array([self.field(z=z, t=t, component=component) for z, t in zip(zlist, tlist)])
+    
     def stat(self, key):
         """Array from .output['stats'][key] """
+        
+        if key in ('Ez', 'Bz'):
+            return self.centroid_field(component=key[0:2])
+        
         return self.output['stats'][key]
 
     def units(self, key):
         """pmd_unit of a given key"""
         return self._units[key]
+    
+    
+    #def field(self, *, x=0, y=0, z=0, t=0):
+        
+    
+    
 
     #--------------
     # Run
@@ -254,7 +296,7 @@ class Impact(CommandWrapper):
             self.vprint('Enabling MPI')
             self.use_mpi = True
 
-    def get_run_script(self, write_to_path=True):
+    def get_run_script(self, write_to_path=False, path=None):
         """
         Assembles the run script using self.mpi_run string of the form:
             'mpirun -n {n} {command_mpi}'
@@ -279,7 +321,9 @@ class Impact(CommandWrapper):
             runscript = exe
 
         if write_to_path:
-            path=os.path.join(self.path, 'run')
+            if path is None:
+                path = self.path
+            path=os.path.join(path, 'run')
             with open(path, 'w') as f:
                 f.write(runscript)
             tools.make_executable(path)
@@ -349,9 +393,11 @@ class Impact(CommandWrapper):
         self.finished = True
 
 
-    def write_initial_particles(self, fname=None, update_header=False):
+    def write_initial_particles(self, fname=None, update_header=False, path=None):
         if not fname:
-            fname = os.path.join(self.path, 'partcl.data')
+            if path is None:
+                path = self.path
+            fname = os.path.join(path, 'partcl.data')
 
         assert self.initial_particles.species == self.species, 'Species mismatch'
 
@@ -366,7 +412,6 @@ class Impact(CommandWrapper):
                 self.cathode_start = False
                 cathode_kinetic_energy_ref = None
                 start_str = 'Normal start'
-
         else:
             cathode_kinetic_energy_ref = None
             start_str = 'Normal start'
@@ -407,14 +452,16 @@ class Impact(CommandWrapper):
                 self.vprint(f'Setting total charge to {charge} C')
                 self.total_charge = charge
 
-    def write_input(self,  input_filename='ImpactT.in'):
+    def write_input(self, input_filename='ImpactT.in', path=None):
         """
         Write all input.
 
         If .initial_particles are given,
         """
 
-        path = self.path
+        if path is None:
+            path = self.path
+            
         assert os.path.exists(path)
 
         filePath = os.path.join(path, input_filename)
@@ -426,7 +473,14 @@ class Impact(CommandWrapper):
 
         # Initial particles (ParticleGroup)
         if self.initial_particles:
-            self.write_initial_particles(update_header=True)
+            self.write_initial_particles(update_header=True, path=path)
+                
+            # Check consistency
+            if self.header['Flagimg'] ==1 and self.header['Nemission'] < 1 and self.total_charge > 0:
+                raise ValueError(f"Cathode start with space charge must "
+                                 f"set header['Nemission'] > 0. "
+                                 f"The current value is {self.header['Nemission']}.")            
+            
 
         # Symlink
         elif self.header['Flagdist'] == 16:
@@ -446,7 +500,7 @@ class Impact(CommandWrapper):
         writers.write_impact_input(filePath, self.header, self.lattice)
 
         # Write run script
-        self.get_run_script()
+        self.get_run_script(write_to_path=True, path=path)
 
     @property
     def stop(self):
@@ -537,7 +591,8 @@ class Impact(CommandWrapper):
 
         self.input = archive.read_input_h5(g['input'], verbose=self.verbose)
         self.output, self._units = archive.read_output_h5(g['output'], verbose=self.verbose)
-
+        self._units.update(EXTRA_UNITS)
+        
         if 'initial_particles' in g:
             self.initial_particles = ParticleGroup(h5=g['initial_particles'])
 
@@ -637,7 +692,13 @@ class Impact(CommandWrapper):
 
         if not species:
             species = self.species
-        return track1_to_s(self, s=s, x0=x0, px0=px0, y0=y0, py0=py0, z0=z0, pz0=pz0, t0=t0, species=species)
+            
+        # Change to serial exe just for this
+        n_procs_save = self.numprocs
+        self.numprocs = 1
+        result = track1_to_s(self, s=s, x0=x0, px0=px0, y0=y0, py0=py0, z0=z0, pz0=pz0, t0=t0, species=species)
+        self.numprocs = n_procs_save
+        return result
 
     def old_plot(self, y='sigma_x', x='mean_z', nice=True, include_layout=True):
         """
@@ -651,6 +712,8 @@ class Impact(CommandWrapper):
             include_labels=False,
             include_markers=True,
             include_particles=True,
+            include_field=True,
+            field_t=0,
             include_legend=True,
             return_figure=False,
             tex=True,
@@ -666,6 +729,8 @@ class Impact(CommandWrapper):
             return plot_layout(self, xlim=xlim,
                                include_markers=include_markers,
                                include_labels=include_labels,
+                               include_field=include_field,
+                               field_t=field_t,                                
                                **kwargs)
 
 
@@ -675,6 +740,8 @@ class Impact(CommandWrapper):
                            tex=tex,
                            include_layout=include_layout,
                            include_labels=include_labels,
+                           include_field=include_field,
+                           field_t=field_t,                                      
                            include_markers=include_markers,
                            include_particles=include_particles,
                            include_legend=include_legend,

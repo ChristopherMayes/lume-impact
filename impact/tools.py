@@ -15,13 +15,13 @@ def parse_float(s):
     """
     return float(s.lower().replace('d', 'e'))
 
-def safe_loadtxt(filepath):
+def safe_loadtxt(filepath, **kwargs):
     """
     Similar to np.loadtxt, but handles old-style exponents d -> e
     """
     s = open(filepath).readlines()
     s = list(map(lambda x: x.lower().replace('d', 'e'), s))
-    return np.loadtxt(s)
+    return np.loadtxt(s, **kwargs)
 
 
 def execute(cmd, cwd=None):

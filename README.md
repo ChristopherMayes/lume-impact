@@ -6,7 +6,7 @@ Basic usage:
 from impact import Impact
 
 # Prepare Impact object. This will call I.configure() automatically. 
-I = Impact('examples/templates/lcls_injector/ImpactT.in', verbose=True)
+I = Impact('/path/to/ImpactT.in', verbose=True)
 
 # Change some things
 I.header['Np'] = 10000

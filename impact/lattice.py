@@ -251,7 +251,7 @@ def ele_shape(ele):
     d['name'] = ele['name']
     
     d['all'] = ele_str(ele)#'\n'.join(str(ele).split(',')) # Con
-    d['description'] = ele['description']
+    #d['description'] = ele['description']
     
     return d
 

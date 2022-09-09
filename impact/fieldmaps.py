@@ -1,7 +1,13 @@
 import numpy as np
+from numpy import cos, pi
 import os
 from impact.tools import safe_loadtxt
+from subprocess import Popen, PIPE
+from tempfile import TemporaryDirectory, NamedTemporaryFile
+import warnings
 
+from pmd_beamphysics.interfaces.impact import fourier_field_reconsruction, create_fourier_coefficients
+from pmd_beamphysics import FieldMesh
 
 def write_fieldmap(filePath, fieldmap):
     """
@@ -16,8 +22,15 @@ def write_fieldmap(filePath, fieldmap):
     format = fieldmap['info']['format']
     if format == 'rfdata':
         write_fieldmap_rfdata(filePath, fieldmap)
+    elif format == 'solrf':
+        write_fieldmap_solrf(filePath, fieldmap)
     elif format == 'solenoid_T7':
-        write_solenoid_fieldmap(fieldmap, filePath)
+        warnings.warn("deprecated format: solenoid_T7", DeprecationWarning)
+        old_write_solenoid_fieldmap(fieldmap, filePath)
+    elif format == 'solenoid_fieldmesh':
+        write_solenoid_fieldmap(fieldmap, filePath)        
+    elif format == 'emfield_cylindrical_fieldmesh':
+        write_emfield_cylindrical_fieldmap(fieldmap, filePath)           
     else:
         print('Missing writer for fieldmap:', fieldmap)
         raise
@@ -30,8 +43,7 @@ def read_fieldmap_symlink(filePath):
     
 def write_fieldmap_symlink(fieldmap, filePath):
     if os.path.exists(filePath):
-        return
-        # do nothing
+        pass
     else:
         os.symlink(fieldmap['filePath'], filePath)
 
@@ -60,51 +72,12 @@ def write_fieldmap_rfdata(filePath, fieldmap):
     """
     np.savetxt(filePath, fieldmap['data'])
 
-    
-    
-    
-def write_fieldmap_h5(h5, fieldmap, name=None):
-    """
+        
 
-    """
-    if name:
-        g = h5.create_group(name)
-    else:
-        g = h5
-    
-    # Look for symlink fieldmaps
-    if 'filePath' in fieldmap:
-        g.attrs['filePath'] = fieldmap['filePath']
-        return
-    
-    # Must be real fieldmap
-    
-    # Info attributes
-    write_attrs_h5(g, fieldmap['info'], name='info')
-    # Data as single dataset
-    g['data'] = fieldmap['data']
-
-    
-def read_fieldmap_h5(h5):
-    """
-    
-    """
-    if 'filePath' in h5.attrs:
-        return {'filePath':h5.attrs['filePath']}
-    
-    info = dict(h5['info'].attrs)
-    data = h5['data'][:]
-    
-    return {'info':info, 'data':data}    
-    
-    
-    
-    
-    
     
 # -----------------------
 # T7 fieldmaps
-def read_solenoid_fieldmap(filePath):
+def old_read_solenoid_fieldmap(filePath):
     """
     Read a T7 style file.
     
@@ -144,7 +117,8 @@ def read_solenoid_fieldmap(filePath):
     
     return d
 
-def write_solenoid_fieldmap(fieldmap, filePath):
+    
+def old_write_solenoid_fieldmap(fieldmap, filePath):
     """
     Save fieldmap data to file in T7 format.
     fieldmap must have:
@@ -158,10 +132,161 @@ def write_solenoid_fieldmap(fieldmap, filePath):
     # Save data
     np.savetxt(filePath, fieldmap['data'], header=header, comments='')
 
+    
+def upgrade_old_solenoid_fieldmap(fieldmap):
+    """
+    Upgrades an old-style solenoid fieldmap
+    """
+    with NamedTemporaryFile() as tf:
+        old_write_solenoid_fieldmap(fieldmap, tf.name)
+        new_fieldmap = read_solenoid_fieldmap(tf.name)
+    return new_fieldmap
+    
+def read_solenoid_fieldmap(filePath):
+    """
+    Read a T7 style file.
+    """
+    
+    fm = FieldMesh.from_superfish(filePath, type='magnetic')
+    
+    d = {'info':{'format': 'solenoid_fieldmesh' },
+         'field': fm
+        }
+    
+    return d    
+    
+    
+def write_solenoid_fieldmap(fieldmap, filePath):    
+    """
+    Writes a superfish T7 file (Poisson problem, magnetic)
+    """
+    assert fieldmap['info']['format'] == 'solenoid_fieldmesh'
+    fieldmap['field'].write_superfish(filePath)
+    
+    
+def read_emfield_cylindrical_fieldmap(filePath):
+    """
+    Read a T7 style file.
+    """
+    
+    fm = FieldMesh.from_superfish(filePath)
+    
+    d = {'info':{'format': 'emfield_cylindrical_fieldmesh' },
+         'field': fm
+        }
+    
+    return d    
+    
+    
+def write_emfield_cylindrical_fieldmap(fieldmap, filePath):    
+    """
+    Writes a superfish T7 file (Poisson problem, magnetic)
+    """
+    assert fieldmap['info']['format'] == 'emfield_cylindrical_fieldmesh'
+    fieldmap['field'].write_superfish(filePath)    
+    
+    
+    
+    
+    
+    
+   
+    
+    
+# -----------------------
+# solrf fieldmaps
+def read_solrf_fieldmap(filePath):
+    """
+    Reads a solrf rfdata file.
+    Automatically pareses new and old style fieldmaps into 'fields'
+    """
+    
+    
+    d = read_fieldmap_rfdata(filePath)
+    d['info']['format'] = 'solrf' # Replace this
+
+    # Remove data
+    data = d.pop('data')
+    
+    # and add the processed field
+    d['field'] = solrf_field_from_data(data)
+    
+    return d
+
+def write_fieldmap_solrf(filePath, fieldmap):
+    """
+    Write solrf rfdata file from fieldmap
+    """
+    
+    data = data_from_solrf_fieldmap(fieldmap)
+    
+    np.savetxt(filePath, data)
+    
+
+def solrf_field_from_data(data):
+    """
+    Processes array of raw data from a rfdataX file into a dict.
+    
+    This automatically detects old- and new-style data.
+    
+    Parameters
+    ----------
+    data: array
+    
+    Returns
+    -------
+    field: dict
+    
+    
+    """
+    ndim = data.ndim
+    
+    if ndim == 1:
+         field = process_fieldmap_solrf_fourier(data)
+    elif ndim == 2:
+        field = process_fieldmap_solrf_derivatives(data)
+    else:
+        raise ValueError(f'Confusing shape for solrf data: {data.shape}')
+    
+    return field
 
 
 
-def process_fieldmap_solrf(data):
+def process_fieldmap_solrf_derivatives(data):
+    """
+    Process new-style raw solrf data into a dict.
+    """
+    assert data.ndim == 2
+    
+    d = {}
+    d['Ez'] = {}
+    d['Bz'] = {}  
+    
+    # Ez
+    header = data[0]
+    n = int(header[0])
+    i1 = 1
+    i2 = 1+n
+    d['Ez']['z0'] = header[1]
+    d['Ez']['z1'] = header[2]
+    d['Ez']['L']  = header[3]
+    d['Ez']['derivative_array'] = data[i1:i2]
+
+    # Bz    
+    header = data[i2]
+    n = int(header[0])
+    i1 = i2+1
+    i2 = i1 + n
+    d['Bz']['z0'] = header[1]
+    d['Bz']['z1'] = header[2]
+    d['Bz']['L']  = header[3]
+    d['Bz']['derivative_array'] = data[i1:i2]
+    
+
+    return d    
+    
+
+def process_fieldmap_solrf_fourier(data):
     """
     Processes array of raw data from a rfdataX file into a dict.
     
@@ -188,6 +313,7 @@ def process_fieldmap_solrf(data):
     d['Ez']['z0'] = data[1] # distance before the zedge.
     d['Ez']['z1'] = data[2] # distance after the zedge.
     d['Ez']['L']  = data[3] # length of the Fourier expanded field.
+    # Note that (z1-z0)/L = number of periods
     i1 = 4
     i2 = 4+n_coef
     d['Ez']['fourier_coefficients'] = data[i1:i2] # Fourier coefficients on axis
@@ -205,31 +331,43 @@ def process_fieldmap_solrf(data):
     return d
     
     
-def raw_fieldmap_processed_fieldmap(fmap, filePath=None):
+def data_from_solrf_fieldmap(fmap):
     """
     Creates 'rfdataX' array from fieldmap dict.
     
-    This is essentially the inverse of process_fieldmap_solrf
+    This is the inverse of process_fieldmap_solrf
     
     
-    """    
-    data = np.array([])
-    
-    for dat in [fmap['Ez'], fmap['Bz']]:
-        coefs = dat['fourier_coefficients']
-        data = np.append(data, [len(coefs), dat['z0'], dat['z1'], dat['L']])
-        data = np.append(data, coefs)
+    """        
+    field = fmap['field']
+    data = []
+    if 'fourier_coefficients' in field['Ez']:
+        for dat in [field['Ez'], field['Bz']]:
+            coefs = dat['fourier_coefficients']
+            z0 = dat['z0']
+            z1 = dat['z1']
+            L = dat['L']
+            data.append( np.array([len(coefs), z0, z1, L]))
+            data.append(coefs)    
+        data = np.hstack(data)
+    elif 'derivative_array' in field['Ez']: 
+        for dat in [field['Ez'], field['Bz']]:        
+            darray = dat['derivative_array']
+            z0 = dat['z0']
+            z1 = dat['z1']
+            L = dat['L'] 
+            data.append(np.array([[len(darray), z0, z1, L ]]))
+            data.append(darray)
+        data = np.vstack(data)
         
-    fieldmap = {'info':{'format':'rfdata'}}
-    fieldmap['data'] = data
-        
-    return fieldmap
+    return data
     
         
     
 #process_fieldmap_solrf(I.input['fieldmaps']['rfdata102'])  
 
-def fieldmap_reconsruction(fdat, z):
+
+def old_fieldmap_reconstruction(fdat, z):
     """
     Transcription of Ji's routine
     
@@ -237,9 +375,9 @@ def fieldmap_reconsruction(fdat, z):
     
     """
     z0 = fdat['z0']  
-    z1 = fdat['z1']  # Not used?
+    ## z1 = fdat['z1']  # Not needed here
     
-    zlen = fdat['L']
+    zlen = fdat['L'] # Periodic length
     
     if zlen == 0:
         return 0
@@ -263,77 +401,213 @@ def fieldmap_reconsruction(fdat, z):
     return  res
 
 
+def fieldmap_reconstruction_solrf(fdat, z, order=0):
+    z0 = fdat['z0']  
+    # z1 = fdat['z1'] # Not needed here
+    
+    L = fdat['L'] # Periodic length
+    
+    if L == 0:
+        return 0
+    
+    # Handle old and new style fieldmaps
+    if 'fourier_coefficients' in fdat:
+        fz = fourier_field_reconsruction(z,  fdat['fourier_coefficients'], z0=z0, zlen=L, order=order)
+    elif 'derivative_array' in fdat:
+        darray = fdat['derivative_array']
+        zlist = np.linspace(z0, z0+L, len(darray) )
+        fz = np.interp(z, zlist, darray[:, order])
+
+    return fz
+
+
 
 
 def riffle(a, b):
     return np.vstack((a,b)).reshape((-1,),order='F')
 
 
-def create_fourier_coefficients(zdata, edata, n=None):
-    """
-    Literal transcription of Ji's routine RFcoeflcls.f90
-    
-    Fixes bug with scaling the field by the max or min seen.
-    
-    Vectorized two loops
-    
-    """
-    ndatareal=len(zdata)
-    
-    # Cast to np arrays for efficiency
-    zdata = np.array(zdata)
-    edata = np.array(edata)
-    
-    # Proper scaling
-    e_min = edata.min()
-    e_max = edata.max()
-    if abs(e_min) > abs(e_max):
-        scale = e_min
-    else:
-        scale = e_max
-    edata /=  scale
-    
-    if not n:
-        n = len(edata)
 
-    Fcoef = np.zeros(n)
-    Fcoef2 = np.zeros(n)
-    zlen = zdata[-1] - zdata[0]
+def run_RFcoef(z, fz, n_coef=20, z0=0, exe='RFcoeflcls'):
+    """
+    Runs the Fortran executable RFcoeflcls,
+    and parses the output as numpy arrays.
     
-    zhalf = zlen/2.0
-    zmid = (zdata[-1]+zdata[0])/2
-    h = zlen/(ndatareal-1)
+    Parameters
+    ----------
+    z: array
+        z-positions
     
-    pi = np.pi
-    print("The RF data number is: ",ndatareal,zlen,zmid,h)
+    fz: array
+        Field at z
     
-    jlist = np.arange(n)
+    n_coef: int
+        Number of Fourier coefficients to use
     
-    zz = zdata[0] - zmid
-    Fcoef  = (-0.5*edata[0]*np.cos(jlist*2*pi*zz/zlen)*h)/zhalf
-    Fcoef2 = (-0.5*edata[0]*np.sin(jlist*2*pi*zz/zlen)*h)/zhalf
-    zz = zdata[-1] - zmid
-    Fcoef  += -(0.5*edata[-1]*np.cos(jlist*2*pi*zz/zlen)*h)/zhalf          
-    Fcoef2 += -(0.5*edata[-1]*np.sin(jlist*2*pi*zz/zlen)*h)/zhalf
+    z0: float
+        Fieldmap lower bound
+    
+    exe: str
+        path to the RFcoeflcls executable 
+    
+    Returns
+    -------
+    ouput: dict with:
+        rfdatax: array
+        rfdatax2: array
+        rfdata.out: array
         
+    
+    """
+    
+    d = TemporaryDirectory()
+    workdir = d.name
+    
+    nz = len(z)
+    if n_coef is None:
+        n_coef = nz//2
+    
+    infile = os.path.join(workdir, 'rfdata.in')
+    np.savetxt(infile, np.array([z, fz]).T)
+    
+    exe = os.path.expandvars(exe)
+    if not os.path.exists(exe):
+        raise ValueError(f'Executable does not exist: {exe}')
+    p = Popen([exe], stdin=PIPE, shell=True, cwd=workdir)
+    p.communicate(input=f'{n_coef}\n{nz}\n{z0}\n'.encode('utf-8'))
+    
+    output = {}
+    for file in ('rfdatax', 'rfdatax2', 'rfdata.out'):
+        ffile = os.path.join(workdir, file)
+        output[file] = np.loadtxt(ffile)
+        
+        # Debuging precision
+        #output[file+'_raw'] = open(ffile).read()
+        
+    return output
 
-    for i in range(ndatareal):
-        zz = i*h+zdata[0]
-        klo=0
-        khi=ndatareal-1
-        while (khi-klo > 1):
-            k=(khi+klo)//2
-            if(zdata[k] - zz > 1e-15):
-                khi=k
-            else:
-                klo=k
 
-        hstep=zdata[khi]-zdata[klo]
-        slope=(edata[khi]-edata[klo])/hstep
-        ez1 =edata[klo]+slope*(zz-zdata[klo])
-        zz = zdata[0]+i*h - zmid
 
-        Fcoef += (ez1*np.cos(jlist*2*pi*zz/zlen)*h)/zhalf
-        Fcoef2 += (ez1*np.sin(jlist*2*pi*zz/zlen)*h)/zhalf
+FIELD_CALC_ELE_TYPES = ('solrf', 'solenoid', 'emfield_cylindrical')
 
-    return np.hstack([Fcoef[0], riffle(Fcoef[1:], Fcoef2[1:])]) 
+def ele_field(ele, *,
+              x=0,
+              y=0,
+              z=0,
+              t=0,
+              component='Ez',
+              fmaps=None):
+    """
+    Returns the real value of a field component of an ele
+    at position x, y, z at time t. 
+    
+    Currently only implemented for solrf elements.
+    
+    
+    Parameters
+    ----------
+    ele: dict
+        LUME-Impact element dict.
+    
+    x: float
+        x-position in meters
+        
+    y: float
+        y-position in meters
+        
+    z: float
+        z-position in meters
+        
+    y: float
+        time in seconds
+        
+    component: str
+        Field component requested. Currently only:
+        'Ez' in V/m
+        'Bz' in T
+        are avaliable
+        
+    fmaps:
+        dict with parsed fieldmap data.
+    
+    Returns
+    -------
+    field: float
+    
+    
+    """ 
+
+    
+    if x != 0:
+        raise NotImplementedError
+    if y != 0:
+        raise NotImplementedError
+    if component not in ('Bz', 'Ez'):
+        raise NotImplementedError
+
+    ele_type = ele['type']
+    
+    if ele_type not in FIELD_CALC_ELE_TYPES:
+        return 0
+    
+    zedge = ele['zedge']
+    L = ele['L']
+    
+    z_local = z - zedge
+    
+    if z_local < 0 or z_local > L:
+        return 0
+
+    
+    ele_type = ele['type'] 
+    if ele_type == 'solrf':
+        field =  fmaps[ele['filename']]['field'][component]
+        freq = ele['rf_frequency']
+        theta0 = ele['theta0_deg'] * pi/180
+        
+        # if ele['x_offset'] != 0:
+        #     raise NotImplementedError
+        # if ele['y_offset'] != 0:
+        #     raise NotImplementedError            
+        # if ele['x_rotation'] != 0:
+        #     raise NotImplementedError    
+        # if ele['y_rotation'] != 0:
+        #     raise NotImplementedError  
+        # if ele['z_rotation'] != 0:
+        #     raise NotImplementedError              
+        
+        if component == 'Bz':
+            scale = ele['solenoid_field_scale']
+        elif component == 'Ez':
+            scale = ele['rf_field_scale']
+        else:
+            raise NotImplementedError(f'component not implemented: {component}')
+    
+        fz = fieldmap_reconstruction_solrf(field, z_local)
+        
+        # Phase factor
+        scale *= cos(2*pi*freq*t + theta0)
+        
+        fz *= scale
+        
+    elif ele_type == 'solenoid':
+        fm = fmaps[ele['filename']]['field']
+        fz = np.interp(z_local, fm.coord_vec('z'), np.real(fm[component][0,0,:]))
+        
+    elif ele_type == 'emfield_cylindrical':
+        fm = fmaps[ele['filename']]['field']
+        theta0 = ele['theta0_deg'] * pi/180
+        freq = ele['rf_frequency']
+        scale = ele['rf_field_scale']
+        fz_complex = np.interp(z_local, fm.coord_vec('z'), fm[component][0,0,:])
+        
+        fz = np.real(np.exp(-1j * (2*pi*freq*t + theta0)) * fz_complex * scale)
+    
+    return fz 
+    
+
+#@np.vectorize    
+def lattice_field(eles, *, z=0, x=0, y=0, t=0, component='Ez', fmaps=None):
+    return sum([ele_field(ele, z=z, x=x, y=y, t=t, fmaps = fmaps, component=component) for ele in eles])
+
+
