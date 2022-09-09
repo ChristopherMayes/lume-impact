@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    if: ${{ github.repository == 'ChristopherMayes/LUME-Impact' }}
+    if: ${{ github.repository == 'ChristopherMayes/lume-impact' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
