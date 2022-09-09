@@ -730,7 +730,8 @@ class Impact(CommandWrapper):
                                include_markers=include_markers,
                                include_labels=include_labels,
                                include_field=include_field,
-                               field_t=field_t,                                
+                               field_t=field_t,      
+                               return_figure=return_figure,
                                **kwargs)
 
 
