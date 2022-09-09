@@ -1,0 +1,8 @@
+1T1.T7   Gun RF field
+1T2.T7   Linac RF field checked OK
+1T3.T7   Buc. Sol alone GUNSOL_B550A.T7
+1T4.T7   Foc. Sol alone GUNSOL_F550A.T7(
+1T5.T7   Matching solenoid generated on mac GUNSOL_M440A.T7
+1T6.T7   linac solenoid 500A (checked ok but had mistake in dump length) 
+1T7.T7   Buc+Foc together and reversed powered (generated on mac GUNSOL_BF550A.T7)
+1T13.T7  TDC field converted from CST (small issue with jumps but OK)

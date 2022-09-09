@@ -1,0 +1,77 @@
+! processor layout
+! col row
+1 1 
+!
+! information needed by the integrator:
+! step-size, number of steps, and number of bunches/bins (??)
+!
+!   dt    Ntstep  Nbunch
+1.0e-12 2000000 1
+!
+!
+! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m)
+6 10000 1 0 1 0 0.016
+!
+!
+! information about mesh: number of points in x, y, and z, type
+! of boundary conditions, transverse aperture size (m),
+! and longitudinal domain size (m), which should be larger than the total
+! beamline element length
+!
+!  Nx  Ny  Nz  bcF   Rx    Ry    Lz
+32 32 32 1 0.15 0.15 1.0e5
+!
+!
+! distribution type number, restart flag, space-charge substep
+! flag, number of emission steps, and max emission time
+!
+! distType  restartF  substepF  Nemission  Temission
+3 0 0 -1 1e-12
+!
+! the distribution type codes have the following correspondence
+!  ijk Combined function distribution
+! following three lines contain a total of 21 parameters (seven
+! per degree of freedom) particular to the particle distribution
+!
+! in most cases, the columns are given by
+!  sig*   sigp*  mu*p*  *scale  p*scale  xmu*      xmu*
+!
+0.001 0.0005 0.0  1. 1. 0.0 0.
+0.001 0.0005 0.0  1. 1. 0.0 0.
+0.001 0.0001 0.0  1. 1. 0.035 27.3536117969366
+!
+!
+! information about the beam: current, kinetic energy, particle
+! rest energy, particle charge, scale frequency, and initial
+! cavity phase
+!
+! I/A   Ek/eV     Mc2/eV      Q/e  freq/Hz  phs/rad
+0.0 0.5 0.511005e+06  -1.0 2856e6 0.0
+!
+!
+! ======= machine description starts here =======
+!  #    element    nparams  parameters (v0..v23)
+! < 0  bpm           8
+!   1  quadrupole    9      zedge, quad grad, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!   4  dipole       10      zedge, field strength x, y, fileID,
+!                             half of gap width(m), alignment error x, y
+!                             rotation error x, y, z
+! 105  SolRF        12      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z,
+!                             Bz0
+!
+! L/m  N/A N/A  type  location of starting edge     v1            v23 /
+!turn on 3D space charge effect
+0.0367 1 1 0 0.0 0.1 /
+!bend1, 20 degree rectangular bend, 0.1m long
+0.1066 1    1       4    0.0367  0     -0.16275205803026052  201   0.005 /
+!bend2
+0.1066 1    1       4    1.6367  0      0.16275205803026052    202    0.005 /
+!bend3
+0.1066 1    1       4    2.4367  0      0.16275205803026052    203     0.005 /
+!bend4
+0.1066 1    1       4    4.0367  0      -0.16275205803026052    204    0.005 /
+0.1   1    1       0    4.142    0.1  /

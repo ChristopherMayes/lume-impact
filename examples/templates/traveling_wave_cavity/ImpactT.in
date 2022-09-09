@@ -1,0 +1,53 @@
+! Impact-T input file
+! Adapted from official 'Sample2'
+!Npcol Nprow
+1 1
+
+!Dt Ntstep Nbunch
+2e-12 20000 1
+
+!Dim Np Flagmap Flagerr Flagdiag Flagimg Zimage
+6 16000 1 0 2 1 0.02
+
+!Nx Ny Nz Flagbc Xrad Yrad Perdlen
+32 32 32 1 0.015 0.015 10.01
+
+!Flagdist Rstartflg Flagsbstp Nemission Temission
+112 0 0 100 1.1e-11
+
+!sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
+0.0012 0.0 0.0 1.0 1.0 0.0 0.0
+
+!sigy(m) sigpy muxpy yscale pyscale ymu1(m) ymu2
+0.0012 0.0 0.0 1.0 1.0 0.0 0.0
+
+!sigz(m) sigpz muxpz zscale pzscale zmu1(m) zmu2
+5.934e-06 0.0 0.0 1e-09 1.0 0.0 0.001978
+
+!Bcurr Bkenergy Bmass Bcharge Bfreq Tini
+2.856 1.0 511005.0 -1.0 2856000000.0 0.0
+0.125985 0 0 105 0.0 57.1946046422954 2856000000.0 115.0 1 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_1
+!solnoid
+1.0 0 0 105 0.0 0.0 2856000000.0 34.86 2 0.15 0.0 0.0 0.0 0.0 0.0 0.0001 /!name:solrf_2
+!The following 4 lines define a 3-cell s-band traveling wave structure
+!using the supperposition of two standing wave strutures.
+!G. A. Loew et al., SLAC-PUB-2295, 1979.
+!Here, the phase of line 2 is the phase of line 1 + 30 degrees;
+!the phase of line 3 is the phase of line 1 + 90 degrees.
+!the phase of line 4 is the same as the line 1;
+!the field scale of line 2 is the scale of the line 1/sin(beta d) 
+!the field scale of line 3 is the scale of the line 1/sin(beta d) 
+!the scale of line 4 is the same as the line 1;
+!See the sample03 to see the generating those rfdata4-7 input files.
+0.052464 0 0 105 1.42     25500000.0       2856000000.0 119.0 4 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_entrance
+2.937928 0 0 105 1.472464 29430178.7820912 2856000000.0 149.0 5 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_body_1
+2.937928 0 0 105 1.472464 29430178.7820912 2856000000.0 209.0 6 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_body_2
+0.05246 0 0 105  4.410392 25500000.0       2856000000.0 119.0 7 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_exit
+0.537148 0 0 0 4.462852 0.15 /!name:drift_1
+! 
+! frf = 2856000000.0
+! c = 299792458.
+! pi = np.pi
+! k = 2*pi*frf/c
+! d = 3.5e-2 # periodic length
+! np.sin(k*d) = 0.86571945106805 roughly equals 25905612.0/29913224.7 as above
