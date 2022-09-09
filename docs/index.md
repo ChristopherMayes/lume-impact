@@ -25,7 +25,7 @@ I.plot()
 ```
 
 
-![Summary LUME-Impact plot](docs/assets/plot.png)
+![Summary LUME-Impact plot](assets/plot.png)
 
 
 ```python
@@ -37,7 +37,7 @@ I.particles['final_particles'].plot('z', 'pz')
 
 ```
 
-![openPMD-beamphysics z-pz phase space plot](docs/assets/zpz.png)
+![openPMD-beamphysics z-pz phase space plot](assets/zpz.png)
 
 Current release info
 ====================
@@ -90,6 +90,5 @@ After these steps, the IMPACT-T executable `ImpactTexe` or `ImpactTexe-mpi`, res
 
 
 Visit [https://github.com/impact-lbl/IMPACT-T](https://github.com/impact-lbl/IMPACT-T) for these and further instructions, including those to build from source.
-
 
 
