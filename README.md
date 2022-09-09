@@ -1,6 +1,13 @@
 # LUME-Impact
 Tools for using Impact-T and Impact-Z in LUME.
 
+
+**`Documentation`** |
+------------------- |
+[![Documentation](https://img.shields.io/badge/impact-documentation-blue.svg)](https://christophermayes.github.io/lume-impact/)  |
+
+
+
 Basic usage:
 ```python
 from impact import Impact
