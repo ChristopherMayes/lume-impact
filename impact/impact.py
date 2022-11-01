@@ -6,7 +6,7 @@ from .control import ControlGroup
 from .fieldmaps import lattice_field
 from .plot import plot_stat, plot_layout, plot_stats_with_layout
 from .particles import identify_species, track_to_s, track1_to_s
-
+from .fast_autophase import fast_autophase_impact
 
 
 from pmd_beamphysics import ParticleGroup
@@ -99,7 +99,7 @@ class Impact(CommandWrapper):
         if name in self.group:
             self.vprint(f'Warning: group {name} already exists, overwriting.')
 
-        g = ControlGroup(**kwargs)
+        g = ControlGroup(**kwargs, name=name)
         g.link(self.ele)
         self.group[name] = g
 
@@ -650,9 +650,60 @@ class Impact(CommandWrapper):
             return 0
         else:
             return H['Bcurr']/H['Bfreq']/Np
+        
+        
+        
 
-    #-------
+    # Phasing
+    #--------
+    def autophase(self,
+                 settings=None,
+                 full_output=False):
+        """
+        Calculate the relative phases of each rf element
+        by tracking a single particle.
+        This uses a fast method that operates outside of Impact
+        
+        Parameters
+        ----------
+        settings: dict, optional=None
+            dict of ele_name:rel_phase_deg 
+            
+        full_output: bool, optional = False
+            type of output to return (see Returns)   
+            
+            
+        Returns
+        -------
+        if full_output = True retuns a dict of:
+                ele_name:info_dict
+
+        Otherwise returns a dict of:
+            ele_name:rel_phase_deg 
+        which is the same format as settings.
+
+
+        """
+        
+        if self.initial_particles:
+            t0 = self.initial_particles['mean_t']
+            pz0 = self.initial_particles['mean_pz']
+        else:
+            t0=0
+            pz0=0
+        
+        
+        return fast_autophase_impact(self,
+                              settings=settings,
+                              t0=t0,
+                              pz0=pz0,
+                              full_output=full_output,
+                              verbose=self.verbose)
+    
+    
+    
     # Tracking
+    #---------
 
     def track(self, particles, s=None):
         """
@@ -713,7 +764,7 @@ class Impact(CommandWrapper):
             include_markers=True,
             include_particles=True,
             include_field=True,
-            field_t=0,
+            field_t=None,
             include_legend=True,
             return_figure=False,
             tex=True,
