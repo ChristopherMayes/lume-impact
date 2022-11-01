@@ -392,13 +392,18 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
     
 def add_fieldmaps_to_axes(impact_object, *, 
                           ax=None, bounds=None,
-                          t=0,
+                          t=None,
                           n_pts = 1000,
                           xfactor = 1,
                           add_legend=False,
                          ):
     """
     Adds fieldmaps to an axes.
+    
+    
+    t: float or None
+        time to plot the field.
+        If None and impact_object has output, the field at the bunch center will be plotted.
     
     """
     
@@ -409,10 +414,19 @@ def add_fieldmaps_to_axes(impact_object, *,
         zmin, zmax = bounds
     ax.set_xlim(zmin, zmax)    
         
-        
-        
-    zlist = np.linspace(zmin, zmax, n_pts)
+    # Guard for t=None but no output
+    if t is None and not impact_object.output: 
+        t=0 # No output, just plot t=0
+    
+    if t is None:
+        # Must be output
+        zlist = impact_object.stat('mean_z')
+        tlist = impact_object.stat('t')
+    else:
+        tlist = np.full(n_pts, t)
+        zlist = np.linspace(zmin, zmax, n_pts)
 
+        
     # pre-filter
     eles = [ele for ele in impact_object.lattice if ele['type'] in FIELD_CALC_ELE_TYPES]
     
@@ -428,7 +442,8 @@ def add_fieldmaps_to_axes(impact_object, *,
             lattice_field(eles, z=z, x=0, y=0, t=t,
                           component=component,
                           fmaps=impact_object.fieldmaps
-        ) for z in zlist ])
+        ) for z, t in zip(zlist, tlist) ])
+
 
         y, factor, prefix = nice_array(fz)
         
