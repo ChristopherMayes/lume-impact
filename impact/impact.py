@@ -49,7 +49,10 @@ class Impact(CommandWrapper):
     command_env='IMPACTT_BIN'
     command_mpi_env='IMPACTT_MPI_BIN'
 
-    def __init__(self, *args, group=None, **kwargs):
+    def __init__(self, *args,
+                 group=None,
+                 always_autophase=False,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         # Save init
         self.original_input_file = self.input_file
@@ -62,6 +65,11 @@ class Impact(CommandWrapper):
 
         # Convenience lookup of elements in lattice by name
         self.ele = {}
+        
+        # Autophase settings to be applied.
+        # This will be cleared when actually autophasing
+        self._autophase_settings = {}
+        self.always_autophase = always_autophase
 
         # Call configure
         if self.input_file:
@@ -334,10 +342,15 @@ class Impact(CommandWrapper):
         Runs Impact-T
 
         """
-
+        
         # Clear output
         self.output = {}
-
+        
+        # Autophase
+        autophase_settings = self.autophase_bookkeeper()        
+        if autophase_settings:
+            self.output['autophase_info'] = autophase_settings
+        
         run_info = self.output['run_info'] = {'error':False}
 
         # Run script, gets executables
@@ -656,6 +669,34 @@ class Impact(CommandWrapper):
 
     # Phasing
     #--------
+    def autophase_bookkeeper(self):
+        """
+        Searches for `'autophase_deg'` attribute in all eles.
+        If one is found, autophase is called. 
+        
+        If .always_autophase == True, calls autophase is called.
+        
+        Returns
+        -------
+        settings: dict
+            Autophase settings found
+        """
+        if self._autophase_settings or self.always_autophase:
+            if self.verbose:
+                print('Autophase bookkeeper found settings, applying them')
+            
+            # Actual found settings
+            settings = self.autophase(settings=self._autophase_settings)
+            
+            # Clear
+            self._autophase_settings = {}
+            
+        else:
+            settings = {}
+                         
+        return settings
+    
+    
     def autophase(self,
                  settings=None,
                  full_output=False):
@@ -699,6 +740,8 @@ class Impact(CommandWrapper):
                               pz0=pz0,
                               full_output=full_output,
                               verbose=self.verbose)
+    
+    
     
     
     
@@ -907,6 +950,8 @@ class Impact(CommandWrapper):
         # Try header or lattice
         if name == 'header':
             self.header[attrib] = item
+        elif attrib == 'autophase_deg':
+            self._autophase_settings[name] = item
         elif name in self.ele:
             self.ele[name][attrib] = item
         elif name in self.group:
