@@ -103,8 +103,10 @@ def fast_autophase_ele(
     freq = ele["rf_frequency"]
 
     if freq == 0:
-        period = 0  # DC field
+        dc_field = True
+        period = 1e9  # DC field
     else:
+        dc_field = False
         period = 1 / freq
 
     if dz_field is None:
@@ -148,7 +150,7 @@ def fast_autophase_ele(
         zf, pzf, tf = track_field_1df(
             Ez_f,
             zstop=L,
-            tmax=100 * nz / freq,
+            tmax=100 * nz * period,
             pz0=pz0,
             t0=t0,
             q0=q0,
@@ -162,10 +164,10 @@ def fast_autophase_ele(
         return phase_f
 
     # Accelerating phase
-    if period == 0:
-        # DC field
+    if dc_field:
         acc_phase_deg = 0
     else:
+        dc_field = False
         if phase_range is None:
             ptry = np.linspace(-180, 180, 8)[:-1]
             etry = np.array([phase_f(p)[1] for p in ptry])
@@ -181,8 +183,9 @@ def fast_autophase_ele(
     if rel_phase_deg is not None:
         final_phase_deg = rel_phase_deg + acc_phase_deg
     else:
-        # This will restore the saved phas
+        # This will restore the saved phase
         final_phase_deg = save_phase_deg
+        
     z1, pz1, dt = phase_f(final_phase_deg)
 
     #
@@ -192,6 +195,9 @@ def fast_autophase_ele(
 
     # Form output dict
     output = {}
+    if dc_field:
+        found_rel_phase_deg = 0
+        
     output["oncrest_phase_deg"] = acc_phase_deg % 360
     output["rel_phase_deg"] = found_rel_phase_deg
     output["dpz"] = pz1 - pz0
@@ -309,6 +315,7 @@ def fast_autophase_impact(
 
         rel_phase_deg = None  # does not set
         if settings:
+            print(f'------------ {name}')
             if name in settings:
                 rel_phase_deg = settings[name]
                 print(f"Setting {name} relative phase = {rel_phase_deg} deg")
@@ -335,8 +342,11 @@ def fast_autophase_impact(
         d = output[name] = {}
         d.update(out)
 
+    settings = {name: info["rel_phase_deg"] for name, info in output.items()}
+    
     if full_output:
         output["final_particle"] = particle
+        output["settings"] = settings
         return output
     else:
-        return {name: info["rel_phase_deg"] for name, info in output.items()}
+        return settings
