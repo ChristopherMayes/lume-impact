@@ -341,14 +341,28 @@ def plot_stats_with_layout(impact_object, ykeys=['sigma_x', 'sigma_y'], ykeys2=[
         
         # Set limits, considering the scaling. 
         if ix==0 and ylim:
-            new_ylim = np.array(ylim)/factor
+            ymin = ylim[0]
+            ymax = ylim[1]
+            # Handle None and scaling
+            if ymin is not None:
+                ymin = ymin/factor
+            if ymax is not None:
+                ymax = ymax/factor
+            new_ylim = (ymin, ymax)
             ax.set_ylim(new_ylim)
         # Set limits, considering the scaling. 
         if ix==1 and ylim2:
             pass
         # TODO
             if ylim2:
-                new_ylim2 = np.array(ylim2)/factor
+                ymin2 = ylim2[0]
+                ymax2 = ylim2[1]
+                # Handle None and scaling
+                if ymin2 is not None:
+                    ymin2 = ymin2/factor
+                if ymax2 is not None:
+                    ymax2 = ymax2/factor
+                new_ylim2 = (ymin2, ymax2)                 
                 ax_twinx.set_ylim(new_ylim2)            
             else:
                 pass
