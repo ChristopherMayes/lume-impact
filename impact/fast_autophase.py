@@ -315,7 +315,7 @@ def fast_autophase_impact(
 
         rel_phase_deg = None  # does not set
         if settings:
-            print(f'------------ {name}')
+            #print(f'------------ {name}')
             if name in settings:
                 rel_phase_deg = settings[name]
                 print(f"Setting {name} relative phase = {rel_phase_deg} deg")
