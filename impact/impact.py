@@ -6,7 +6,7 @@ from .control import ControlGroup
 from .fieldmaps import lattice_field
 from .plot import plot_stat, plot_layout, plot_stats_with_layout
 from .particles import identify_species, track_to_s, track1_to_s
-
+from .fast_autophase import fast_autophase_impact
 
 
 from pmd_beamphysics import ParticleGroup
@@ -49,7 +49,10 @@ class Impact(CommandWrapper):
     command_env='IMPACTT_BIN'
     command_mpi_env='IMPACTT_MPI_BIN'
 
-    def __init__(self, *args, group=None, **kwargs):
+    def __init__(self, *args,
+                 group=None,
+                 always_autophase=False,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         # Save init
         self.original_input_file = self.input_file
@@ -62,6 +65,11 @@ class Impact(CommandWrapper):
 
         # Convenience lookup of elements in lattice by name
         self.ele = {}
+        
+        # Autophase settings to be applied.
+        # This will be cleared when actually autophasing
+        self._autophase_settings = {}
+        self.always_autophase = always_autophase
 
         # Call configure
         if self.input_file:
@@ -99,7 +107,7 @@ class Impact(CommandWrapper):
         if name in self.group:
             self.vprint(f'Warning: group {name} already exists, overwriting.')
 
-        g = ControlGroup(**kwargs)
+        g = ControlGroup(**kwargs, name=name)
         g.link(self.ele)
         self.group[name] = g
 
@@ -334,10 +342,15 @@ class Impact(CommandWrapper):
         Runs Impact-T
 
         """
-
+        
         # Clear output
         self.output = {}
-
+        
+        # Autophase
+        autophase_settings = self.autophase_bookkeeper()        
+        if autophase_settings:
+            self.output['autophase_info'] = autophase_settings
+        
         run_info = self.output['run_info'] = {'error':False}
 
         # Run script, gets executables
@@ -650,9 +663,90 @@ class Impact(CommandWrapper):
             return 0
         else:
             return H['Bcurr']/H['Bfreq']/Np
+        
+        
+        
 
-    #-------
+    # Phasing
+    #--------
+    def autophase_bookkeeper(self):
+        """
+        Searches for `'autophase_deg'` attribute in all eles.
+        If one is found, autophase is called. 
+        
+        If .always_autophase == True, calls autophase is called.
+        
+        Returns
+        -------
+        settings: dict
+            Autophase settings found
+        """
+        if self._autophase_settings or self.always_autophase:
+            if self.verbose:
+                print('Autophase bookkeeper found settings, applying them')
+            
+            # Actual found settings
+            settings = self.autophase(settings=self._autophase_settings)
+            
+            # Clear
+            self._autophase_settings = {}
+            
+        else:
+            settings = {}
+                         
+        return settings
+    
+    
+    def autophase(self,
+                 settings=None,
+                 full_output=False):
+        """
+        Calculate the relative phases of each rf element
+        by tracking a single particle.
+        This uses a fast method that operates outside of Impact
+        
+        Parameters
+        ----------
+        settings: dict, optional=None
+            dict of ele_name:rel_phase_deg 
+            
+        full_output: bool, optional = False
+            type of output to return (see Returns)   
+            
+            
+        Returns
+        -------
+        if full_output = True retuns a dict of:
+                ele_name:info_dict
+
+        Otherwise returns a dict of:
+            ele_name:rel_phase_deg 
+        which is the same format as settings.
+
+
+        """
+        
+        if self.initial_particles:
+            t0 = self.initial_particles['mean_t']
+            pz0 = self.initial_particles['mean_pz']
+        else:
+            t0=0
+            pz0=0
+        
+        
+        return fast_autophase_impact(self,
+                              settings=settings,
+                              t0=t0,
+                              pz0=pz0,
+                              full_output=full_output,
+                              verbose=self.verbose)
+    
+    
+    
+    
+    
     # Tracking
+    #---------
 
     def track(self, particles, s=None):
         """
@@ -713,7 +807,7 @@ class Impact(CommandWrapper):
             include_markers=True,
             include_particles=True,
             include_field=True,
-            field_t=0,
+            field_t=None,
             include_legend=True,
             return_figure=False,
             tex=True,
@@ -856,6 +950,8 @@ class Impact(CommandWrapper):
         # Try header or lattice
         if name == 'header':
             self.header[attrib] = item
+        elif attrib == 'autophase_deg':
+            self._autophase_settings[name] = item
         elif name in self.ele:
             self.ele[name][attrib] = item
         elif name in self.group:

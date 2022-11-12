@@ -335,8 +335,13 @@ def write_output_h5(h5, impact_output, name='output', units=None):
                     unit = units[key]
                 else:
                     unit = None
-                write_dataset_and_unit_h5(g2, key, data, unit)       
-       
+                write_dataset_and_unit_h5(g2, key, data, unit)
+                
+    if 'autophase_info' in impact_output:             
+        g2 = g.create_group('autophase_info')
+        for k, v in impact_output['autophase_info'].items():
+            g2.attrs[k] = v
+    
     # TODO: This could be simplified
     if 'slice_info' in impact_output:
         name2 = 'slice_info'
@@ -374,8 +379,10 @@ def read_output_h5(h5, expected_units=None, verbose=False):
     o = {}
     o['run_info'] = dict(h5.attrs)
     
-    units = {}
+    if 'autophase_info' in h5:
+        o['autophase_info'] = dict(h5['autophase_info'])
     
+    units = {}
     for stats_label in ['stats', 'dipole_stats']:
         if stats_label in h5:
             name2 = stats_label

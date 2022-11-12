@@ -2,6 +2,7 @@ import numpy as np
 from numpy import cos, pi
 import os
 from impact.tools import safe_loadtxt
+from impact.control import ControlGroup
 from subprocess import Popen, PIPE
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import warnings
@@ -506,8 +507,10 @@ def ele_field(ele, *,
     
     Parameters
     ----------
-    ele: dict
-        LUME-Impact element dict.
+    ele: dict or ControlGroup
+        LUME-Impact element dict or ControlGroup
+        If a ControlGroup, the field will be the sum of
+        the field in eles in ControlGroup.eles
     
     x: float
         x-position in meters
@@ -545,8 +548,21 @@ def ele_field(ele, *,
     if component not in ('Bz', 'Ez'):
         raise NotImplementedError
 
+    # Allow ControlGroup
+    if isinstance(ele, ControlGroup):
+
+        return sum([
+            ele_field(ele1,
+              x=x,
+              y=y,
+              z=z,
+              t=t,
+              component=component,
+              fmaps=fmaps) for ele1 in ele.eles])
+        
+    # regular ele    
     ele_type = ele['type']
-    
+        
     if ele_type not in FIELD_CALC_ELE_TYPES:
         return 0
     

@@ -44,11 +44,14 @@ class ControlGroup:
                  factors = None,
                  reference_values = None,
                  value=0,
-                 absolute=False # 
+                 absolute=False,
+                 name = None,
                 ):
         
         self.ele_names = ele_names # Link these. 
         self.var_name = var_name
+        
+
         
         self.attributes = attributes
         self.factors = factors
@@ -67,12 +70,20 @@ class ControlGroup:
         
         if not self.factors:
             self.factors = n_ele * [1.0]
+        else:
+            # cast
+            self.factors = list(map(float, self.factors)) 
         assert len(self.factors) == n_ele, 'factors should be a list with the same length as ele_names'
             
-        self.value = value
+        self.value = float(value)
         
         # These need to be linked by the .link function
         self.ele_dict=None
+        
+        # Invent a name
+        if name is None:
+            name =  "unnamed" # f"group_{self.eles[0]['name']}_{var_name}"
+        self.name = name        
 
     def link(self, ele_dict):
         """
@@ -130,8 +141,39 @@ class ControlGroup:
             self.set_delta(key, item)    
         
     def __getitem__(self, key):
-        assert key == self.var_name
-        return self.value
+        """
+        str access of attributes
+        
+        Additional str are:
+            type -> 'group'
+            zedge -> 
+            zend
+            L
+        
+        """
+        if key == self.var_name:
+            value = self.value
+        elif key == 'name':
+            value = self.name
+        elif key == 'type':
+            value = 'group'
+        elif key == 'zedge':
+            value = min([ele['zedge'] for ele in self.eles])
+        elif key == 'zend':
+            value = max([ele['zedge'] + ele['L'] for ele in self.eles])            
+        elif key == 'L':
+            value = self['zend'] + self['zedge']
+        elif key == 'rf_frequency':
+            freqs = [ele['rf_frequency'] for ele in self.eles]
+            n = len(set(freqs))
+            if n != 1:
+                raise ValueError(f'Multiple frequencies unallowed: {freqs}')
+            return freqs[0]
+            
+        else:
+            raise ValueError(f'Unknown key: {key}')
+            
+        return value
     
     def __str__(self):
         
@@ -167,3 +209,5 @@ class ControlGroup:
         s = f'{self.__class__.__name__}(**{s0})'
         
         return s 
+
+    

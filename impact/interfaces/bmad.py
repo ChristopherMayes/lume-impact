@@ -1,4 +1,5 @@
 from pmd_beamphysics import FieldMesh
+from pmd_beamphysics.fields.analysis import accelerating_voltage_and_phase
 import numpy as np
 
 def ele_info(tao, ele_name):
@@ -127,7 +128,9 @@ def tao_create_impact_solrf_ele(tao,
         zmirror = False
         
     L_fm = field_mesh.dz * (field_mesh.shape[2]-1)
-
+    z0 = field_mesh.coord_vec('z')
+    
+    
     # Find zedge
     eleAnchorPt = field_mesh.attrs['eleAnchorPt']
     if eleAnchorPt == 'beginning':
@@ -138,6 +141,10 @@ def tao_create_impact_solrf_ele(tao,
     else:
         raise NotImplementedError(f'{eleAnchorPt} not implemented')        
         
+        
+    outdat = {}
+    info = outdat['info'] = {}
+        
     # Phase and scale
     if ele_key == 'SOLENOID':
         assert  master_parameter is not None
@@ -147,14 +154,16 @@ def tao_create_impact_solrf_ele(tao,
         if not np.isclose(bfactor, 1):
             scale *= bfactor
         phi0_tot = 0
+        phi0_oncrest = 0
         
     elif ele_key in ('E_GUN', 'LCAVITY'):
         if master_parameter is None:
             scale = edat['FIELD_AUTOSCALE']
         else:
             scale = edat[master_parameter]
-            
-        efactor = np.abs(field_mesh.components['electricField/z'][0,0,:]).max()               
+        
+        Ez0 = field_mesh.components['electricField/z'][0,0,:]
+        efactor = np.abs(Ez0).max()               
         if not np.isclose(efactor, 1):
             scale *= efactor
         
@@ -165,16 +174,26 @@ def tao_create_impact_solrf_ele(tao,
         #phi0_fieldmap = field_mesh.attrs['RFphase'] / (2*np.pi) # Bmad doesn't use at this point
         phi0_fieldmap = grid_params['phi0_fieldmap'].value 
         
-        phi0_list = [edat['PHI0'], edat['PHI0_ERR'], edat['PHI0_AUTOSCALE'], phi0_fieldmap, -phi0_ref]
-        phi0_tot = sum(phi0_list) % 1 
         
+        phi0_user = sum([edat['PHI0'], edat['PHI0_ERR'] ])
+        phi0_oncrest = sum([edat['PHI0_AUTOSCALE'], phi0_fieldmap, -phi0_ref]) 
+        phi0_tot =  (phi0_oncrest + phi0_user) % 1
         theta0_deg = phi0_tot * 360  
+        
+        # Useful info for scaling
+        acc_v0, acc_phase0 = accelerating_voltage_and_phase(z0, Ez0/np.abs(Ez0).max(), field_mesh.frequency)
+        print(f"v=c acceleating voltage per max field {acc_v0} (V/(V/m))")
+        
+        # Add phasing info
+        info['v=c acceleating voltage per max field'] = acc_v0
+        info['phi0_oncrest'] = phi0_oncrest % 1
+            
 
     else:
         raise NotImplementedError
     
-    # Finally call the fieldmesh method
-    return field_mesh.to_impact_solrf(
+    # Call the fieldmesh method
+    dat = field_mesh.to_impact_solrf(
                                     zedge=zedge,
                                    name=ele_name,
                                    scale=scale,
@@ -188,8 +207,11 @@ def tao_create_impact_solrf_ele(tao,
                                    zmirror=zmirror,
                                    file_id=file_id,
                                 output_path=output_path)
+    # Add this to output
+    outdat.update(dat)
+    
 
-
+    return outdat
 
 
 def tao_create_impact_quadrupole_ele(tao, ele_name):
