@@ -27,7 +27,7 @@ def run_impact_with_distgen(settings=None,
         I = Impact(**impact_config)
 
     if workdir:
-        I.workdir = workdir
+        I._workdir = workdir
         I.configure() # again
         
     I.verbose=verbose
