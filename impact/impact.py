@@ -816,8 +816,6 @@ class Impact(CommandWrapper):
 
 
         """
-
-
         # Just plot fieldmaps if there are no stats
         if 'stats' not in self.output:
             return plot_layout(self, xlim=xlim,
