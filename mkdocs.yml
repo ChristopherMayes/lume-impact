@@ -16,6 +16,7 @@ nav:
             - examples/solrf_fieldmaps.ipynb
         - Utilities:
             - examples/autophase_example.ipynb
+            - examples/bmad_interface.ipynb
             - examples/movie_example.ipynb
             - examples/input_parsing_example.ipynb
             - examples/output_parsing_example.ipynb

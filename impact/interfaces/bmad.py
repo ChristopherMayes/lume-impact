@@ -1,10 +1,47 @@
 from pmd_beamphysics import FieldMesh
 from pmd_beamphysics.fields.analysis import accelerating_voltage_and_phase
 import numpy as np
+from copy import deepcopy
+from collections import Counter
 
-def ele_info(tao, ele_name):
-    edat = tao.ele_head(ele_name)
-    edat.update(tao.ele_gen_attribs(ele_name))
+def tao_unique_names(tao):
+    """
+    Invent a unique name
+
+    Parameters
+    ----------
+    tao: Pytao.Tao instance
+
+    Returns
+    -------
+    dict of int:str
+        Mapping of ix_ele to a unique name
+    """
+    # Get all ixs
+    ixs = set(tao.lat_list('*', 'ele.ix_ele'))
+    ixs.update(set(tao.lat_list('*', 'ele.ix_ele', flags='-array_out -no_slaves')))
+    ixs = list(sorted(ixs))
+    
+    names = [tao.ele_head(ix)['name'] for ix in ixs]
+    
+    count = Counter(names)
+    unique_name = {}
+    found = {name:0 for name in names}
+    for ix, name in zip(ixs, names):
+        if count[name] > 1:
+            new_count = found[name]+1
+            found[name] = new_count
+            unique_name[ix] =  (f'{name}_{new_count}')
+        else:
+            unique_name[ix] = name
+    return unique_name
+
+def ele_info(tao, ele_id):
+    """
+    Returns a dict of element attributes from ele_head and ele_gen_attribs
+    """
+    edat = tao.ele_head(ele_id)
+    edat.update(tao.ele_gen_attribs(ele_id))
     s = edat['s']
     L = edat['L']
     edat['s_begin'] = s-L
@@ -13,7 +50,7 @@ def ele_info(tao, ele_name):
     return edat
 
 def tao_create_impact_solrf_ele(tao,
-                            ele_name,
+                            ele_id,
                             *, 
                             style='fourier',
                             n_coef=30,
@@ -21,7 +58,8 @@ def tao_create_impact_solrf_ele(tao,
                             spline_k = 5,
                             file_id=666, 
                             output_path=None,
-                            cache=None
+                            cache=None,
+                            name=None
                                ):
     """
     Create an Impact-T solrf element from a running PyTao Tao instance.
@@ -31,13 +69,14 @@ def tao_create_impact_solrf_ele(tao,
     
     tao: Tao object
     
-    ele_name: str
+    ele_id: str:
+        element name or index
     
     style: str, default: 'fourier'
     
     zmirror: bool, default: None
         Mirror the field about z=0. This is necessary for non-periodic field such as electron guns.
-        If None, will autmatically try to detect whether this is necessary.
+        If None, will auotmatically try to detect whether this is necessary.
         
     spline_s: float, default: 0
     
@@ -97,10 +136,13 @@ def tao_create_impact_solrf_ele(tao,
     
     
     # Ele info from Tao
-    edat = ele_info(tao, ele_name)
+    edat = ele_info(tao, ele_id)
+    ix_ele =  edat['ix_ele']
+    if name is None:
+        name =  edat['name']
     
     # FieldMesh
-    grid_params = tao.ele_grid_field(ele_name, 1, 'base', as_dict=False)
+    grid_params = tao.ele_grid_field(ix_ele, 1, 'base', as_dict=False)
     field_file = grid_params['file'].value   
     if cache is not None:
         if field_file in cache:
@@ -137,7 +179,7 @@ def tao_create_impact_solrf_ele(tao,
         zedge = edat['s_begin']
     elif eleAnchorPt == 'center':
         # Use full fieldmap!!!
-        zedge = edat['s_center'] - L_fm/2
+        zedge = edat['s_center'] + z0[0] # Wrong: -L_fm/2
     else:
         raise NotImplementedError(f'{eleAnchorPt} not implemented')        
         
@@ -168,13 +210,13 @@ def tao_create_impact_solrf_ele(tao,
             scale *= efactor
         
         # Get ref_time_start
-        ref_time_start = tao.ele_param(ele_name, 'ele.ref_time_start')['ele_ref_time_start']
+        ref_time_start = tao.ele_param(ele_id, 'ele.ref_time_start')['ele_ref_time_start']
         phi0_ref = freq*ref_time_start
         
         #phi0_fieldmap = field_mesh.attrs['RFphase'] / (2*np.pi) # Bmad doesn't use at this point
         phi0_fieldmap = grid_params['phi0_fieldmap'].value 
         
-        
+        # Phase based on absolute time tracking
         phi0_user = sum([edat['PHI0'], edat['PHI0_ERR'] ])
         phi0_oncrest = sum([edat['PHI0_AUTOSCALE'], phi0_fieldmap, -phi0_ref]) 
         phi0_tot =  (phi0_oncrest + phi0_user) % 1
@@ -182,10 +224,10 @@ def tao_create_impact_solrf_ele(tao,
         
         # Useful info for scaling
         acc_v0, acc_phase0 = accelerating_voltage_and_phase(z0, Ez0/np.abs(Ez0).max(), field_mesh.frequency)
-        print(f"v=c acceleating voltage per max field {acc_v0} (V/(V/m))")
+        #print(f"v=c accelerating voltage per max field {acc_v0} (V/(V/m))")
         
         # Add phasing info
-        info['v=c acceleating voltage per max field'] = acc_v0
+        info['v=c accelerating voltage per max field'] = acc_v0
         info['phi0_oncrest'] = phi0_oncrest % 1
             
 
@@ -195,7 +237,7 @@ def tao_create_impact_solrf_ele(tao,
     # Call the fieldmesh method
     dat = field_mesh.to_impact_solrf(
                                     zedge=zedge,
-                                   name=ele_name,
+                                   name=name,
                                    scale=scale,
                                    phase=phi0_tot*(2*np.pi),
                                    style=style,
@@ -214,7 +256,10 @@ def tao_create_impact_solrf_ele(tao,
     return outdat
 
 
-def tao_create_impact_quadrupole_ele(tao, ele_name):
+def tao_create_impact_quadrupole_ele(tao, ele_id,
+                                     *,
+                                     default_radius=0.01,
+                                    name=None):
     """
     Create an Impact-T quadrupole element from a running PyTao Tao instance.
     
@@ -223,7 +268,7 @@ def tao_create_impact_quadrupole_ele(tao, ele_name):
     
     tao: Tao object
     
-    ele_name: str    
+    ele_id: str    
     
     Returns
     -------
@@ -236,10 +281,15 @@ def tao_create_impact_quadrupole_ele(tao, ele_name):
         
     """
     
-    edat = ele_info(tao, ele_name)
+    edat = ele_info(tao, ele_id)
+    if name is None:
+        name = edat['name']
+        
     L_eff = edat['L']
     L = 2*L_eff # Account for some fringe
     radius = edat['X1_LIMIT']
+    if radius == 0:
+        radius = default_radius
     assert radius > 0
     
     zedge = edat['s_center'] - L/2
@@ -261,7 +311,7 @@ def tao_create_impact_quadrupole_ele(tao, ele_name):
       'y_rotation': 0.0,
       'z_rotation': tilt,
      's': edat['s'],
-     'name': ele_name}
+     'name': name}
     
     line = f"{L} 0 0 1 {zedge} {L_eff} {radius} {x_offset} {y_offset} 0 0 0 "
     
@@ -270,5 +320,141 @@ def tao_create_impact_quadrupole_ele(tao, ele_name):
          'line': line
             }
 
+
+
+def tao_create_impact_lattice_and_fieldmaps(tao,
+                                            solrf_eles='E_GUN::*,SOLENOID::*,LCAVITY::*', 
+                                            quadrupole_eles = 'quad::*',
+                                            fieldmap_style='fourier'):
+    """
+    Create an Impact-T style lattice and fieldmaps from a running PyTao Tao instance.
+    
+    Elements must have associated fieldmaps.
+
+    Parameters
+    ----------
+    tao: Tao object
+    
+    solrf_eles: str, default = 'E_GUN::*,SOLENOID::*,LCAVITY::*'
+        Matching string for element names to be converted to Impact-T solrf elements.
+
+    quadrupole_eles: str, default = 'quad::*'        
+         Matching string for element names to be converted to Impact-T quadrupole elements.
+         
+    fieldmap_style: str, default = 'fourier'
+        Style of fieldmap to create. One of: ('fourier', 'derivatives').
+
+    Returns
+    -------
+    lattice: list of dict
+        List of element dicts that form the lattice
+    fieldmaps: dict of 
+
+    """
+
+    # Error checking
+    if fieldmap_style not in ('fourier', 'derivatives'):
+        raise ValueError(f"fieldmap_style '{fieldmap_style}' not allowed, must be one of: ('fourier', 'derivatives')")
+
+    # Get unique name dict
+    unique_name = tao_unique_names(tao)
+    
+    # Extract elements to use
+    ele_ixs = tao.lat_list(solrf_eles, 'ele.ix_ele', flags='-array_out -no_slaves')
+    # Make a dict of field_file:file_id
+    field_files = {ele_ix:tao.ele_grid_field(ele_ix, 1, 'base', as_dict=False)['file'].value for ele_ix in ele_ixs}
+    # Make file_id lookup table
+    file_id_lookup = {}
+    for ix, ix_ele in enumerate(set(field_files.values())):
+        file_id_lookup[ix_ele] = ix + 1 # Start at 1
+    
+    # Form lattice and fieldmaps
+    lattice = []
+    cache = {}
+    fieldmaps = {}
+    for ix_ele in ele_ixs:
+        file_id = file_id_lookup[field_files[ix_ele]]
+        #name = unique_name[ix_ele]
+        res = tao_create_impact_solrf_ele(tao,
+            ele_id=ix_ele,
+            style = fieldmap_style,
+            file_id=file_id,
+            cache=cache,
+            name=None) # Assume unique. TODO: better logic.
+        ele = res['ele']
+        lattice.append(ele)
+        fieldmaps[ele['filename']] = res['fmap']
+
+    # Quadrupoles
+    quad_ix_eles = tao.lat_list(quadrupole_eles, 'ele.ix_ele', flags='-array_out -no_slaves')
+    for ix_ele in quad_ix_eles:
+        name = unique_name[ix_ele]
+        ele = tao_create_impact_quadrupole_ele(tao, ix_ele, name=name)['ele']
+        lattice.append(ele)
+        
+    # must sort!
+    lattice = sorted(lattice, key=lambda d: d['zedge']) 
+        
+    return lattice, fieldmaps
+
+def impact_from_tao(tao, fieldmap_style='fourier', cls=None):
+    """
+    Create a complete Impact object from a running Pytao Tao instance.
+
+    Parameters
+    ----------
+    tao: Tao object
+
+    fieldmap_style: str, default = 'fourier'
+        Style of fieldmap to create. One of: ('fourier', 'derivatives').
+
+    Returns
+    -------
+    impact_object: Impact
+        Converted Impact object
+    """
+
+    lattice, fieldmaps = tao_create_impact_lattice_and_fieldmaps(tao, fieldmap_style=fieldmap_style)
+    
+    # Create blank object
+    if cls is None:
+        from impact import Impact as cls
+    I = cls()
+    I.input['fieldmaps'].update(fieldmaps)
+
+    # Remove default eles
+    drift_ele = I.lattice.pop(1) 
+    stop_ele = I.lattice.pop(-1)
+    lattice = I.lattice + deepcopy(lattice) + [stop_ele]
+
+    I.ele['stop_1']['s'] =  tao.lat_list('*', 'ele.s').max()
+    I.header['Bcurr'] = 0 # Turn off SC
+    I.header['Flagerr'] = 1 # Allow offsets
+
+    # Check for cathode start
+    if len(tao.lat_list('e_gun::*', 'ele.ix_ele')) > 0:
+        cathode_start = True  
+    else:
+        cathode_start = False
+
+    # Special settings for cathode start.
+    # TODO: pass these in more elegantly.
+    if cathode_start:
+        I.header['Dt'] = 5e-13
+        I.header['Flagimg'] = 1 # Cathode start
+        I.header['Zimage'] = 0.12 # Conservative image charge distance
+        I.header['Nemission'] = 900 # for cathode start
+        timestep_ele = {
+            'type': 'change_timestep',
+             'dt': 1e-12,
+             's': 0.5,
+             'name': 'change_timestep_1',
+            }
+        lattice = [timestep_ele] + lattice
+        
+    I.input['lattice'] = lattice
+    I.ele_bookkeeper()
+
+    return I
 
 
