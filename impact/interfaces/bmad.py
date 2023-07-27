@@ -365,7 +365,7 @@ def tao_create_impact_lattice_and_fieldmaps(tao,
     field_files = {ele_ix:tao.ele_grid_field(ele_ix, 1, 'base', as_dict=False)['file'].value for ele_ix in ele_ixs}
     # Make file_id lookup table
     file_id_lookup = {}
-    for ix, ix_ele in enumerate(set(field_files.values())):
+    for ix, ix_ele in enumerate(sorted(list(set(field_files.values())))):
         file_id_lookup[ix_ele] = ix + 1 # Start at 1
     
     # Form lattice and fieldmaps
