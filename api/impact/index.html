@@ -13,7 +13,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.15">
+      <meta name="generator" content="mkdocs-1.5.1, mkdocs-material-9.1.21">
     
     
       
@@ -21,7 +21,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.26e3688c.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.eebd395e.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ecc896b0.min.css">
@@ -545,6 +545,8 @@
         
           
         
+          
+        
       
       
         <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
@@ -567,6 +569,20 @@
     <li class="md-nav__item">
       <a href="../../examples/autophase_example/" class="md-nav__link">
         Autophase and Autophase and Scale examples
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/bmad_interface/" class="md-nav__link">
+        Bmad interface
       </a>
     </li>
   
@@ -1363,27 +1379,23 @@
 
 
 <h2 id="impact.Impact" class="doc doc-heading">
-        <code>impact.Impact</code>
+          <code>impact.Impact</code>
 
 
 </h2>
 
 
   <div class="doc doc-contents first">
-      <p class="doc doc-class-bases">
-        Bases: <code><span title="lume.base.CommandWrapper">CommandWrapper</span></code></p>
+          <p class="doc doc-class-bases">
+            Bases: <code><span title="lume.base.CommandWrapper">CommandWrapper</span></code></p>
 
   
       <p>Files will be written into a temporary directory within workdir.
 If workdir=None, a location will be determined by the system.</p>
 
-
-        <details class="quote">
-          <summary>Source code in <code>impact/impact.py</code></summary>
-          <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 37</span>
-<span class="normal"> 38</span>
-<span class="normal"> 39</span>
-<span class="normal"> 40</span>
+            <details class="quote">
+              <summary>Source code in <code>impact/impact.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 40</span>
 <span class="normal"> 41</span>
 <span class="normal"> 42</span>
 <span class="normal"> 43</span>
@@ -2323,7 +2335,17 @@ If workdir=None, a location will be determined by the system.</p>
 <span class="normal">977</span>
 <span class="normal">978</span>
 <span class="normal">979</span>
-<span class="normal">980</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Impact</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
+<span class="normal">980</span>
+<span class="normal">981</span>
+<span class="normal">982</span>
+<span class="normal">983</span>
+<span class="normal">984</span>
+<span class="normal">985</span>
+<span class="normal">986</span>
+<span class="normal">987</span>
+<span class="normal">988</span>
+<span class="normal">989</span>
+<span class="normal">990</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Impact</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Files will be written into a temporary directory within workdir.</span>
@@ -3022,7 +3044,6 @@ If workdir=None, a location will be determined by the system.</p>
             <span class="n">t0</span><span class="o">=</span><span class="mi">0</span>
             <span class="n">pz0</span><span class="o">=</span><span class="mi">0</span>
 
-
         <span class="k">return</span> <span class="n">fast_autophase_impact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                               <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">,</span>
                               <span class="n">t0</span><span class="o">=</span><span class="n">t0</span><span class="p">,</span>
@@ -3151,6 +3172,14 @@ If workdir=None, a location will be determined by the system.</p>
             <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">configured</span> <span class="o">=</span> <span class="kc">False</span>
 
+
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">impact_from_tao</span><span class="p">)</span> 
+    <span class="k">def</span> <span class="nf">from_tao</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tao</span><span class="p">,</span> <span class="n">fieldmap_style</span><span class="o">=</span><span class="s1">&#39;fourier&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">impact_from_tao</span><span class="p">(</span><span class="n">tao</span><span class="p">,</span> <span class="n">fieldmap_style</span><span class="o">=</span><span class="n">fieldmap_style</span><span class="p">)</span>
+
+
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience syntax to get a header or element attribute.</span>
@@ -3268,7 +3297,7 @@ If workdir=None, a location will be determined by the system.</p>
         <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;Impact with </span><span class="si">{</span><span class="n">np</span><span class="si">}</span><span class="s1"> particles, stopping at </span><span class="si">{</span><span class="n">z</span><span class="si">}</span><span class="s1"> m, at </span><span class="si">{</span><span class="n">memloc</span><span class="si">}</span><span class="s1">&gt;&#39;</span>
 </code></pre></div></td></tr></table></div>
-        </details>
+            </details>
 
   
 
@@ -3432,6 +3461,7 @@ If workdir=None, a location will be determined by the system.</p>
 
 
 
+
 <div class="doc doc-object doc-function">
 
 
@@ -3446,17 +3476,17 @@ If workdir=None, a location will be determined by the system.</p>
   
       <p>Adds an element to .lattice</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 95</span>
 <span class="normal"> 96</span>
 <span class="normal"> 97</span>
 <span class="normal"> 98</span>
 <span class="normal"> 99</span>
-<span class="normal">100</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">add_ele</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ele</span><span class="p">):</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">add_ele</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ele</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Adds an element to .lattice</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3466,10 +3496,11 @@ If workdir=None, a location will be determined by the system.</p>
     <span class="c1"># Add to the ele dict</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">ele</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ele</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3485,12 +3516,9 @@ If workdir=None, a location will be determined by the system.</p>
   
       <p>Add a control group. See control.py</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">105</span>
 <span class="normal">106</span>
 <span class="normal">107</span>
 <span class="normal">108</span>
@@ -3499,7 +3527,10 @@ If workdir=None, a location will be determined by the system.</p>
 <span class="normal">111</span>
 <span class="normal">112</span>
 <span class="normal">113</span>
-<span class="normal">114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">add_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">add_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Add a control group. See control.py</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3513,10 +3544,11 @@ If workdir=None, a location will be determined by the system.</p>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3533,12 +3565,9 @@ If workdir=None, a location will be determined by the system.</p>
       <p>Archive all data to an h5 handle or filename.</p>
 <p>If no file is given, a file based on the fingerprint will be created.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">542</span>
-<span class="normal">543</span>
-<span class="normal">544</span>
-<span class="normal">545</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">545</span>
 <span class="normal">546</span>
 <span class="normal">547</span>
 <span class="normal">548</span>
@@ -3569,7 +3598,10 @@ If workdir=None, a location will be determined by the system.</p>
 <span class="normal">573</span>
 <span class="normal">574</span>
 <span class="normal">575</span>
-<span class="normal">576</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Archive all data to an h5 handle or filename.</span>
 
@@ -3605,10 +3637,11 @@ If workdir=None, a location will be determined by the system.</p>
 
     <span class="k">return</span> <span class="n">h5</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3626,6 +3659,8 @@ If workdir=None, a location will be determined by the system.</p>
 by tracking a single particle.
 This uses a fast method that operates outside of Impact</p>
 
+
+
   <p><strong>Parameters:</strong></p>
   <table>
     <thead>
@@ -3641,7 +3676,11 @@ This uses a fast method that operates outside of Impact</p>
           <td><code>settings</code></td>
           <td>
           </td>
-          <td><p>dict of ele_name:rel_phase_deg</p></td>
+          <td>
+            <div class="doc-md-description">
+              <p>dict of ele_name:rel_phase_deg</p>
+            </div>
+          </td>
           <td>
                 <code>None</code>
           </td>
@@ -3650,27 +3689,37 @@ This uses a fast method that operates outside of Impact</p>
           <td><code>full_output</code></td>
           <td>
           </td>
-          <td><p>type of output to return (see Returns)</p></td>
+          <td>
+            <div class="doc-md-description">
+              <p>type of output to return (see Returns)</p>
+            </div>
+          </td>
           <td>
                 <code>False</code>
           </td>
         </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
         <tr>
-          <td><code>Returns</code></td>
           <td>
+                <code>if full_output = True retuns a dict of:</code>
           </td>
-          <td></td>
           <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr>
-          <td><code>if</code></td>
-          <td>
-          </td>
-          <td><p>ele_name:info_dict</p></td>
-          <td>
-              <em>required</em>
+            <div class="doc-md-description">
+              <p>ele_name:info_dict</p>
+            </div>
           </td>
         </tr>
     </tbody>
@@ -3679,12 +3728,9 @@ This uses a fast method that operates outside of Impact</p>
     ele_name:rel_phase_deg 
 which is the same format as settings.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">700</span>
-<span class="normal">701</span>
-<span class="normal">702</span>
-<span class="normal">703</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">703</span>
 <span class="normal">704</span>
 <span class="normal">705</span>
 <span class="normal">706</span>
@@ -3723,7 +3769,9 @@ which is the same format as settings.</p>
 <span class="normal">739</span>
 <span class="normal">740</span>
 <span class="normal">741</span>
-<span class="normal">742</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">autophase</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<span class="normal">742</span>
+<span class="normal">743</span>
+<span class="normal">744</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">autophase</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
              <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">full_output</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -3759,7 +3807,6 @@ which is the same format as settings.</p>
         <span class="n">t0</span><span class="o">=</span><span class="mi">0</span>
         <span class="n">pz0</span><span class="o">=</span><span class="mi">0</span>
 
-
     <span class="k">return</span> <span class="n">fast_autophase_impact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                           <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">,</span>
                           <span class="n">t0</span><span class="o">=</span><span class="n">t0</span><span class="p">,</span>
@@ -3767,10 +3814,11 @@ which is the same format as settings.</p>
                           <span class="n">full_output</span><span class="o">=</span><span class="n">full_output</span><span class="p">,</span>
                           <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3788,6 +3836,8 @@ which is the same format as settings.</p>
 If one is found, autophase is called. </p>
 <p>If .always_autophase == True, calls autophase is called.</p>
 
+
+
   <p><strong>Returns:</strong></p>
   <table>
     <thead>
@@ -3801,17 +3851,18 @@ If one is found, autophase is called. </p>
 <td><code>settings</code></td>          <td>
                 <code>dict</code>
           </td>
-          <td><p>Autophase settings found</p></td>
+          <td>
+            <div class="doc-md-description">
+              <p>Autophase settings found</p>
+            </div>
+          </td>
         </tr>
     </tbody>
   </table>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">672</span>
-<span class="normal">673</span>
-<span class="normal">674</span>
-<span class="normal">675</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">675</span>
 <span class="normal">676</span>
 <span class="normal">677</span>
 <span class="normal">678</span>
@@ -3833,7 +3884,10 @@ If one is found, autophase is called. </p>
 <span class="normal">694</span>
 <span class="normal">695</span>
 <span class="normal">696</span>
-<span class="normal">697</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">autophase_bookkeeper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">697</span>
+<span class="normal">698</span>
+<span class="normal">699</span>
+<span class="normal">700</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">autophase_bookkeeper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Searches for `&#39;autophase_deg&#39;` attribute in all eles.</span>
 <span class="sd">    If one is found, autophase is called. </span>
@@ -3860,10 +3914,11 @@ If one is found, autophase is called. </p>
 
     <span class="k">return</span> <span class="n">settings</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3879,22 +3934,23 @@ If one is found, autophase is called. </p>
   
       <p>Link .ele = dict to the lattice elements by their 'name' field</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">ele_bookkeeper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">ele_bookkeeper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Link .ele = dict to the lattice elements by their &#39;name&#39; field</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">ele</span> <span class="o">=</span> <span class="n">ele_dict_from</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="s1">&#39;lattice&#39;</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3914,19 +3970,19 @@ position z at time t.</p>
 and not calculated directly from Impact. Not all elements/parameters
 are implemented. Currently x, y must be 0.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">227</span>
 <span class="normal">228</span>
 <span class="normal">229</span>
 <span class="normal">230</span>
 <span class="normal">231</span>
 <span class="normal">232</span>
 <span class="normal">233</span>
-<span class="normal">234</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="s1">&#39;Ez&#39;</span><span class="p">):</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="s1">&#39;Ez&#39;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the field component at a longitudinal</span>
 <span class="sd">    position z at time t.</span>
@@ -3938,10 +3994,11 @@ are implemented. Currently x, y must be 0.</p>
     <span class="k">return</span> <span class="n">lattice_field</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="n">component</span><span class="p">,</span>
                   <span class="n">fmaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldmaps</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3960,12 +4017,9 @@ Will search environmental variables:
         Impact.command_env='IMPACTT_BIN'
         Impact.command_mpi_env='IMPACTT_MPI_BIN'</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">270</span>
 <span class="normal">271</span>
 <span class="normal">272</span>
 <span class="normal">273</span>
@@ -3974,7 +4028,10 @@ Will search environmental variables:
 <span class="normal">276</span>
 <span class="normal">277</span>
 <span class="normal">278</span>
-<span class="normal">279</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_executable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_executable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gets the full path of the executable from .command, .command_mpi</span>
 <span class="sd">    Will search environmental variables:</span>
@@ -3988,10 +4045,11 @@ Will search environmental variables:
         <span class="n">exe</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">find_executable</span><span class="p">(</span><span class="n">exename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span> <span class="n">envname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command_env</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">exe</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4009,12 +4067,9 @@ Will search environmental variables:
     'mpirun -n {n} {command_mpi}'</p>
 <p>Optionally writes a file 'run' with this line to path.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
-<span class="normal">310</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">310</span>
 <span class="normal">311</span>
 <span class="normal">312</span>
 <span class="normal">313</span>
@@ -4042,7 +4097,10 @@ Will search environmental variables:
 <span class="normal">335</span>
 <span class="normal">336</span>
 <span class="normal">337</span>
-<span class="normal">338</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_run_script</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">write_to_path</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">338</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_run_script</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">write_to_path</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Assembles the run script using self.mpi_run string of the form:</span>
 <span class="sd">        &#39;mpirun -n {n} {command_mpi}&#39;</span>
@@ -4075,10 +4133,11 @@ Will search environmental variables:
         <span class="n">tools</span><span class="o">.</span><span class="n">make_executable</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">runscript</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4095,12 +4154,9 @@ Will search environmental variables:
       <p>Loads input and output from archived h5 file.</p>
 <p>See: Impact.archive</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">579</span>
-<span class="normal">580</span>
-<span class="normal">581</span>
-<span class="normal">582</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">582</span>
 <span class="normal">583</span>
 <span class="normal">584</span>
 <span class="normal">585</span>
@@ -4141,7 +4197,10 @@ Will search environmental variables:
 <span class="normal">620</span>
 <span class="normal">621</span>
 <span class="normal">622</span>
-<span class="normal">623</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="p">,</span> <span class="n">configure</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">623</span>
+<span class="normal">624</span>
+<span class="normal">625</span>
+<span class="normal">626</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="p">,</span> <span class="n">configure</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads input and output from archived h5 file.</span>
 
@@ -4187,10 +4246,11 @@ Will search environmental variables:
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">cg</span>  <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">cg</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ele</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4206,12 +4266,9 @@ Will search environmental variables:
   
       <p>Loads stats, slice_info, and particles.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
 <span class="normal">147</span>
@@ -4224,7 +4281,10 @@ Will search environmental variables:
 <span class="normal">154</span>
 <span class="normal">155</span>
 <span class="normal">156</span>
-<span class="normal">157</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads stats, slice_info, and particles.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -4242,10 +4302,11 @@ Will search environmental variables:
 
     <span class="bp">self</span><span class="o">.</span><span class="n">load_particles</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4261,22 +4322,23 @@ Will search environmental variables:
   
       <p>Simple stat plot</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">797</span>
-<span class="normal">798</span>
-<span class="normal">799</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">799</span>
 <span class="normal">800</span>
-<span class="normal">801</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">old_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;sigma_x&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s1">&#39;mean_z&#39;</span><span class="p">,</span> <span class="n">nice</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">801</span>
+<span class="normal">802</span>
+<span class="normal">803</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">old_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;sigma_x&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s1">&#39;mean_z&#39;</span><span class="p">,</span> <span class="n">nice</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Simple stat plot</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">plot_stat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">nice</span><span class="o">=</span><span class="n">nice</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4292,15 +4354,15 @@ Will search environmental variables:
   
       <p>Pretty printing of the lattice</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">847</span>
-<span class="normal">848</span>
-<span class="normal">849</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">849</span>
 <span class="normal">850</span>
 <span class="normal">851</span>
 <span class="normal">852</span>
-<span class="normal">853</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">print_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">853</span>
+<span class="normal">854</span>
+<span class="normal">855</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">print_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pretty printing of the lattice</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -4308,10 +4370,11 @@ Will search environmental variables:
         <span class="n">line</span> <span class="o">=</span> <span class="n">ele_str</span><span class="p">(</span><span class="n">ele</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4327,12 +4390,9 @@ Will search environmental variables:
   
       <p>Runs Impact-T</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">340</span>
-<span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">343</span>
 <span class="normal">344</span>
 <span class="normal">345</span>
 <span class="normal">346</span>
@@ -4395,7 +4455,10 @@ Will search environmental variables:
 <span class="normal">403</span>
 <span class="normal">404</span>
 <span class="normal">405</span>
-<span class="normal">406</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">run_impact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">run_impact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Runs Impact-T</span>
 
@@ -4463,10 +4526,11 @@ Will search environmental variables:
 
     <span class="bp">self</span><span class="o">.</span><span class="n">finished</span> <span class="o">=</span> <span class="kc">True</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4482,15 +4546,15 @@ Will search environmental variables:
   
       <p>Array from .output['stats'][key]</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">244</span>
 <span class="normal">245</span>
 <span class="normal">246</span>
-<span class="normal">247</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">stat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">stat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Array from .output[&#39;stats&#39;][key] &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;Ez&#39;</span><span class="p">,</span> <span class="s1">&#39;Bz&#39;</span><span class="p">):</span>
@@ -4498,10 +4562,11 @@ Will search environmental variables:
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;stats&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4517,15 +4582,15 @@ Will search environmental variables:
   
       <p>Track a ParticleGroup. An optional stopping s can be given.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">751</span>
-<span class="normal">752</span>
-<span class="normal">753</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">753</span>
 <span class="normal">754</span>
 <span class="normal">755</span>
 <span class="normal">756</span>
-<span class="normal">757</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">track</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">757</span>
+<span class="normal">758</span>
+<span class="normal">759</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">track</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Track a ParticleGroup. An optional stopping s can be given.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -4533,10 +4598,11 @@ Will search environmental variables:
         <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span>
     <span class="k">return</span> <span class="n">track_to_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4559,11 +4625,9 @@ t0 in seconds</p>
 <p>If successful, returns a ParticleGroup with the final particle.</p>
 <p>Otherwise, returns None</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">759</span>
-<span class="normal">760</span>
-<span class="normal">761</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">761</span>
 <span class="normal">762</span>
 <span class="normal">763</span>
 <span class="normal">764</span>
@@ -4597,7 +4661,9 @@ t0 in seconds</p>
 <span class="normal">792</span>
 <span class="normal">793</span>
 <span class="normal">794</span>
-<span class="normal">795</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">track1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<span class="normal">795</span>
+<span class="normal">796</span>
+<span class="normal">797</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">track1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
               <span class="n">x0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
               <span class="n">px0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
               <span class="n">y0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -4635,10 +4701,11 @@ t0 in seconds</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">numprocs</span> <span class="o">=</span> <span class="n">n_procs_save</span>
     <span class="k">return</span> <span class="n">result</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4654,18 +4721,19 @@ t0 in seconds</p>
   
       <p>pmd_unit of a given key</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;pmd_unit of a given key&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4681,20 +4749,21 @@ t0 in seconds</p>
   
       <p>verbose print</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">855</span>
-<span class="normal">856</span>
-<span class="normal">857</span>
-<span class="normal">858</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">vprint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">857</span>
+<span class="normal">858</span>
+<span class="normal">859</span>
+<span class="normal">860</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">vprint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;verbose print&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4711,12 +4780,9 @@ t0 in seconds</p>
       <p>Write all input.</p>
 <p>If .initial_particles are given,</p>
 
-      <details class="quote">
-        <summary>Source code in <code>impact/impact.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">468</span>
-<span class="normal">469</span>
-<span class="normal">470</span>
-<span class="normal">471</span>
+          <details class="quote">
+            <summary>Source code in <code>impact/impact.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">471</span>
 <span class="normal">472</span>
 <span class="normal">473</span>
 <span class="normal">474</span>
@@ -4761,7 +4827,10 @@ t0 in seconds</p>
 <span class="normal">513</span>
 <span class="normal">514</span>
 <span class="normal">515</span>
-<span class="normal">516</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_filename</span><span class="o">=</span><span class="s1">&#39;ImpactT.in&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_filename</span><span class="o">=</span><span class="s1">&#39;ImpactT.in&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Write all input.</span>
 
@@ -4811,7 +4880,7 @@ t0 in seconds</p>
     <span class="c1"># Write run script</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">get_run_script</span><span class="p">(</span><span class="n">write_to_path</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
@@ -4873,16 +4942,22 @@ t0 in seconds</p>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "navigation.tabs", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "navigation.tabs", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.b4d07000.min.js"></script>
+      <script src="../../assets/javascripts/bundle.220ee61c.min.js"></script>
       
-        <script src="../../javascripts/mathjax.js"></script>
+        
+          <script src="../../javascripts/mathjax.js"></script>
+        
       
-        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        
+          <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        
       
-        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        
+          <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        
       
     
   </body>
