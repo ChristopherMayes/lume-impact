@@ -8,6 +8,8 @@ from .plot import plot_stat, plot_layout, plot_stats_with_layout
 from .particles import identify_species, track_to_s, track1_to_s
 from .fast_autophase import fast_autophase_impact
 
+from .interfaces.bmad import impact_from_tao
+
 
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
@@ -21,6 +23,7 @@ import numpy as np
 import yaml
 
 import tempfile
+import functools
 from time import time
 from copy import deepcopy
 import os
@@ -733,7 +736,6 @@ class Impact(CommandWrapper):
             t0=0
             pz0=0
         
-        
         return fast_autophase_impact(self,
                               settings=settings,
                               t0=t0,
@@ -861,6 +863,14 @@ class Impact(CommandWrapper):
         if self.use_temp_dir:
             self.path = None
             self.configured = False
+
+
+
+    @classmethod
+    @functools.wraps(impact_from_tao) 
+    def from_tao(cls, tao, fieldmap_style='fourier'):
+        return impact_from_tao(tao, fieldmap_style=fieldmap_style)
+    
 
     def __getitem__(self, key):
         """
