@@ -104,8 +104,7 @@ def evaluate_impact_with_distgen(settings,
 
     #Recreate Generator object for fingerprint, proper archiving
     # TODO: make this cleaner
-    G = Generator()
-    G.input = I.distgen_input
+    G = Generator(I.distgen_input)
     
     fingerprint = fingerprint_impact_with_distgen(I, G)
     output['fingerprint'] = fingerprint
