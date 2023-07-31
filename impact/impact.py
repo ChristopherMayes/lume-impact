@@ -37,6 +37,12 @@ EXTRA_UNITS = {
         }
 
 
+
+
+
+
+
+
 class Impact(CommandWrapper):
     """
 
@@ -47,6 +53,9 @@ class Impact(CommandWrapper):
     """
     COMMAND = 'ImpactTexe'
     COMMAND_MPI = 'ImpactTexe-mpi'
+    
+    MPI_RUN = tools.find_mpirun()
+    WORKDIR = tools.find_workdir()    
 
     # Environmental variables to search for executables
     command_env='IMPACTT_BIN'
@@ -1021,7 +1030,6 @@ def suggested_processor_domain(nz, ny, nproc):
     return nc, nr
 
 
-
 # Default input
 # This should be the same as examples/templates/drift/ImpactT.in
 DEFAULT_INPUT = { 'input_particle_file': None,
@@ -1096,3 +1104,8 @@ DEFAULT_INPUT = { 'input_particle_file': None,
    's': 1.0,
    'name': 'stop_1'}],
  'fieldmaps': {}}
+
+
+
+
+
