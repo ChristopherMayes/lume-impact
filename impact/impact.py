@@ -37,6 +37,12 @@ EXTRA_UNITS = {
         }
 
 
+
+
+
+
+
+
 class Impact(CommandWrapper):
     """
 
@@ -47,6 +53,9 @@ class Impact(CommandWrapper):
     """
     COMMAND = 'ImpactTexe'
     COMMAND_MPI = 'ImpactTexe-mpi'
+    
+    MPI_RUN = tools.find_mpirun()
+    WORKDIR = tools.find_workdir()    
 
     # Environmental variables to search for executables
     command_env='IMPACTT_BIN'
@@ -65,6 +74,9 @@ class Impact(CommandWrapper):
         self._units = {}
         self._units.update(EXTRA_UNITS)
         self.group = {}
+        
+        # MPI
+        self._nnode = 1        
 
         # Convenience lookup of elements in lattice by name
         self.ele = {}
@@ -204,8 +216,18 @@ class Impact(CommandWrapper):
         Link .ele = dict to the lattice elements by their 'name' field
         """
         self.ele = ele_dict_from(self.input['lattice'])
-
-
+        
+    @property
+    def nnode(self):
+        """
+        Number of MPI nodes to use
+        """
+        return self._nnode
+    
+    @nnode.setter
+    def nnode(self, n):
+        self._nnode = n          
+        
     # Convenience routines
     @property
     def header(self):
@@ -324,7 +346,7 @@ class Impact(CommandWrapper):
             # 'srun -N 1 --cpu_bind=cores {n} {command_mpi}'
             # 'mpirun -n {n} {command_mpi}'
 
-            runscript = self.mpi_run.format(nproc=n_procs,command_mpi=exe)
+            runscript = self.mpi_run.format(nnode = self.nnode, nproc=n_procs, command_mpi=exe)
 
         else:
             if n_procs > 1:
@@ -1021,7 +1043,6 @@ def suggested_processor_domain(nz, ny, nproc):
     return nc, nr
 
 
-
 # Default input
 # This should be the same as examples/templates/drift/ImpactT.in
 DEFAULT_INPUT = { 'input_particle_file': None,
@@ -1096,3 +1117,8 @@ DEFAULT_INPUT = { 'input_particle_file': None,
    's': 1.0,
    'name': 'stop_1'}],
  'fieldmaps': {}}
+
+
+
+
+

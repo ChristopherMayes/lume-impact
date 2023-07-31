@@ -15,7 +15,7 @@ from .lattice import ele_shapes
 
 
 
-def layout_plot(eles, plot_width=1000, plot_height=200):
+def layout_plot(eles, width=1000, height=200):
     """
     Returns a bokeh plot
     
@@ -45,12 +45,12 @@ def layout_plot(eles, plot_width=1000, plot_height=200):
         )
 
 
-    p = figure(plot_width=plot_width, plot_height=plot_height, tools=[hover, 'pan','wheel_zoom','box_zoom','reset'])
+    p = figure(width=width, height=height, tools=[hover, 'pan','wheel_zoom','box_zoom','reset'])
     p.quad(top='top', bottom='bottom', left='left',
        right='right', color='color', source=ds)
 
     labels = LabelSet(x='x', y='y', text='name', level='glyph', angle=pi/2,
-              x_offset=5, y_offset=30, source=ds, render_mode='canvas')
+              x_offset=5, y_offset=30, source=ds)
     p.add_layout(labels)
 
     return p

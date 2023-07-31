@@ -1,4 +1,5 @@
 import subprocess
+import platform
 import os, errno
 from hashlib import blake2b
 from copy import deepcopy
@@ -238,3 +239,35 @@ def fill_defaults(dict1, defaults, strict=True):
     for k, v in defaults.items():
         if k not in dict1:
             dict1[k] =  deepcopy(v)
+
+
+def find_mpirun():
+    """
+    Simple helper to find the mpi run command for macports and homebrew,
+    as well as custom commands for Perlmutter at NERSC.
+    """
+
+    #for p in ["/opt/local/bin/mpirun", "/opt/homebrew/bin/mpirun"]:
+    #    if os.path.exists(p):
+    #        return p + " -n {nproc} {command_mpi}"
+        
+    if os.environ.get('NERSC_HOST') == 'perlmutter':
+        srun = 'srun -n {nproc} {command_mpi}'
+        hostname = platform.node()
+        assert hostname # This must exist
+        if hostname.startswith('nid'):
+            # Compute node
+            return srun
+        else:
+            # This will work on a login node
+            return 'salloc -N {nnode} -C cpu -q interactive -t 04:00:00 ' + srun
+        
+      
+    # Default    
+    return "mpirun -n {nproc} {command_mpi}"
+
+def find_workdir():
+    if os.environ.get('NERSC_HOST') == 'perlmutter':
+        return os.environ.get('SCRATCH')
+    else:
+        return None
