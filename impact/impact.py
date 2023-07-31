@@ -346,7 +346,7 @@ class Impact(CommandWrapper):
             # 'srun -N 1 --cpu_bind=cores {n} {command_mpi}'
             # 'mpirun -n {n} {command_mpi}'
 
-            runscript = self.mpi_run.format(nproc=n_procs,command_mpi=exe)
+            runscript = self.mpi_run.format(nnode = self.nnode, nproc=n_procs, command_mpi=exe)
 
         else:
             if n_procs > 1:
