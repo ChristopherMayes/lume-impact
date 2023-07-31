@@ -9,6 +9,7 @@ dependencies:
   - distgen
   - matplotlib
   - bokeh
+  - jupyter_bokeh
   #- impact-t=*=mpi_openmpi*
   - impact-t=*=mpi_mpich*
 # Developer
