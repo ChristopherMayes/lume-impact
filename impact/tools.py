@@ -1,4 +1,5 @@
 import subprocess
+import platform
 import os, errno
 from hashlib import blake2b
 from copy import deepcopy
