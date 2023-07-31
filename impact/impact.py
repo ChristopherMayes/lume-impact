@@ -76,7 +76,6 @@ class Impact(CommandWrapper):
         self.group = {}
         
         # MPI
-        self._nproc = 1
         self._nnode = 1        
 
         # Convenience lookup of elements in lattice by name
@@ -217,18 +216,6 @@ class Impact(CommandWrapper):
         Link .ele = dict to the lattice elements by their 'name' field
         """
         self.ele = ele_dict_from(self.input['lattice'])
-
-        
-    @property
-    def nproc(self):
-        """
-        Number of MPI processes to use.
-        """
-        return self._nproc
-
-    @nproc.setter
-    def nproc(self, n):
-        self._nproc = n
         
     @property
     def nnode(self):
@@ -241,7 +228,6 @@ class Impact(CommandWrapper):
     def nnode(self, n):
         self._nnode = n          
         
-
     # Convenience routines
     @property
     def header(self):
