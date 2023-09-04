@@ -252,7 +252,7 @@ def find_mpirun():
     #        return p + " -n {nproc} {command_mpi}"
         
     if os.environ.get('NERSC_HOST') == 'perlmutter':
-        srun = 'srun -n {nproc} {command_mpi}'
+        srun = 'srun -n {nproc} --ntasks-per-node {nproc} --constraint=cpu {command_mpi}'
         hostname = platform.node()
         assert hostname # This must exist
         if hostname.startswith('nid'):
