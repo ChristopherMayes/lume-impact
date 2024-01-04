@@ -16,7 +16,6 @@ permissions:
 
 jobs:
   build:
-    # if: ${{ github.repository == 'ChristopherMayes/lume-impact' }}
     runs-on: ubuntu-latest
     name: "Build and deploy docs"
     steps:
@@ -45,6 +44,7 @@ jobs:
         with:
           path: ./site
   deploy:
+    if: ${{ github.repository == 'ChristopherMayes/lume-impact' }}
     needs: build
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
