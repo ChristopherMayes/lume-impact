@@ -1,5 +1,0 @@
-distgen
-numpy
-h5py
-openpmd-beamphysics
-lume-base
