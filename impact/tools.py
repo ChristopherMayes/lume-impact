@@ -1,13 +1,14 @@
-import subprocess
-import platform
-import os, errno
-from hashlib import blake2b
-from copy import deepcopy
-import numpy as np
-import json
-import shutil
 import datetime
+import json
+import os
+import platform
+import shutil
+import subprocess
+from copy import deepcopy
+from hashlib import blake2b
 
+import numpy as np
+import psutil
 
 
 def parse_float(s):
@@ -271,3 +272,8 @@ def find_workdir():
         return os.environ.get('SCRATCH')
     else:
         return None
+
+
+def get_suggested_nproc() -> int:
+    """Get the suggested number of processes to use for MPI."""
+    return psutil.cpu_count(logical=False)

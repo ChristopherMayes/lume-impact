@@ -311,7 +311,11 @@ class Impact(CommandWrapper):
     @numprocs.setter
     def numprocs(self, n):
         """Sets the number of processors"""
-        assert n > 0, 'numprocs must be positive'
+        if n < 0:
+            raise ValueError("numprocs must be >= 0")
+        if not n:
+            n = tools.get_suggested_nproc()
+
         Nz = self.header['Nz']
         Ny = self.header['Ny']
         Npcol, Nprow = suggested_processor_domain(Nz, Ny, n)
