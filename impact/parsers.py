@@ -1,7 +1,7 @@
 from . import tools, fieldmaps
 from .particles import SPECIES_MASS, identify_species
 from impact.tools import parse_float
-from pmd_beamphysics.units import pmd_unit, multiply_units
+from pmd_beamphysics.units import unit, multiply_units
 
 import numpy as np
 import os
@@ -1734,6 +1734,76 @@ def load_fort30(filePath, keys=FORT_KEYS[30] ):
     return load_fortX(filePath, keys)
 
 
+
+# Note: fort.31 is a subset of fort.32, so do not parse
+
+FORT_KEYS[32] = [
+    't', 'mean_z', 'norm_cdt', 
+    'cov_x__x', 'cov_x__gammabeta_x', 'cov_x__y',   'cov_x__gammabeta_y', 'cov_x__z', 'cov_x__gammabeta_z', 
+                'cov_gammabeta_x__gammabeta_x', 'cov_y__gammabeta_x', 'cov_gammabeta_x__gammabeta_y', 'cov_z__gammabeta_x', 'cov_gammabeta_x__gammabeta_z', 
+                                      'cov_y__y',  'cov_y__gammabeta_y', 'cov_y__z', 'cov_y__gammabeta_z', 
+                                				       'cov_gammabeta_y__gammabeta_y', 'cov_z__gammabeta_y',  'cov_gammabeta_y__gammabeta_z', 
+                                        				                  'cov_z__z',  'cov_z__gammabeta_z', 
+                                                        				                   'cov_gammabeta_z__gammabeta_z',
+                ]
+### ???
+FORT_UNITS[32] = [
+                's','m', 'm', 
+                'm*m', 'm', 'm*m', 'm', 'm*m', 'm',
+                '1', 'm', '1', 'm', '1',
+                'm*m', 'm', 'm*m', 'm',
+                '1', 'm', '1',
+                'm*m', 'm',
+                '1',
+                ]
+
+def load_fort32(filePath, keys=FORT_KEYS[32], raw=False):
+    """
+    fort.32
+
+    z,z0avg*cdt,cdt,&
+    qsum1, xpx,    xy,  xpy,    xz,  xpz, &
+         sqsum2,   ypx,  pxpy,  zpx,  pxpz, &
+                 sqsum3, ypy,    yz,  ypz, &
+				         sqsum4, zpy,  pypz, &  
+				                  sqsum5,  zpz, &  
+				                        sqsum6   
+
+    Note: 
+        x, y, z are normalized by cdt
+        px, py, pz are normalized by m*c
+
+    See: https://github.com/impact-lbl/IMPACT-T/blob/9790b15a5ae382671d575d18a9fb16a0545334a6/src/Contrl/Output.f90#L1712C24-L1718C39
+
+    
+    """            
+    dat = load_fortX(filePath, keys)
+    if raw: 
+        return dat
+
+    # remove norm_cdt so that x, y, z are in meter
+    norm_cdt = dat['norm_cdt']
+    for key, v in dat.items():
+        if not key.startswith('cov_'):
+            continue
+        # Get subkeys
+        k1, k2 = key[4:].split('__')
+        
+        for k in (k1, k2):
+            if not k.startswith('gammabeta'):
+                dat[key] = dat[key] * norm_cdt
+    
+    return dat
+    
+
+
+
+
+
+
+
+
+
 #---------------------------------
 # Dipole
 
@@ -1837,7 +1907,7 @@ def fort_files(path):
     for f in flist:
         if f.startswith('fort.'):
             fortfiles.append(os.path.join(path,f))
-    return fortfiles    
+    return sorted(fortfiles)
     
     
 def fort_type(filePath):
@@ -1862,6 +1932,7 @@ FORT_DESCRIPTION = {
     28:'Load balance and loss diagnostics',
     29:'Cube root of third moments of the beam distribution',
     30:'Fourth root of the fourth moments of the beam distribution',
+    32:'Covariance matrix of the beam distribution',
     34:'Dipole ONLY: X output information in dipole reference coordinate system',
     35:'Dipole ONLY: Y output information in dipole reference coordinate system',
     36:'Dipole ONLY: Z output information in dipole reference coordinate system ',
@@ -1888,6 +1959,7 @@ FORT_LOADER = {
     28:load_fort28,
     29:load_fort29,
     30:load_fort30,
+    32:load_fort32,
     34:load_fort34,
     35:load_fort35,
     36:load_fort36,
@@ -1901,7 +1973,7 @@ FORT_LOADER = {
 
 # Form large unit dict for these types of files
 UNITS = {}
-for i in [18, 24, 25, 26, 27, 28, 29, 30, 34, 35, 36, 37, 38, 60]:
+for i in [18, 24, 25, 26, 27, 28, 29, 30, 32, 34, 35, 36, 37, 38, 60]:
     for j, k in enumerate(FORT_KEYS[i]):
         UNITS[k] = FORT_UNITS[i][j]
     
@@ -1952,7 +2024,7 @@ def load_fort(filePath, type = None, verbose=True):
     return dat    
     
 
-FORT_STAT_TYPES     = [18, 24, 25, 26, 27, 28, 29, 30]
+FORT_STAT_TYPES     = [18, 24, 25, 26, 27, 28, 29, 30, 32]
 FORT_DIPOLE_STAT_TYPES   = [34, 35, 36, 37, 38]
 FORT_PARTICLE_TYPES = [40,50]
 FORT_SLICE_TYPES    = [60,70]
@@ -1996,6 +2068,59 @@ def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
 
 
 
+def _replace_bare_gammabeta_with_p(key, mc2):
+    """
+    Return a new key and factor for any key: 
+    gammabeta_{x}
+    where x is 'x', 'y', or 'z'.
+
+    Returns
+    -------
+    newkey
+    factor
+    extraunit
+    """
+    if key.startswith('gammabeta_'):
+        factor = mc2
+        comp = key[10:]
+        assert comp in ('x', 'y', 'z')
+        newkey = f'p{comp}'
+        extraunits =  unit('eV/c')
+    else:
+        factor = 1
+        newkey = key
+        extraunits = unit('1')
+
+    return newkey, factor, extraunits
+
+
+def _replace_all_gammabeta_with_p(key, mc2):
+    """
+    Return a new key and factor for any key: 
+    gammabeta_{x}
+    or a covariance key
+    where x is 'x', 'y', or 'z'
+    
+    Returns
+    -------
+    newkey: str
+    factor: float
+    extraunits: pmd_unit
+    """
+    factor = 1
+
+    if key.startswith('cov_'):    
+        k1, k2 = key[4:].split('__') 
+        k1, factor1, extraunits1 = _replace_bare_gammabeta_with_p(k1, mc2)
+        k2, factor2, extraunits2 = _replace_bare_gammabeta_with_p(k2, mc2)
+        factor = factor1*factor2
+        newkey = f'cov_{k1}__{k2}'
+        extraunits = extraunits1 * extraunits2
+    else: 
+        newkey, factor, extraunits = _replace_bare_gammabeta_with_p(key, mc2)
+    
+    return newkey, factor, extraunits
+
 
 
 def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
@@ -2008,6 +2133,8 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
         data, units
     
     Converts gamma_beta_X keys to pX using the mass from the species, in units eV/c. 
+
+    converts keys that start with "-" to -1*data
     
     """
     
@@ -2015,10 +2142,21 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
     units = {}
     
     mc2 = SPECIES_MASS[species]
-        
+    
     for k in list(data):
         
         unit_string = UNITS[k] 
+
+        # Replace -
+        if k.startswith('-'):
+            newkey = k[1:]
+            newdata = -1*data.pop(k)
+            if newkey in data:
+                assert np.allclose(data[newkey], newdata)
+            else:
+                
+                data[newkey] = newdata
+            k=newkey        
         
         # Special
         if k == 'mean_kinetic_energy_MeV':
@@ -2027,29 +2165,28 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
             unit_string = 'eV'
             k = newkey
         
-        u = pmd_unit(unit_string)
-        
-        # Replace relativistic gamma*beta with momenta
-        if k.endswith('gammabeta_x') or k.endswith('gammabeta_y') or k.endswith('gammabeta_z'):
-            prefix = k[0:-11]
-            suffix = k[-1]
-            newkey = prefix+'p'+suffix
-            # Remove old key
-            data[newkey] = data.pop(k)*mc2
-            # to let the next if statement work properly
-            k = newkey
-            
-            u = multiply_units(u, pmd_unit('eV/c'))
-            
-        # Replace -
-        if k.startswith('-'):
-            newkey = k[1:]
-            data[newkey] = -1*data.pop(k)
-            k=newkey
-            
-            
+        u = unit(unit_string)
+
+        # Replace all gammabeta_{k} including cov_{k1}__{k2}
+        newkey, factor, extraunits = _replace_all_gammabeta_with_p(k, mc2)
+        assert k in data, f'{k} not in data!'
+        if newkey != k:
+            u = multiply_units(u, extraunits)
+            if newkey in data:
+                newdata = data[k] * factor
+                assert np.allclose(data[newkey], newdata)
+            else:
+                data[newkey] = data[k]*factor
+            k = newkey # to let the next statement work
+              
         # Add to units
         units[k] = u
+
+    # Remove all gammabeta.
+    # Note that this needs to be done separately.
+    for key in list(data):
+        if 'gammabeta' in key:
+            data.pop(key)
                       
     return data, units
             
@@ -2070,7 +2207,7 @@ def load_slice_info(path, verbose=False):
     data1=data[list(data)[0]]
     for k in data1:
         unit_string = UNITS[k] 
-        units[k] = pmd_unit(unit_string)
+        units[k] = unit(unit_string)
         
     
     return data, units
