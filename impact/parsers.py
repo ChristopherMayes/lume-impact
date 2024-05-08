@@ -1738,7 +1738,7 @@ def load_fort30(filePath, keys=FORT_KEYS[30] ):
 # Note: fort.31 is a subset of fort.32, so do not parse
 
 FORT_KEYS[32] = [
-    't', 'mean_z', 'norm_cdt', 
+    't', 'mean_z', 'raw_norm_cdt', 
     'cov_x__x', 'cov_x__gammabeta_x', 'cov_x__y',   'cov_x__gammabeta_y', 'cov_x__z', 'cov_x__gammabeta_z', 
                 'cov_gammabeta_x__gammabeta_x', 'cov_y__gammabeta_x', 'cov_gammabeta_x__gammabeta_y', 'cov_z__gammabeta_x', 'cov_gammabeta_x__gammabeta_z', 
                                       'cov_y__y',  'cov_y__gammabeta_y', 'cov_y__z', 'cov_y__gammabeta_z', 
@@ -1757,7 +1757,7 @@ FORT_UNITS[32] = [
                 '1',
                 ]
 
-def load_fort32(filePath, keys=FORT_KEYS[32], raw=False):
+def load_fort32(filePath, keys=FORT_KEYS[32]):
     """
     fort.32
 
@@ -1770,34 +1770,12 @@ def load_fort32(filePath, keys=FORT_KEYS[32], raw=False):
 				                        sqsum6   
 
     Note: 
-        x, y, z are normalized by cdt
-        px, py, pz are normalized by m*c
-
-    See: https://github.com/impact-lbl/IMPACT-T/blob/9790b15a5ae382671d575d18a9fb16a0545334a6/src/Contrl/Output.f90#L1712C24-L1718C39
+        x, y, z are im m
+        px, py, pz are normalized by m*c (=gamma*beta_x, etc.
 
     
     """            
-    dat = load_fortX(filePath, keys)
-    if raw: 
-        return dat
-
-    # remove norm_cdt so that x, y, z are in meter
-    norm_cdt = dat['norm_cdt']
-    for key, v in dat.items():
-        if not key.startswith('cov_'):
-            continue
-        # Get subkeys
-        k1, k2 = key[4:].split('__')
-        
-        for k in (k1, k2):
-            if not k.startswith('gammabeta'):
-                dat[key] = dat[key] * norm_cdt
-    
-    return dat
-    
-
-
-
+    return load_fortX(filePath, keys)
 
 
 
@@ -2152,7 +2130,8 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
             newkey = k[1:]
             newdata = -1*data.pop(k)
             if newkey in data:
-                assert np.allclose(data[newkey], newdata)
+                if not np.allclose(data[newkey], newdata):
+                    raise ValueError(f'Inconsistent duplicate data for {newdata}')
             else:
                 
                 data[newkey] = newdata
@@ -2169,12 +2148,15 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
 
         # Replace all gammabeta_{k} including cov_{k1}__{k2}
         newkey, factor, extraunits = _replace_all_gammabeta_with_p(k, mc2)
-        assert k in data, f'{k} not in data!'
+        if not k in data:
+            raise ValueError(f'{k} not in data!')
+            
         if newkey != k:
             u = multiply_units(u, extraunits)
             if newkey in data:
                 newdata = data[k] * factor
-                assert np.allclose(data[newkey], newdata)
+                if not np.allclose(data[newkey], newdata):
+                    raise ValueError(f'Inconsistent duplicate data for {newdata}')
             else:
                 data[newkey] = data[k]*factor
             k = newkey # to let the next statement work
@@ -2187,7 +2169,13 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
     for key in list(data):
         if 'gammabeta' in key:
             data.pop(key)
-                      
+
+    # Remove these
+    remove_keys = ('raw_norm_cdt', )
+    for key in remove_keys:
+        if key in data:
+            data.pop(key)
+    
     return data, units
             
 def load_slice_info(path, verbose=False):
