@@ -1998,7 +1998,7 @@ def load_fort(filePath, type = None, verbose=True):
     if type in FORT_LOADER:
         dat = FORT_LOADER[type](filePath)
     else:
-        print('ERROR: need parser for:', f)
+        raise ValueError(f'Need parser for {filePath}')
     return dat    
     
 
