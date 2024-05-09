@@ -11,9 +11,11 @@ dependencies:
   - matplotlib
   - bokeh
   - jupyter_bokeh
-  #- impact-t=*=mpi_openmpi*
-  - impact-t=*=mpi_mpich*
+  - impact-t=*=mpi_openmpi*
+  #- impact-t=*=mpi_mpich*
 # Developer
   - jupyterlab>=3
   - ipywidgets
   - pygments
+  - pytest-cov
+  - pytest
