@@ -23,6 +23,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           extras: "dev"
+      - name: Show the installed packages
+        shell: bash -l {0}
+        run: |
+          conda list          
       - name: Run unit tests
         shell: bash -l {0}
         run: |
