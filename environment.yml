@@ -14,8 +14,15 @@ dependencies:
   - impact-t=*=mpi_openmpi*
   #- impact-t=*=mpi_mpich*
 # Developer
+  - bmad
+  - pytao
   - jupyterlab>=3
   - ipywidgets
   - pygments
+  - mkdocs==1.5.2
+  - mkdocstrings
+  - mkdocs-material
+  - mkdocs-jupyter==0.24.6
+  - mkdocstrings-python
   - pytest-cov
   - pytest

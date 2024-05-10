@@ -264,21 +264,45 @@ class Impact(CommandWrapper):
         return np.array([self.field(z=z, t=t, component=component) for z, t in zip(zlist, tlist)])
     
     def stat(self, key):
-        """Array from .output['stats'][key] """
+        """
+        Array from .output['stats'][key]
+        
+        Additional keys are avalable:
+            'mean_energy': mean energy
+            'Ez': z component of the electric field at the centroid particle
+            'Bz'  z component of the magnetic field at the centroid particle
+            'cov_{a}__{b}': any symmetric covariance matrix term
+        
+        """
         
         if key in ('Ez', 'Bz'):
             return self.centroid_field(component=key[0:2])
+
+        if key == 'mean_energy':
+            return self.stat('mean_kinetic_energy') + self.mc2
+        
+        # Allow flipping covariance keys
+        if key.startswith('cov_') and key not in self.output['stats']:
+            k1, k2 = key[4:].split('__')
+            key = f'cov_{k2}__{k1}'
+
+        if key not in self.output['stats']:
+            raise ValueError(f'{key} is not available in the output data')
         
         return self.output['stats'][key]
 
     def units(self, key):
         """pmd_unit of a given key"""
-        return self._units[key]
-    
-    
-    #def field(self, *, x=0, y=0, z=0, t=0):
+
+        # Allow flipping covariance keys
+        if key.startswith('cov_') and key not in self._units:
+            k1, k2 = key[4:].split('__')
+            key = f'cov_{k2}__{k1}'
+
+        if key not in self._units:
+            raise ValueError(f'Unknown unit for {key}')
         
-    
+        return self._units[key]
     
 
     #--------------
@@ -394,39 +418,33 @@ class Impact(CommandWrapper):
         for f in fort_files(self.path):
             os.remove(f)
 
-        try:
-            if timeout:
-                res = tools.execute2(runscript.split(), timeout=timeout, cwd=self.path)
-                log = res['log']
-                self.error = res['error']
-                run_info['error'] = self.error
-                run_info['why_run_error'] = res['why_error']
+ 
+        if timeout:
+            res = tools.execute2(runscript.split(), timeout=timeout, cwd=self.path)
+            log = res['log']
+            self.error = res['error']
+            run_info['error'] = self.error
+            run_info['why_run_error'] = res['why_error']
+        else:
+            # Interactive output, for Jupyter
+            log = []
+            counter = 0
+            for path in tools.execute(runscript.split(), cwd=self.path):
+                # Fancy clearing of old lines
+                counter +=1
+                if verbose:
+                    if counter < 15:
+                        print(path, end='')
+                    else:
+                        print('\r', path.strip()+', elapsed: '+str(time()-t1), end='')
+                log.append(path)
+            self.vprint('Finished.')
+        self.log = log
+        
+        # Load output
+        self.load_output()
 
-            else:
-                # Interactive output, for Jupyter
-                log = []
-                counter = 0
-                for path in tools.execute(runscript.split(), cwd=self.path):
-                    # Fancy clearing of old lines
-                    counter +=1
-                    if verbose:
-                        if counter < 15:
-                            print(path, end='')
-                        else:
-                            print('\r', path.strip()+', elapsed: '+str(time()-t1), end='')
-                    log.append(path)
-                self.vprint('Finished.')
-            self.log = log
-
-            # Load output
-            self.load_output()
-
-        except Exception as ex:
-            self.vprint('Exception in Impact:', ex)
-            run_info['error'] = True
-            run_info['why_run_error'] = str(ex)
-        finally:
-            run_info['run_time'] = time() - t1
+        run_info['run_time'] = time() - t1
 
         self.finished = True
 
