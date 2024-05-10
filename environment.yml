@@ -24,3 +24,5 @@ dependencies:
   - mkdocs-material
   - mkdocs-jupyter==0.24.6
   - mkdocstrings-python
+  - pytest-cov
+  - pytest
