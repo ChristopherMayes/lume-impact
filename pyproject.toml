@@ -32,8 +32,8 @@ dev = [
   "pytest-cov",
 ]
 doc = [
-  "mkdocs",
-  "mkdocs-jupyter",
+  "mkdocs==1.5.2",
+  "mkdocs-jupyter==0.24.6",
   "mkdocs-macros-plugin",
   "mkdocs-material",
   "mkdocstrings",
