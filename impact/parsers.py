@@ -3,6 +3,8 @@ from .particles import SPECIES_MASS, identify_species
 from impact.tools import parse_float
 from pmd_beamphysics.units import unit, multiply_units
 
+import warnings
+
 import numpy as np
 import os
 
@@ -1614,7 +1616,9 @@ def parse_impact_particles(filePath,
 def load_fortX(filePath, keys):
     data = {}
     #Load the data 
-    fortdata = np.loadtxt(filePath, ndmin=1)
+    fortdata = np.loadtxt(filePath, ndmin=2)
+    if len(fortdata) == 0:
+        raise ValueError(f'{filePath} is empty')
     for count, key in enumerate(keys):
         data[key] = fortdata[:,count]
     return data
@@ -1988,10 +1992,9 @@ def load_fort(filePath, type = None, verbose=True):
             print('unknown type:',type)
         
         
-    # Check for empyt file    
+    # Check for empty file    
     if os.stat(filePath).st_size == 0:
-        if verbose:
-            print(f'Warning, empty file:', filePath)
+        warnings.warn(f'Empty file: {filePath}')
         return None
                 
             
@@ -2027,6 +2030,9 @@ def load_many_fort(path, types=FORT_STAT_TYPES, verbose=False):
             continue
         
         dat = load_fort(f, type=file_type, verbose=verbose)
+        if dat is None: # empty file
+            continue
+            
         for k in dat:
             if k not in alldat:
                 alldat[k] = dat[k]
