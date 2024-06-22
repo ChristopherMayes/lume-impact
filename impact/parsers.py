@@ -515,7 +515,45 @@ ELE_DEFAULTS['misalignment'] = {
     'x_rotation':0, 
     'y_rotation':0, 
     'z_rotation':0}
-        
+
+
+
+
+#----------------------------------------------------------------- 
+def parse_point_to_point_spacecharge(line):
+    """
+    (type -15)
+    Switch on the direct point-to-point N-body calculation of the space-charge forces.
+
+    See:
+        Ji Qiang et. al,  Numerical Study of Coulomb Scattering Effects on Electron Beam 
+        from a Nano-Tip,
+        in proceedings of PAC07 conference, June 25-29, Albuquerque, p. 1185, 2007
+        https://accelconf.web.cern.ch/p07/PAPERS/TUPMN116.PDF
+    
+    V3: cut-off radius of aparticle
+    """
+    v = v_from_line(line) 
+    d={}
+    d['cutoff_radius'] =  parse_float(v[3])
+    return d
+
+
+def parse_point_to_point_spacecharge_v(ele):
+    """
+    point_to_point_spacecharge V list from ele dict
+    
+    v[0] is the original ele
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    v = [ele, 0, 0, ele['cutoff_radius']]
+
+    return v
+
+ELE_DEFAULTS['point_to_point_spacecharge'] = {
+    'cutoff_radius': 2.8179e-15, # classical electron radius
+}
     
 #-----------------------------------------------------------------   
 def parse_quadrupole(line):
@@ -1416,6 +1454,7 @@ ele_parsers = {#'bpm': parse_bpm,
                'rotationally_symmetric_to_3d':parse_rotationally_symmetric_to_3d,
                'wakefield':parse_wakefield,
                'spacecharge':parse_spacecharge,
+               'point_to_point_spacecharge': parse_point_to_point_spacecharge,
                'write_slice_info':parse_write_slice_info,
                'write_beam_for_restart':parse_write_beam_for_restart,
                'stop':parse_stop

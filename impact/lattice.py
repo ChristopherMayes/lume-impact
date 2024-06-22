@@ -54,8 +54,8 @@ ele_v_function = {
     'write_beam':parsers.write_beam_v,
     'write_beam_for_restart':parsers.write_beam_for_restart_v,
     'spacecharge':parsers.spacecharge_v,
-    'write_slice_info':parsers.write_slice_info_v
-                  
+    'point_to_point_spacecharge':parsers.parse_point_to_point_spacecharge_v,
+    'write_slice_info':parsers.write_slice_info_v                 
                  }    
 
 
