@@ -525,11 +525,16 @@ def parse_point_to_point_spacecharge(line):
     (type -15)
     Switch on the direct point-to-point N-body calculation of the space-charge forces.
 
+    Warning:
+        The # of electrons divided by the number of processors should be an integer.
+
     See:
         Ji Qiang et. al,  Numerical Study of Coulomb Scattering Effects on Electron Beam 
         from a Nano-Tip,
         in proceedings of PAC07 conference, June 25-29, Albuquerque, p. 1185, 2007
         https://accelconf.web.cern.ch/p07/PAPERS/TUPMN116.PDF
+
+    
     
     V3: cut-off radius of aparticle
     """
