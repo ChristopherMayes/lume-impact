@@ -556,6 +556,15 @@ class Impact(CommandWrapper):
             else:
                 self.vprint('partcl.data already exits, will not overwrite.')
 
+        # Check for point-to-point spacechage processor criteria
+        if self.numprocs > 1:
+            for ele in self.lattice:
+                if ele['type'] == 'point_to_point_spacecharge':
+                    Np = self.header['Np']
+                    numprocs = self.numprocs
+                    if Np % numprocs != 0:
+                        raise ValueError(f'The number of electrons ({Np}) divided by the number of processors ({numprocs}) must be an integer.')
+        
         # Write main input file. This should come last.
         writers.write_impact_input(filePath, self.header, self.lattice)
 
@@ -912,8 +921,10 @@ class Impact(CommandWrapper):
 
     @classmethod
     @functools.wraps(impact_from_tao) 
-    def from_tao(cls, tao, fieldmap_style='fourier'):
-        return impact_from_tao(tao, fieldmap_style=fieldmap_style)
+    def from_tao(cls, tao, fieldmap_style='fourier', n_coef=30):
+        return impact_from_tao(tao,
+                               fieldmap_style=fieldmap_style,
+                               n_coef=n_coef)
     
 
     def __getitem__(self, key):

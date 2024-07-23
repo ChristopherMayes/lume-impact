@@ -325,7 +325,9 @@ def tao_create_impact_quadrupole_ele(tao, ele_id,
 def tao_create_impact_lattice_and_fieldmaps(tao,
                                             solrf_eles='E_GUN::*,SOLENOID::*,LCAVITY::*', 
                                             quadrupole_eles = 'quad::*',
-                                            fieldmap_style='fourier'):
+                                            fieldmap_style='fourier',
+                                            n_coef=30,
+                                           ):
     """
     Create an Impact-T style lattice and fieldmaps from a running PyTao Tao instance.
     
@@ -343,6 +345,8 @@ def tao_create_impact_lattice_and_fieldmaps(tao,
          
     fieldmap_style: str, default = 'fourier'
         Style of fieldmap to create. One of: ('fourier', 'derivatives').
+
+    n_coef: float
 
     Returns
     -------
@@ -378,6 +382,7 @@ def tao_create_impact_lattice_and_fieldmaps(tao,
         res = tao_create_impact_solrf_ele(tao,
             ele_id=ix_ele,
             style = fieldmap_style,
+            n_coef=n_coef,     
             file_id=file_id,
             cache=cache,
             name=None) # Assume unique. TODO: better logic.
@@ -397,7 +402,10 @@ def tao_create_impact_lattice_and_fieldmaps(tao,
         
     return lattice, fieldmaps
 
-def impact_from_tao(tao, fieldmap_style='fourier', cls=None):
+def impact_from_tao(tao,
+                    fieldmap_style='fourier',
+                    n_coef=30,
+                    cls=None):
     """
     Create a complete Impact object from a running Pytao Tao instance.
 
@@ -414,7 +422,9 @@ def impact_from_tao(tao, fieldmap_style='fourier', cls=None):
         Converted Impact object
     """
 
-    lattice, fieldmaps = tao_create_impact_lattice_and_fieldmaps(tao, fieldmap_style=fieldmap_style)
+    lattice, fieldmaps = tao_create_impact_lattice_and_fieldmaps(tao,
+                                                                 fieldmap_style=fieldmap_style,
+                                                                n_coef=n_coef)
     
     # Create blank object
     if cls is None:
