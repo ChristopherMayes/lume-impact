@@ -63,7 +63,7 @@ def read_fieldmap_rfdata(filePath):
     # Read data
     d = {}
     d['info'] = info
-    d['data'] = safe_loadtxt(filePath)
+    d['data'] = safe_loadtxt(filePath, comments='/')
     return d
     
     
