@@ -973,7 +973,82 @@ ELE_DEFAULTS['emfield_cylindrical'] = {
     'x_rotation':0, 
     'y_rotation':0, 
     'z_rotation':0}
+
+
+
+
+#-----------------------------------------------------------------
+
+def parse_emfield_analytical(line):
+    """
+    emfield_analytic
+    113: EMfldAna
     
+    Read in discrete EM field data Ex(MV/m), Ey(MV/m), Ez(MV/m), Bx(MV/m), By(MV/m), Bz(MV/m), as a function of (x,y,z).
+    
+    V1: zedge
+    V2: escale
+    V3: RF frequency
+    V4: theta0_deg
+    V5: subtype: 
+        one of: -1, -2, -3, 10
+    if subtype == 10: 
+        Dipole field for steering:
+        V6: half gap     
+
+    """
+    v = v_from_line(line) 
+
+    subtype = emfield_analytic_subtype_lookup[int(v[5])]
+    
+    d={}
+    d['zedge']         = parse_float(v[1]) 
+    d['escale']       = parse_float(v[2]) 
+    d['rf_frequency'] = parse_float(v[3])
+    d['theta0_deg']   = parse_float(v[4])
+    d['subtype'] = subtype 
+    if subtype == 'hkicker':
+        d['hgap'] = parse_float(v[6])
+    
+    return d
+
+emfield_analytic_subtype_lookup = {10: 'hkicker'}
+emfield_analytic_subtype_lookup_inverse: {v:k for k, v in emfield_analytic_subtype_lookup.items()}
+
+def emfield_analytical_v(ele):
+    """
+    emfield_analytic V list from ele dict
+    
+    V[0] is the original ele
+
+    """
+    # Let v[0] be the original ele, so the indexing looks the same.
+    
+    
+    subtype = ele['subtype']
+    v = [ele, 
+         ele['zedge'], ele['escale'], ele['rf_frequency'], ele['theta0_deg']] 
+    if subtype == 'hkicker':
+        v = v + [10, ele['hgap'] ] 
+
+    else:
+        raise NotImplementedError(f'subtype not implemented: {subtype}')
+
+
+    return v
+
+ELE_DEFAULTS['emfield_analytical'] = {
+    'zedge':0,
+    'escale':0, 
+    'rf_frequency':0,
+    'theta0_deg':0,
+    'subtype':10,
+    'hgap':0,
+}
+
+
+
+
 #-----------------------------------------------------------------      
 def parse_offset_beam(line, warn=False):
     """
@@ -1453,6 +1528,7 @@ ele_parsers = {#'bpm': parse_bpm,
                'solrf':parse_solrf,
                'emfield_cartesian':parse_emfield_cartesian,
                'emfield_cylindrical':parse_emfield_cylindrical,
+               'emfield_analytical':parse_emfield_analytical,
                'offset_beam':parse_offset_beam,
                'write_beam':parse_write_beam,
                'change_timestep':parse_change_timestep,
@@ -1505,7 +1581,7 @@ def parse_ele(line):
             d2 = ele_parsers[e['type']](line)
             e.update(d2)        
     else:
-        print('Warning: undocumented type', line)
+        print(f'Warning: undocumented type {itype} in:', line)
         e['type'] ='undocumented'
     
 

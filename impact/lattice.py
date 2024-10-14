@@ -46,6 +46,7 @@ ele_v_function = {
     'solrf':parsers.solrf_v,
     'emfield_cartesian':parsers.emfield_cartesian_v,
     'emfield_cylindrical':parsers.emfield_cylindrical_v,
+    'emfield_analytical':parsers.emfield_analytical_v,
     'stop':parsers.stop_v,
     'change_timestep':parsers.change_timestep_v,
     'offset_beam':parsers.offset_beam_v,
