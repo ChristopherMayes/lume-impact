@@ -1411,7 +1411,7 @@ fieldmap_parsers = {
     'solrf':fieldmaps.read_solrf_fieldmap,
     'solenoid':fieldmaps.read_solenoid_fieldmap,
     'emfield_cylindrical':fieldmaps.read_emfield_cylindrical_fieldmap, # TODO: better parsing
-    'emfield_cartesian':fieldmaps.read_fieldmap_symlink    # TODO: better parsing
+    'emfield_cartesian':fieldmaps.read_emfield_cartesian_fieldmap,
 }
 
 def load_fieldmaps(eles, dir):
@@ -1657,10 +1657,35 @@ def parse_impact_particles(filePath,
 #-----------------------------------------------------------------  
 # Parsers for Impact-T fort.X output
 
+import re
+
+def _load_ascii_with_missing_exponent(file_path, **kwargs):
+
+    # Define a regex to find numbers that lack the 'E' before the exponent
+    pattern = re.compile(r'([+-]?\d*\.\d+)([+-]\d+)')
+    
+    # Create a list to hold the corrected lines
+    corrected_lines = []
+
+    # Read the file and correct the lines
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Substitute matches with the corrected scientific notation
+            fixed_line = pattern.sub(r'\1E\2', line)
+            corrected_lines.append(fixed_line)
+    
+    # Convert the list of corrected lines to a single string
+    corrected_data = '\n'.join(corrected_lines)
+    
+    # Use numpy's loadtxt with ndmin=2 to ensure at least 2D output
+    data = np.loadtxt(corrected_data.splitlines(), **kwargs)
+    
+    return data
+
 def load_fortX(filePath, keys):
     data = {}
     #Load the data 
-    fortdata = np.loadtxt(filePath, ndmin=2)
+    fortdata = _load_ascii_with_missing_exponent(filePath, ndmin=2)
     if len(fortdata) == 0:
         raise ValueError(f'{filePath} is empty')
     for count, key in enumerate(keys):

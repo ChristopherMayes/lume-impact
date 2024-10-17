@@ -1,0 +1,26 @@
+no_digested
+beginning[beta_a] = 10
+beginning[beta_b] = 10
+beginning[e_tot] = 10e6
+parameter[geometry] = open
+parameter[particle] = electron
+
+
+COIL_FIELDMAP_BL = 0.00011352516130577002
+
+COIL: em_field, L = 0.5,
+    field_calc = fieldmap,
+    tracking_method = runge_kutta,
+    grid_field = call::correctorcoil.h5
+!COIL[grid_field(1)%master_parameter] = BL_KICK
+!COIL[grid_field(1)%field_scale] = 1/COIL_FIELDMAP_BL
+
+!COIL[BL_KICK] = COIL_FIELDMAP_BL
+
+COIL[FIELD_AUTOSCALE] = 0.1
+
+d1: drift, L = 0.5
+d2: drift, L = 1
+lat: line = (d1, COIL, d2)
+
+use, lat

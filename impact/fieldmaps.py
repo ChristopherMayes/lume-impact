@@ -31,7 +31,9 @@ def write_fieldmap(filePath, fieldmap):
     elif format == 'solenoid_fieldmesh':
         write_solenoid_fieldmap(fieldmap, filePath)        
     elif format == 'emfield_cylindrical_fieldmesh':
-        write_emfield_cylindrical_fieldmap(fieldmap, filePath)           
+        write_emfield_cylindrical_fieldmap(fieldmap, filePath)         
+    elif format == 'emfield_cartesian_fieldmesh':
+        write_emfield_cartesian_fieldmap(fieldmap, filePath)            
     else:
         print('Missing writer for fieldmap:', fieldmap)
         raise
@@ -177,6 +179,19 @@ def read_emfield_cylindrical_fieldmap(filePath):
         }
     
     return d    
+
+def read_emfield_cartesian_fieldmap(filePath):
+    """
+    Read a T7 style file for 111: EMfldCart data
+    """
+    
+    fm = FieldMesh.from_impact_emfield_cartesian(filePath)
+    
+    d = {'info':{'format': 'emfield_cartesian_fieldmesh' },
+         'field': fm
+        }
+    
+    return d    
     
     
 def write_emfield_cylindrical_fieldmap(fieldmap, filePath):    
@@ -185,6 +200,13 @@ def write_emfield_cylindrical_fieldmap(fieldmap, filePath):
     """
     assert fieldmap['info']['format'] == 'emfield_cylindrical_fieldmesh'
     fieldmap['field'].write_superfish(filePath)    
+
+def write_emfield_cartesian_fieldmap(fieldmap, filePath):    
+    """
+    Writes a T7 style file for 111: EMfldCart data
+    """
+    assert fieldmap['info']['format'] == 'emfield_cartesian_fieldmesh'
+    fieldmap['field'].write_impact_emfield_cartesian(filePath)    
     
     
     
@@ -489,7 +511,7 @@ def run_RFcoef(z, fz, n_coef=20, z0=0, exe='RFcoeflcls'):
 
 
 
-FIELD_CALC_ELE_TYPES = ('solrf', 'solenoid', 'emfield_cylindrical')
+FIELD_CALC_ELE_TYPES = ('solrf', 'solenoid', 'emfield_cylindrical', 'emfield_cartesian')
 
 def ele_field(ele, *,
               x=0,
@@ -545,8 +567,8 @@ def ele_field(ele, *,
         raise NotImplementedError
     if y != 0:
         raise NotImplementedError
-    if component not in ('Bz', 'Ez'):
-        raise NotImplementedError
+    #if component not in ('Bz', 'Ez'):
+    #    raise NotImplementedError
 
     # Allow ControlGroup
     if isinstance(ele, ControlGroup):
@@ -577,39 +599,44 @@ def ele_field(ele, *,
     
     ele_type = ele['type'] 
     if ele_type == 'solrf':
-        field =  fmaps[ele['filename']]['field'][component]
-        freq = ele['rf_frequency']
-        theta0 = ele['theta0_deg'] * pi/180
+        if component in ('Bz', 'Ez'):
+            field =  fmaps[ele['filename']]['field'][component]
+            freq = ele['rf_frequency']
+            theta0 = ele['theta0_deg'] * pi/180
+            
+            # if ele['x_offset'] != 0:
+            #     raise NotImplementedError
+            # if ele['y_offset'] != 0:
+            #     raise NotImplementedError            
+            # if ele['x_rotation'] != 0:
+            #     raise NotImplementedError    
+            # if ele['y_rotation'] != 0:
+            #     raise NotImplementedError  
+            # if ele['z_rotation'] != 0:
+            #     raise NotImplementedError              
+            
+            if component == 'Bz':
+                scale = ele['solenoid_field_scale']
+            elif component == 'Ez':
+                scale = ele['rf_field_scale']
+            else:
+                raise NotImplementedError(f'component not implemented: {component}')
         
-        # if ele['x_offset'] != 0:
-        #     raise NotImplementedError
-        # if ele['y_offset'] != 0:
-        #     raise NotImplementedError            
-        # if ele['x_rotation'] != 0:
-        #     raise NotImplementedError    
-        # if ele['y_rotation'] != 0:
-        #     raise NotImplementedError  
-        # if ele['z_rotation'] != 0:
-        #     raise NotImplementedError              
-        
-        if component == 'Bz':
-            scale = ele['solenoid_field_scale']
-        elif component == 'Ez':
-            scale = ele['rf_field_scale']
+            fz = fieldmap_reconstruction_solrf(field, z_local)
+            
+            # Phase factor
+            scale *= cos(2*pi*freq*t + theta0)
+            fz *= scale
         else:
-            raise NotImplementedError(f'component not implemented: {component}')
-    
-        fz = fieldmap_reconstruction_solrf(field, z_local)
-        
-        # Phase factor
-        scale *= cos(2*pi*freq*t + theta0)
-        
-        fz *= scale
+            fz = 0
         
     elif ele_type == 'solenoid':
-        fm = fmaps[ele['filename']]['field']
-        fz = np.interp(z_local, fm.coord_vec('z'), np.real(fm[component][0,0,:]))
-        
+        if component in ('Bz', 'Ez'):
+            fm = fmaps[ele['filename']]['field']
+            fz = np.interp(z_local, fm.coord_vec('z'), np.real(fm[component][0,0,:]))
+        else:
+            fz = 0
+            
     elif ele_type == 'emfield_cylindrical':
         fm = fmaps[ele['filename']]['field']
         theta0 = ele['theta0_deg'] * pi/180
@@ -618,6 +645,17 @@ def ele_field(ele, *,
         fz_complex = np.interp(z_local, fm.coord_vec('z'), fm[component][0,0,:])
         
         fz = np.real(np.exp(-1j * (2*pi*freq*t + theta0)) * fz_complex * scale)
+
+    elif ele_type == 'emfield_cartesian':
+        fm = fmaps[ele['filename']]['field']
+        scale = ele['rf_field_scale']
+        point = np.zeros(3)
+        point[fm.axis_index('x')] = x
+        point[fm.axis_index('y')] = y
+        # Note: emfield_cartesian does not honor zmin in the fieldmap. 
+        point[fm.axis_index('z')] = z_local + fm.mins[fm.axis_index('z')]
+        fz = np.real(fm.interpolate(component,  point) * scale)
+
     
     return fz 
     

@@ -1,0 +1,21 @@
+! Impact-T input file
+!Npcol Nprow
+1 1
+!Dt Ntstep Nbunch
+1e-12 1000000 1
+!Dim Np Flagmap Flagerr Flagdiag Flagimg Zimage
+6 1 1 0 2 1 0.02
+!Nx Ny Nz Flagbc Xrad Yrad Perdlen
+32 32 32 1 0.002 0.002 5.0
+!Flagdist Rstartflg Flagsbstp Nemission Temission
+16 0 0 100 3.372134870829164e-26
+!sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
+0.0005 0.0009 0.0 1.0 1.0 0.0 0.0
+!sigy(m) sigpy muxpy yscale pyscale ymu1(m) ymu2
+0.0005 0.0009 0.0 1.0 1.0 0.0 0.0
+!sigz(m) sigpz muxpz zscale pzscale zmu1(m) zmu2
+5.934e-06 0.0 0.0 1.0 1.0 0.0 0
+!Bcurr Bkenergy Bmass Bcharge Bfreq Tini
+0.0 1.0 511005.0 -1.0 11424000000.0 -1.686067435414582e-26
+!=================== LATTICE ===================
+0.5 0 0 111 0.0 1 0.0 0 1 0.02 0.0 0.0 0.0 0.0 0.0 /!name:COIL
