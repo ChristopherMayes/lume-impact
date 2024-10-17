@@ -399,7 +399,7 @@ def new_write_beam(name=None, s=0, filename=None, sample_frequency=1, ref_eles=[
     if ref_eles:
         ilist += [extract_bmpstp(ele['filename']) for ele in ref_eles if ele['type'] == 'write_beam']
     
-    assert len(ilist) < 99, f'Too many write_beam elements. Only 100 allowed.'
+    assert len(ilist) < 99, 'Too many write_beam elements. Only 100 allowed.'
     
     if filename:
         inew = extract_bmpstp(filename)

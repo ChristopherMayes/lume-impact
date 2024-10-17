@@ -34,7 +34,7 @@ HDEFAULTS[2] = [0, 100000000, 1] # Dt must be set
 
 # Line 3
 HNAMES[3]    = ['Dim', 'Np', 'Flagmap', 'Flagerr', 'Flagdiag', 'Flagimg', 'Zimage']
-HTYPES[3]    = [int,   int,   int,      int,        int,       int,        float];
+HTYPES[3]    = [int,   int,   int,      int,        int,       int,        float]
 HDEFAULTS[3] = [999,   0,     1,        0,          2,         1,          0.02]
 
 # Line 4
@@ -2223,7 +2223,7 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
 
         # Replace all gammabeta_{k} including cov_{k1}__{k2}
         newkey, factor, extraunits = _replace_all_gammabeta_with_p(k, mc2)
-        if not k in data:
+        if k not in data:
             raise ValueError(f'{k} not in data!')
             
         if newkey != k:

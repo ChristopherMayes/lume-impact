@@ -2,8 +2,8 @@ from pmd_beamphysics.units import nice_array, nice_scale_prefix
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-from .lattice import ele_shape, ele_shapes, remove_element_types, ele_bounds, ele_overlaps_s
-from .fieldmaps import fieldmap_reconstruction_solrf, lattice_field, FIELD_CALC_ELE_TYPES
+from .lattice import ele_shape, remove_element_types, ele_bounds, ele_overlaps_s
+from .fieldmaps import lattice_field, FIELD_CALC_ELE_TYPES
 import numpy as np
 
 from pmd_beamphysics.labels import mathlabel
