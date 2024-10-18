@@ -3,8 +3,11 @@
 # Define an array of patterns to skip
 SKIP_LIST=("autophase" "awa_" "dipole" "movie")
 
+# Stop on first error
+set -e
 
 export PYDEVD_DISABLE_FILE_VALIDATION=1
+
 # Function to print colored text
 print_color() {
     case $1 in
@@ -52,7 +55,12 @@ do
     fi
 
     print_color "blue" "Executing $file"
-    jupyter nbconvert --to notebook --execute $file --inplace
+
+    # Run the notebook and stop on error
+    if ! jupyter nbconvert --to notebook --execute "$file" --inplace; then
+        print_color "red" "Error encountered while executing $file. Stopping."
+        exit 1
+    fi
 
     end_time=$(date +%s)  # End time in seconds
     elapsed=$((end_time - start_time))  # Calculate elapsed time in seconds
