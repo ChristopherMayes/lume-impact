@@ -37,7 +37,6 @@ nav:
     - API:
       - Impact: api/impact.md
 
-
 theme:
   icon:
     repo: fontawesome/brands/github
@@ -65,10 +64,6 @@ theme:
 markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
-
-markdown_extensions:
-  - pymdownx.highlight
-  - pymdownx.superfences
   - pymdownx.arithmatex: # Enable MathJAX https://squidfunk.github.io/mkdocs-material/reference/mathjax/
       generic: true
 
@@ -87,21 +82,21 @@ extra_css:
   - stylesheets/extra.css
 
 plugins:
-    - search
+  - search
 
-    - mkdocs-jupyter:
-        include_source: True
+  - mkdocs-jupyter:
+      include_source: True
 
-    - mkdocstrings:
-        default_handler: python
-        handlers:
-          python:
-            selection:
-              docstring_style: "numpy"
-              inherited_members: false
-              filters:
-                - "!^_"  # exclude all members starting with _
-                - "^__init__$"  # but always include __init__ modules and methods
-            rendering:
-              show_source: true
-              show_root_heading: true
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          selection:
+            docstring_style: "numpy"
+            inherited_members: false
+            filters:
+              - "!^_" # exclude all members starting with _
+              - "^__init__$" # but always include __init__ modules and methods
+          rendering:
+            show_source: true
+            show_root_heading: true
