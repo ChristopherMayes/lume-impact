@@ -185,7 +185,7 @@ def fast_autophase_ele(
     else:
         # This will restore the saved phase
         final_phase_deg = save_phase_deg
-        
+
     z1, pz1, dt = phase_f(final_phase_deg)
 
     #
@@ -197,7 +197,7 @@ def fast_autophase_ele(
     output = {}
     if dc_field:
         found_rel_phase_deg = 0
-        
+
     output["oncrest_phase_deg"] = acc_phase_deg % 360
     output["rel_phase_deg"] = found_rel_phase_deg
     output["dpz"] = pz1 - pz0
@@ -343,7 +343,7 @@ def fast_autophase_impact(
         d.update(out)
 
     settings = {name: info["rel_phase_deg"] for name, info in output.items()}
-    
+
     if full_output:
         output["final_particle"] = particle
         output["settings"] = settings

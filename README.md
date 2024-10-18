@@ -12,7 +12,7 @@ Basic usage:
 ```python
 from impact import Impact
 
-# Prepare Impact object. This will call I.configure() automatically. 
+# Prepare Impact object. This will call I.configure() automatically.
 I = Impact('/path/to/ImpactT.in', verbose=True)
 
 # Change some things
@@ -97,6 +97,3 @@ After these steps, the IMPACT-T executable `ImpactTexe` or `ImpactTexe-mpi`, res
 
 
 Visit [https://github.com/impact-lbl/IMPACT-T](https://github.com/impact-lbl/IMPACT-T) for these and further instructions, including those to build from source.
-
-
-

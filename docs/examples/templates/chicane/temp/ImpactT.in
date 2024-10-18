@@ -1,6 +1,6 @@
 ! processor layout
 ! col row
-1 1 
+1 1
 !
 ! information needed by the integrator:
 ! step-size, number of steps, and number of bunches/bins (??)

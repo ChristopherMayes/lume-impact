@@ -27,8 +27,8 @@
 
 !__________________Solenoid and correctors__________________
 0.49308 0 0 105 0.0 0.0 0.0 0.0 102 0.15 0.0 0.0 0.0 0.0 0.0 0.2457 /!name:SOL1
-! Corrector quads: skew and regular. 
-! Overlap SOL1. Effective length, radius estimated from measurements. 
+! Corrector quads: skew and regular.
+! Overlap SOL1. Effective length, radius estimated from measurements.
 ! Max field should be 0.00714 T/m
 0.36 0 0 1 0.01601 0.0 0.21 0.0254 0.0 0.0 0.0 0.0 0.7853981633974483 /!name:SQ01
 0.36 0 0 1 0.01601 0.0 0.21 0.0254 0.0 0.0 0.0 0.0 0.0 /!name:CQ01

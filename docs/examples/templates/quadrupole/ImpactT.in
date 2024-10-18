@@ -13,7 +13,7 @@
 32 32 32 1 0.015 0.015 45.0
 
 !Flagdist Rstartflg Flagsbstp Nemission Temission
-2 0 0  0 0 
+2 0 0  0 0
 
 !sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
 1e-3 0.0 0.0 1.0 1.0 0.0 0.0
@@ -30,10 +30,10 @@
 0 0 0 -5 0 0 -1000.0 /!name:2d_to_3d_spacecharge
 !0.2 0 0 1 0.5 2.98 0.108 0.016 0.0 0.0 0.0 0.0 0.0 /!name:QE04
 
-! Corrector quads: skew and regular. 
-! Overlap SOL1. 
+! Corrector quads: skew and regular.
+! Overlap SOL1.
 ! Leff = 0.210 m
-! Ltot = 0.36 m 
+! Ltot = 0.36 m
 !
 !
 0.36 0 0 1 0.01601  0.00714 0.210 0.0254 0.0 0.0 0.0 0.0 0.7853981633974483 /!name:SQ01

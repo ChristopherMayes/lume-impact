@@ -4,7 +4,7 @@ repo_name: ChristopherMayeslume-impact
 
 nav:
     - Home: index.md
-    
+
     - Examples:
         - Basic:
             - examples/basic_impact_examples.ipynb
@@ -22,7 +22,7 @@ nav:
             - examples/output_parsing_example.ipynb
             - examples/plotting_example.ipynb
         - Elements:
-            - examples/elements/drift.ipynb        
+            - examples/elements/drift.ipynb
             - examples/elements/apex_gun.ipynb
             #- examples/elements/dipole.ipunb
             - examples/elements/quadrupole.ipynb
@@ -30,9 +30,9 @@ nav:
             - examples/elements/tesla_9cell_cavity.ipynb
             - examples/elements/traveling_wave_cavity.ipynb
             - examples/elements/wakefield.ipynb
-            - examples/elements/3d_field.ipynb            
+            - examples/elements/3d_field.ipynb
             - examples/elements/awa_flatbeam.ipynb
-     
+
 
     - API:
       - Impact: api/impact.md
@@ -70,11 +70,11 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.arithmatex: # Enable MathJAX https://squidfunk.github.io/mkdocs-material/reference/mathjax/
-      generic: true  
-      
+      generic: true
+
 extra_javascript:
   - javascripts/mathjax.js
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js      
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 extra:
   generator: false
@@ -82,16 +82,16 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/ChristopherMayes/lume-impact
       name: LUME-Impact
-      
+
 extra_css:
-  - stylesheets/extra.css      
-      
+  - stylesheets/extra.css
+
 plugins:
     - search
-      
+
     - mkdocs-jupyter:
         include_source: True
-          
+
     - mkdocstrings:
         default_handler: python
         handlers:
@@ -105,9 +105,3 @@ plugins:
             rendering:
               show_source: true
               show_root_heading: true
-
-
-
-
-
-

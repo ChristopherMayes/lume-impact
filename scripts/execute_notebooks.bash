@@ -4,7 +4,7 @@
 SKIP_LIST=("autophase" "awa_" "dipole" "movie")
 
 
-export PYDEVD_DISABLE_FILE_VALIDATION=1 
+export PYDEVD_DISABLE_FILE_VALIDATION=1
 # Function to print colored text
 print_color() {
     case $1 in
@@ -53,7 +53,7 @@ do
 
     print_color "blue" "Executing $file"
     jupyter nbconvert --to notebook --execute $file --inplace
-    
+
     end_time=$(date +%s)  # End time in seconds
     elapsed=$((end_time - start_time))  # Calculate elapsed time in seconds
     print_color "green" "Execution time for $file: ${elapsed}s"
