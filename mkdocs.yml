@@ -43,7 +43,7 @@ theme:
     repo: fontawesome/brands/github
   name: material
 
-  custom_dir: overrides
+  custom_dir: docs/overrides
   features:
     - navigation.top
     - navigation.tabs

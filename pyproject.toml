@@ -24,7 +24,7 @@ dynamic = [ "version" ]
 keywords = []
 name = "lume-impact"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 
 [project.optional-dependencies]
 dev = [
@@ -57,7 +57,7 @@ file = "LICENSE"
 
 [tool.ruff]
 # select = []
-# ignore = []
+ignore = ["E741"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=impact/"
