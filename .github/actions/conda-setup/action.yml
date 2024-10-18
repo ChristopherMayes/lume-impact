@@ -8,7 +8,7 @@ inputs:
   python-version:
     description: "Conda environment Python version"
     required: false
-    default: "3.12"
+    default: "3.9"
   env_name:
     description: "Conda environment name to create"
     required: false
@@ -20,11 +20,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup Mambaforge
+    - name: Setup Miniforge
       uses: conda-incubator/setup-miniconda@v3
       with:
-        miniforge-variant: Mambaforge
         activate-environment: ${{ inputs.env_name }}
+        miniforge-version: latest
         use-mamba: true
         channels: conda-forge
     - name: Update Python version in environment.yml
@@ -39,7 +39,7 @@ runs:
       shell: bash -l {0}
       run: |
         echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       with:
         path: ${{ env.CONDA }}/envs
         key: conda-${{ hashFiles(inputs.filename) }}-${{ env.DATE }}
