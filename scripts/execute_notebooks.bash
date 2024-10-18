@@ -10,27 +10,31 @@ export PYDEVD_DISABLE_FILE_VALIDATION=1
 
 # Function to print colored text
 print_color() {
-    case $1 in
-        red)
-            color_code=$(tput setaf 1)
-            ;;
-        green)
-            color_code=$(tput setaf 2)
-            ;;
-        yellow)
-            color_code=$(tput setaf 3)
-            ;;
-        blue)
-            color_code=$(tput setaf 4)
-            ;;
-        reset)
-            color_code=$(tput sgr0)
-            ;;
-        *)
-            color_code=$(tput sgr0)
-            ;;
-    esac
-    echo -e "${color_code}$2$(tput sgr0)"
+    if [[ -t 1 && "$TERM" != "dumb" ]]; then  # Check if terminal supports colors
+        case $1 in
+            red)
+                color_code=$(tput setaf 1)
+                ;;
+            green)
+                color_code=$(tput setaf 2)
+                ;;
+            yellow)
+                color_code=$(tput setaf 3)
+                ;;
+            blue)
+                color_code=$(tput setaf 4)
+                ;;
+            reset)
+                color_code=$(tput sgr0)
+                ;;
+            *)
+                color_code=$(tput sgr0)
+                ;;
+        esac
+        echo -e "${color_code}$2$(tput sgr0)"
+    else
+        echo "$2"  # No color in environments without valid terminal
+    fi
 }
 
 NOTEBOOKS=$(find . -type f -name "*.ipynb" -not -path '*/.*')
