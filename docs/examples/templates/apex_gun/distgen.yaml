@@ -6,7 +6,7 @@ start:
   MTE:
     units: meV
     value: 250
-    
+
 total_charge:
   units: pC
   value: 100
@@ -16,7 +16,7 @@ r_dist:
   max_r:
     units: mm
     value: 0.5
-  
+
 t_dist:
   type: gaussian
   avg_t:
@@ -26,4 +26,3 @@ t_dist:
     units: ps
     value: 8.5
   n_sigma_cutoff: 3
-  

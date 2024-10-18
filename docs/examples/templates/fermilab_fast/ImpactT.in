@@ -40,7 +40,7 @@
 0.167 10 20 1 8.7997 -1.565 0.0 0.0 0.0 0.0 0.0 0.0 0.785398 /
 0.4409 10 20 0 8.9667 0.1 /
 ! Q108 measured center: 9.491161 (ok)
-0.167 10 20 1 9.4076 0.0 0.0 0.050 0.0 0.0 0.0 0.0 0.0 / 
+0.167 10 20 1 9.4076 0.0 0.0 0.050 0.0 0.0 0.0 0.0 0.0 /
 0.2151 10 20 0 9.5746 0.1 /
 ! Q109 measured center: 9.873153 (ok)
 0.167 10 20 1 9.7897 0.0 0.0 0.050 0.0 0.0 0.0 0.0 0.0 /
@@ -59,7 +59,7 @@
 ! here is center of D114 measured: 11.927809
 ! center of D114 measured: 11.927809
 ! chicane starts at center of D114 -0.32005 (to account for fringe fields)
-0.319637 10 20 0 11.288122 0.1 / 
+0.319637 10 20 0 11.288122 0.1 /
 ! here is the "effective" start of chicane z=11.607759
 ! chicane is here By=0.161847 corresponds to gamma = 86.1057 (44 MeV):
 ! crest 0.128811532
@@ -90,7 +90,7 @@
 !
 !
 !
-!4.509509 10 20 0 11.288122 0.1 / 
+!4.509509 10 20 0 11.288122 0.1 /
 !! chicane is here:
 !! center of D114 measured: 11.927809
 !! center of D117 measured: 15.095763
@@ -106,5 +106,3 @@
 !! here is goniometer center
 !! X121 measured: 17.420843
 !!0.5 10 20 0 17.420843 0.1 /
-
-

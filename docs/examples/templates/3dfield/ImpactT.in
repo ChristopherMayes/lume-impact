@@ -1,5 +1,5 @@
 ! col row
-  1  1 
+  1  1
 ! dt      Ntstep  Nbunch
 0.25e-12   1000000   1
 ! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m)
@@ -16,7 +16,7 @@
   0.0005        0.0009  0.0     1.0     1.0      0.000           0.0
   0.0005        0.0009  0.0     1.0     1.0      0.0000          0.0
   5.934e-06        0.000  0.0     5.934e-07     1.0    0.0   0.001978
-! curent=charge/frequency 
+! curent=charge/frequency
 2.856  1.0 0.511005e+06 -1.0 11424.0e6 0.0
 !
 !3d tracking and step size

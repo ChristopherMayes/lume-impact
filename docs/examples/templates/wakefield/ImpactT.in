@@ -13,7 +13,7 @@
 32 32 32 1 0.015 0.015 45.0
 
 !Flagdist Rstartflg Flagsbstp Nemission Temission
-2 0 0  0 0 
+2 0 0  0 0
 
 !sigx(m) sigpx muxpx xscale pxscale xmu1(m) xmu2
 1e-6 0.0 0.0 1.0 1.0 0.0 0.0
@@ -22,7 +22,7 @@
 1e-6 0.0 0.0 1.0 1.0 0.0 0.0
 
 !sigz(m) sigpz muxpz zscale pzscale zmu1(m) zmu2
-.0001    0.0 0.0 1.0 1.0 0 1956.9471624266146     ! 1 GeV 
+.0001    0.0 0.0 1.0 1.0 0 1956.9471624266146     ! 1 GeV
 
 !Bcurr Bkenergy Bmass Bcharge Bfreq Tini
 1.0 1.0 510998.95 -1.0 1e9 0.0

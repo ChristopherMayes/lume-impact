@@ -97,7 +97,6 @@ def fast_autophase_ele(
         )
 
     # Get ele info
-    name = ele["name"]
     zedge = ele["zedge"]
     L = ele["L"]
     freq = ele["rf_frequency"]
@@ -123,7 +122,8 @@ def fast_autophase_ele(
 
     # Put in ele frame
     # Field function
-    Ez_f = lambda z, t: ele_field(ele, t=t, z=z + zedge, fmaps=fmaps, component="Ez")
+    def Ez_f(z, t):
+        return ele_field(ele, t=t, z=z + zedge, fmaps=fmaps, component="Ez")
 
     # Estimate for accelerating phase at v=c
     if debug:
@@ -185,7 +185,7 @@ def fast_autophase_ele(
     else:
         # This will restore the saved phase
         final_phase_deg = save_phase_deg
-        
+
     z1, pz1, dt = phase_f(final_phase_deg)
 
     #
@@ -197,7 +197,7 @@ def fast_autophase_ele(
     output = {}
     if dc_field:
         found_rel_phase_deg = 0
-        
+
     output["oncrest_phase_deg"] = acc_phase_deg % 360
     output["rel_phase_deg"] = found_rel_phase_deg
     output["dpz"] = pz1 - pz0
@@ -285,7 +285,6 @@ def fast_autophase_impact(
 
     particle = single_particle(t=t0, pz=pz0, species=species)
     q0 = particle.species_charge / e_charge
-    mc2 = particle.mass
 
     # Select ones for phasing
     autophase_eles = select_autophase_eles(impact_object)
@@ -343,7 +342,7 @@ def fast_autophase_impact(
         d.update(out)
 
     settings = {name: info["rel_phase_deg"] for name, info in output.items()}
-    
+
     if full_output:
         output["final_particle"] = particle
         output["settings"] = settings

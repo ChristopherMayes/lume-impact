@@ -35,8 +35,8 @@
 !Here, the phase of line 2 is the phase of line 1 + 30 degrees;
 !the phase of line 3 is the phase of line 1 + 90 degrees.
 !the phase of line 4 is the same as the line 1;
-!the field scale of line 2 is the scale of the line 1/sin(beta d) 
-!the field scale of line 3 is the scale of the line 1/sin(beta d) 
+!the field scale of line 2 is the scale of the line 1/sin(beta d)
+!the field scale of line 3 is the scale of the line 1/sin(beta d)
 !the scale of line 4 is the same as the line 1;
 !See the sample03 to see the generating those rfdata4-7 input files.
 0.052464 0 0 105 1.42     25500000.0       2856000000.0 119.0 4 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_entrance
@@ -44,7 +44,7 @@
 2.937928 0 0 105 1.472464 29430178.7820912 2856000000.0 209.0 6 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_body_2
 0.05246 0 0 105  4.410392 25500000.0       2856000000.0 119.0 7 0.15 0.0 0.0 0.0 0.0 0.0 0.0 /!name:solrf_exit
 0.537148 0 0 0 4.462852 0.15 /!name:drift_1
-! 
+!
 ! frf = 2856000000.0
 ! c = 299792458.
 ! pi = np.pi
