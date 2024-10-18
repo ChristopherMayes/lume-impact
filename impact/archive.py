@@ -9,7 +9,6 @@ from .fieldmaps import solrf_field_from_data, data_from_solrf_fieldmap, upgrade_
 from .tools import fstr, isotime, native_type
 from .control import ControlGroup
 
-from tempfile import NamedTemporaryFile
 import warnings
 import numpy as np
 

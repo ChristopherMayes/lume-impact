@@ -1,4 +1,4 @@
-from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_DIPOLE_STAT_TYPES, FORT_PARTICLE_TYPES, FORT_SLICE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info, fort_files
+from .parsers import parse_impact_input, load_many_fort, FORT_STAT_TYPES, FORT_DIPOLE_STAT_TYPES, FORT_PARTICLE_TYPES, header_str, header_bookkeeper, parse_impact_particles, load_stats, load_slice_info, fort_files
 from . import archive, writers, fieldmaps, tools
 from .lattice import ele_dict_from, ele_str, get_stop, set_stop, insert_ele_by_s
 from .control import ControlGroup
@@ -20,9 +20,7 @@ from scipy.interpolate import interp1d
 import h5py
 import numpy as np
 
-import yaml
 
-import tempfile
 import functools
 from time import time
 from copy import deepcopy

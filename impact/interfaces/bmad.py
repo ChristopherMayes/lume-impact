@@ -49,6 +49,128 @@ def ele_info(tao, ele_id):
     
     return edat
 
+
+
+def tao_create_impact_emfield_cartesian_ele(tao,
+                            ele_id,
+                            *, 
+                            file_id=666, 
+                            output_path=None,
+                            cache=None,
+                            name=None
+                               ):
+    """
+    Create an Impact-T emfield_cartesia element from a running PyTao Tao instance.
+    
+    Parameters
+    ----------
+    
+    tao: Tao object
+    
+    ele_id: str:
+        element name or index
+
+    file_id: int, default: 666
+    
+    output_path: str, default: None
+        If given, the 1T{file_id}.T7 file will be written to this path    
+    
+    cache: dict, default: None
+        FieldMesh file cache dict: {filename:FieldMesh(filename)}
+        If not none, this will cache fieldmaps and update this dict.
+        
+    
+    Returns
+    -------
+    dict with:
+      line: str
+          Impact-T style element line
+          
+      ele: dict
+          LUME-Impact style element
+    
+    """
+    
+    
+    # Ele info from Tao
+    edat = ele_info(tao, ele_id)
+    ix_ele =  edat['ix_ele']
+
+    # Keys
+    ele_key = edat['key'].upper() 
+    if ele_key not in ('EM_FIELD', ):
+        raise NotImplementedError(f"{ele_key}")
+    
+    if name is None:
+        name =  edat['name']
+    
+    # FieldMesh
+    grid_params = tao.ele_grid_field(ix_ele, 1, 'base', as_dict=False)
+    field_file = grid_params['file'].value   
+    if cache is not None:
+        if field_file in cache:
+            field_mesh = cache[field_file]
+        else:
+            # Add to cache
+            field_mesh = FieldMesh(field_file)   
+            cache[field_file] = field_mesh
+            
+    else:
+        field_mesh = FieldMesh(field_file)   
+    
+    if not field_mesh.is_static:
+        raise NotImplementedError('oscillating fields not yet implemented')
+
+    
+    # Scaling
+    master_parameter = grid_params['master_parameter'].value
+    if master_parameter == '<None>':
+        master_parameter = 'FIELD_AUTOSCALE'
+    scale = edat[master_parameter]        
+        
+
+    
+    
+    # Find zedge
+    eleAnchorPt = field_mesh.attrs['eleAnchorPt']
+    if eleAnchorPt == 'beginning':
+        zedge = edat['s_begin']
+    elif eleAnchorPt == 'center':
+        # Use full fieldmap!!!
+        z0 = field_mesh.mins[field_mesh.axis_index('z')]
+        zedge = edat['s_center'] + z0 # Wrong: -L_fm/2
+    else:
+        raise NotImplementedError(f'{eleAnchorPt} not implemented')        
+        
+        
+    outdat = {}
+
+    # Add field integrals
+    info = outdat['info'] = {}
+    for key in ('Bx', 'By', 'Bz', 'Ex', 'Ey', 'Ez'):
+        z, fz = field_mesh.axis_values('z', key)
+        info[f'integral_{key}_dz'] = np.trapezoid(fz, z)
+        
+
+
+    # Call the fieldmesh method
+    dat = field_mesh.to_impact_emfield_cartesian(
+                                   zedge=zedge,
+                                   name=name,
+                                   scale=scale,
+                                   phase=0,
+                                   x_offset = edat['X_OFFSET'],
+                                   y_offset = edat['Y_OFFSET'],
+                                   file_id=file_id,
+                                output_path=output_path)
+    # Add this to output
+    outdat.update(dat)
+    
+
+    return outdat
+
+
+
 def tao_create_impact_solrf_ele(tao,
                             ele_id,
                             *, 
@@ -323,6 +445,7 @@ def tao_create_impact_quadrupole_ele(tao, ele_id,
 
 
 def tao_create_impact_lattice_and_fieldmaps(tao,
+                                            emfield_cartesian_eles='EM_FIELD::*',
                                             solrf_eles='E_GUN::*,SOLENOID::*,LCAVITY::*', 
                                             quadrupole_eles = 'quad::*',
                                             fieldmap_style='fourier',
@@ -364,7 +487,12 @@ def tao_create_impact_lattice_and_fieldmaps(tao,
     unique_name = tao_unique_names(tao)
     
     # Extract elements to use
-    ele_ixs = tao.lat_list(solrf_eles, 'ele.ix_ele', flags='-array_out -no_slaves')
+    emfield_cartesian_ele_ixs = list(tao.lat_list(emfield_cartesian_eles, 'ele.ix_ele', flags='-array_out -no_slaves'))
+    solrf_ele_ixs = list(tao.lat_list(solrf_eles, 'ele.ix_ele', flags='-array_out -no_slaves'))
+
+    # Large list
+    ele_ixs = emfield_cartesian_ele_ixs + solrf_ele_ixs
+
     # Make a dict of field_file:file_id
     field_files = {ele_ix:tao.ele_grid_field(ele_ix, 1, 'base', as_dict=False)['file'].value for ele_ix in ele_ixs}
     # Make file_id lookup table
@@ -379,13 +507,21 @@ def tao_create_impact_lattice_and_fieldmaps(tao,
     for ix_ele in ele_ixs:
         file_id = file_id_lookup[field_files[ix_ele]]
         #name = unique_name[ix_ele]
-        res = tao_create_impact_solrf_ele(tao,
-            ele_id=ix_ele,
-            style = fieldmap_style,
-            n_coef=n_coef,     
-            file_id=file_id,
-            cache=cache,
-            name=None) # Assume unique. TODO: better logic.
+
+        if ix_ele in solrf_ele_ixs:
+            res = tao_create_impact_solrf_ele(tao,
+                ele_id=ix_ele,
+                style = fieldmap_style,
+                n_coef=n_coef,     
+                file_id=file_id,
+                cache=cache,
+                name=None) # Assume unique. TODO: better logic.
+        else:
+            res = tao_create_impact_emfield_cartesian_ele(tao,
+                            ele_id=ix_ele,
+                            file_id=file_id, 
+                            cache=cache,
+                            name=None)
         ele = res['ele']
         lattice.append(ele)
         fieldmaps[ele['filename']] = res['fmap']

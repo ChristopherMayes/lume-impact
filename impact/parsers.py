@@ -34,7 +34,7 @@ HDEFAULTS[2] = [0, 100000000, 1] # Dt must be set
 
 # Line 3
 HNAMES[3]    = ['Dim', 'Np', 'Flagmap', 'Flagerr', 'Flagdiag', 'Flagimg', 'Zimage']
-HTYPES[3]    = [int,   int,   int,      int,        int,       int,        float];
+HTYPES[3]    = [int,   int,   int,      int,        int,       int,        float]
 HDEFAULTS[3] = [999,   0,     1,        0,          2,         1,          0.02]
 
 # Line 4
@@ -1411,7 +1411,7 @@ fieldmap_parsers = {
     'solrf':fieldmaps.read_solrf_fieldmap,
     'solenoid':fieldmaps.read_solenoid_fieldmap,
     'emfield_cylindrical':fieldmaps.read_emfield_cylindrical_fieldmap, # TODO: better parsing
-    'emfield_cartesian':fieldmaps.read_fieldmap_symlink    # TODO: better parsing
+    'emfield_cartesian':fieldmaps.read_emfield_cartesian_fieldmap,
 }
 
 def load_fieldmaps(eles, dir):
@@ -1657,10 +1657,35 @@ def parse_impact_particles(filePath,
 #-----------------------------------------------------------------  
 # Parsers for Impact-T fort.X output
 
+import re
+
+def _load_ascii_with_missing_exponent(file_path, **kwargs):
+
+    # Define a regex to find numbers that lack the 'E' before the exponent
+    pattern = re.compile(r'([+-]?\d*\.\d+)([+-]\d+)')
+    
+    # Create a list to hold the corrected lines
+    corrected_lines = []
+
+    # Read the file and correct the lines
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Substitute matches with the corrected scientific notation
+            fixed_line = pattern.sub(r'\1E\2', line)
+            corrected_lines.append(fixed_line)
+    
+    # Convert the list of corrected lines to a single string
+    corrected_data = '\n'.join(corrected_lines)
+    
+    # Use numpy's loadtxt with ndmin=2 to ensure at least 2D output
+    data = np.loadtxt(corrected_data.splitlines(), **kwargs)
+    
+    return data
+
 def load_fortX(filePath, keys):
     data = {}
     #Load the data 
-    fortdata = np.loadtxt(filePath, ndmin=2)
+    fortdata = _load_ascii_with_missing_exponent(filePath, ndmin=2)
     if len(fortdata) == 0:
         raise ValueError(f'{filePath} is empty')
     for count, key in enumerate(keys):
@@ -2198,7 +2223,7 @@ def load_stats(path, species='electron', types=FORT_STAT_TYPES, verbose=False):
 
         # Replace all gammabeta_{k} including cov_{k1}__{k2}
         newkey, factor, extraunits = _replace_all_gammabeta_with_p(k, mc2)
-        if not k in data:
+        if k not in data:
             raise ValueError(f'{k} not in data!')
             
         if newkey != k:

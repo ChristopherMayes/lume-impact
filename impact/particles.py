@@ -1,6 +1,5 @@
 
 
-from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.particles import single_particle
 
 import scipy.constants
@@ -10,7 +9,6 @@ m_p = scipy.constants.value('proton mass energy equivalent in MeV')*1e6
 c_light = 299792458
 e_charge = scipy.constants.e
 
-import numpy as np
 
 SPECIES_MASS = {
     'electron': m_e,
