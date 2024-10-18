@@ -12,7 +12,7 @@ def test_basic_init_run_archive():
     # Use the tempdir as scratch
     afile = os.path.join(I.path, "test.h5")
     I.archive(afile)
-    I2 = Impact.from_archive(afile)
+    Impact.from_archive(afile)
 
 
 def test_plot():

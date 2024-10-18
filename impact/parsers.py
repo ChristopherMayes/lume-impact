@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 import os
-
+import re
 
 # -----------------
 # Parsing ImpactT input file
@@ -191,37 +191,6 @@ help["Bmass"] = "Mass of the particles in eV."
 help["Bcharge"] = "Particle charge in units of proton charge."
 help["Bfreq"] = "Reference frequency in Hz."
 help["Tini"] = "Initial reference time in seconds."
-
-
-def header_is_good(header_dict):
-    """
-    Sanity check of header.
-    """
-    good = False
-
-    if header_dict["Flagmap"] != 1:
-        return False
-    if header_dict["Flagbc"] != 1:
-        return False
-
-    h = header_dict.copy()
-    # These keys must be in header
-    for k in ALL_HEADER_NAMES:
-        if k not in h:
-            print("Missing key:", k)
-            return False
-        else:
-            v1 = h.pop(k, None)
-            # Check type conversion
-            v2 = HEADER_TYPE_OF[k](v1)
-            if v1 - v2 != 0:
-                print("Type conversion failed: ", v1, v2)
-                return False
-
-    if len(h) == 0:
-        good = True
-
-    return good
 
 
 def header_str(H):
@@ -771,7 +740,7 @@ def dipole_v(ele):
 
     """
     # Let v[0] be the original ele, so the indexing looks the same.
-    dummy = 0.0
+
     # Get file integer
     f = ele["filename"]
     ii = int(f.split("rfdata")[1])
@@ -1573,16 +1542,12 @@ def add_s_position(elelist, s0=0):
 
     TODO: This isn't right
     """
-    # s0 = -2.1459294
-    s = s0
     for ele in elelist:
         if "s" not in ele and "zedge" in ele:
             ele["s"] = ele["zedge"] + ele["L"]
             # Skip these.
             # if e['type'] in ['change_timestep', 'offset_beam', 'spacecharge', 'stop', 'write_beam', 'write_beam_for_restart']:
             continue
-    # s = s + e['L']
-    # e['s'] = s
 
 
 def create_names(elelist):
@@ -1630,7 +1595,7 @@ def parse_impact_input(filePath, verbose=False):
                 "Warning: Non-utf8 characters were detected in the input file and ignored."
             )
             data = f.read()
-    except:
+    except Exception:
         raise ValueError("Unxpected error while reading input file!!!")
 
     lines = data.split("\n")
@@ -1705,8 +1670,6 @@ def parse_impact_particles(
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 # Parsers for Impact-T fort.X output
-
-import re
 
 
 def _load_ascii_with_missing_exponent(file_path, **kwargs):
@@ -2156,19 +2119,6 @@ def fort_files(path):
         if f.startswith("fort."):
             fortfiles.append(os.path.join(path, f))
     return sorted(fortfiles)
-
-
-def fort_type(filePath):
-    """
-    Extract the integer type of a fort.X file, where X is the type.
-    """
-    fullpath = os.path.abspath(filePath)
-    p, f = os.path.split(fullpath)
-    s = f.split(".")
-    if s[0] != "fort":
-        print("Error: not a fort file:", filePath)
-    else:
-        return int(s[1])
 
 
 FORT_DESCRIPTION = {

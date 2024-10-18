@@ -47,7 +47,7 @@ def plot_stat(impact_object, y="sigma_x", x="mean_z", nice=True):
             [I.particles[name][y] / f2 for name in I.particles],
             color="red",
         )
-    except:
+    except Exception:
         pass
 
     # return fig
@@ -287,7 +287,7 @@ def plot_stats_with_layout(
                     Pnames.append(pname)
                     X_particles.append(xp)
             X_particles = np.array(X_particles)
-        except:
+        except Exception:
             Pnames = []
     else:
         Pnames = []
@@ -355,7 +355,7 @@ def plot_stats_with_layout(
                     ax.scatter(
                         X_particles / factor_x, Y_particles / factor, color=color
                     )
-                except:
+                except Exception:
                     pass
 
         # Handle tex labels
@@ -468,7 +468,6 @@ def add_fieldmaps_to_axes(
     # pre-filter
     eles = [ele for ele in impact_object.lattice if ele["type"] in FIELD_CALC_ELE_TYPES]
 
-    dat = {}
     ax2 = ax.twinx()
 
     lines = []

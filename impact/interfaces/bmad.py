@@ -278,7 +278,6 @@ def tao_create_impact_solrf_ele(
     else:
         zmirror = False
 
-    L_fm = field_mesh.dz * (field_mesh.shape[2] - 1)
     z0 = field_mesh.coord_vec("z")
 
     # Find zedge
@@ -329,7 +328,6 @@ def tao_create_impact_solrf_ele(
         phi0_user = sum([edat["PHI0"], edat["PHI0_ERR"]])
         phi0_oncrest = sum([edat["PHI0_AUTOSCALE"], phi0_fieldmap, -phi0_ref])
         phi0_tot = (phi0_oncrest + phi0_user) % 1
-        theta0_deg = phi0_tot * 360
 
         # Useful info for scaling
         acc_v0, acc_phase0 = accelerating_voltage_and_phase(
@@ -563,7 +561,7 @@ def impact_from_tao(tao, fieldmap_style="fourier", n_coef=30, cls=None):
     I.input["fieldmaps"].update(fieldmaps)
 
     # Remove default eles
-    drift_ele = I.lattice.pop(1)
+    I.lattice.pop(1)  # drift_ele
     stop_ele = I.lattice.pop(-1)
     lattice = I.lattice + deepcopy(lattice) + [stop_ele]
 

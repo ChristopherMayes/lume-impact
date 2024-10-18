@@ -98,7 +98,7 @@ def plot_dipole_fieldmap(data, g=None, L=None, ref_data=None, **kwargs):
     if g is None:
         g = 0
         L = 1
-        Xend = L
+        # Xend = L
         Yend = 0
     else:
         s = np.linspace(0, L, 100)
@@ -107,7 +107,7 @@ def plot_dipole_fieldmap(data, g=None, L=None, ref_data=None, **kwargs):
         Y = -(1 - np.cos(g * s)) / g
         ax.plot(X, Y, color="black", linestyle="solid")
 
-        Xend = X[-1]
+        # Xend = X[-1]
         Yend = Y[-1]
 
     add_line(ax, d["k1"], d["b1"], p=0.1, linestyle="--", label="L1")

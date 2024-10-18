@@ -186,7 +186,6 @@ def write_input_h5(h5, input, name="input", include_fieldmaps=True):
     header = input["header"]
     lattice = input["lattice"]
     lines = header_lines(header) + lattice_lines(lattice)
-    data = "\n".join(lines)
     g.attrs["ImpactT.in"] = "\n".join(lines)
 
     # Header

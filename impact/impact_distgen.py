@@ -128,7 +128,7 @@ def fingerprint_impact_with_distgen(impact_object, distgen_object):
     """
     f1 = impact_object.fingerprint()
     f2 = distgen_object.fingerprint()
-    d = {"f1": f1, "f2": 2}
+    d = {"f1": f1, "f2": f2}
     return tools.fingerprint(d)
 
 

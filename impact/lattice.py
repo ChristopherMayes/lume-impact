@@ -213,8 +213,6 @@ def ele_shape(ele):
         if ele["rf_field_scale"] == 0 and ele["solenoid_field_scale"] != 0:
             type = "solenoid"
 
-    factor = 1.0
-
     if type == "quadrupole":
         b1 = q_sign * ele["b1_gradient"] / 5
         if b1 > 0:
@@ -227,8 +225,6 @@ def ele_shape(ele):
     else:
         top = ELE_HEIGHT[type]
         bottom = -top
-
-    c = ELE_COLOR[type]
 
     # DEBUG
     if "L" not in ele:

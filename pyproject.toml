@@ -57,7 +57,7 @@ file = "LICENSE"
 
 [tool.ruff]
 # select = []
-ignore = ["E741"]
+lint.ignore = ["E741"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=impact/"

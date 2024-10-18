@@ -35,4 +35,4 @@ for k in ele_type:
     itype_of[ele_type[k]] = k
 
 
-LLine["drift"] = [("zedge", ""), ("radius", "radius (Not used)")]
+# LLine["drift"] = [("zedge", ""), ("radius", "radius (Not used)")]
