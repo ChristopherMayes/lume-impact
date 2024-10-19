@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define an array of patterns to skip
-SKIP_LIST=("autophase" "awa_" "dipole" "movie")
+SKIP_LIST=("autophase" "awa_" "devel_" "dipole" "movie")
 
 # Stop on first error
 set -e
