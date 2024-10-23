@@ -28,7 +28,6 @@ I.run()
 
 # Plot the results
 I.plot()
-
 ```
 
 
