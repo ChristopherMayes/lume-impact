@@ -56,7 +56,7 @@ def tao_create_impact_emfield_cartesian_ele(
     tao, ele_id, *, file_id=666, output_path=None, cache=None, name=None
 ):
     """
-    Create an Impact-T emfield_cartesia element from a running PyTao Tao instance.
+    Create an Impact-T emfield_cartesian element from a running PyTao Tao instance.
 
     Parameters
     ----------
@@ -122,33 +122,57 @@ def tao_create_impact_emfield_cartesian_ele(
         master_parameter = "FIELD_AUTOSCALE"
     scale = edat[master_parameter]
 
+    # check lengths
+    z0 = field_mesh.zmin
+    z1 = field_mesh.zmax
+    L_fm = z1 - z0
+    L_ele = edat["L"]
+    if L_fm != L_ele:
+        raise NotImplementedError(
+            f"Element length {L_ele} currently must be the same as the fieldmap length {L_fm}"
+        )
+
     # Find zedge
     eleAnchorPt = field_mesh.attrs["eleAnchorPt"]
     if eleAnchorPt == "beginning":
         zedge = edat["s_begin"]
     elif eleAnchorPt == "center":
-        # Use full fieldmap!!!
-        z0 = field_mesh.mins[field_mesh.axis_index("z")]
-        zedge = edat["s_center"] + z0  # Wrong: -L_fm/2
+        # Set this so that the anchor is effectively at zedge
+        field_mesh.zmin = 0
+        zedge = edat["s_center"] - L_fm / 2
     else:
         raise NotImplementedError(f"{eleAnchorPt} not implemented")
 
     outdat = {}
-
     # Add field integrals
     info = outdat["info"] = {}
     for key in ("Bx", "By", "Bz", "Ex", "Ey", "Ez"):
         z, fz = field_mesh.axis_values("z", key)
         info[f"integral_{key}_dz"] = np.trapezoid(fz, z)
 
+    x_offset = edat["X_OFFSET"]
+    y_offset = edat["Y_OFFSET"]
+    x_rotation = -edat["Y_PITCH"]  # Note: x_rotation is equivalent to a y pitch
+    y_rotation = edat["X_PITCH"]
+
+    # TODO: check this
+    x_offset = x_offset + np.sin(edat["X_PITCH"]) * L_fm / 2
+    y_offset = y_offset - np.sin(edat["Y_PITCH"]) * L_fm / 2
+
+    # TODO: this needs to be corrected because rotations are about the beginning.
+    z_offset = 0
+
     # Call the fieldmesh method
     dat = field_mesh.to_impact_emfield_cartesian(
-        zedge=zedge,
+        zedge=zedge + z_offset,
         name=name,
         scale=scale,
         phase=0,
-        x_offset=edat["X_OFFSET"],
-        y_offset=edat["Y_OFFSET"],
+        x_offset=x_offset,
+        y_offset=y_offset,
+        x_rotation=x_rotation,
+        y_rotation=y_rotation,
+        z_rotation=edat["TILT"],
         file_id=file_id,
         output_path=output_path,
     )
