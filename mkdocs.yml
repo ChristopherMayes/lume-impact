@@ -22,8 +22,8 @@ nav:
             - examples/output_parsing_example.ipynb
             - examples/plotting_example.ipynb
         - Conversion:
-            - bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
-            - bmad_to_impact/corrector_coil/compare.ipynb
+            - examples/bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
+            - examples/bmad_to_impact/corrector_coil/compare.ipynb
         - Elements:
             - examples/elements/drift.ipynb
             - examples/elements/apex_gun.ipynb
