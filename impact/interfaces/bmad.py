@@ -275,8 +275,8 @@ def tao_create_impact_solrf_ele(
         name = edat["name"]
 
     # FieldMesh
-    grid_params = tao.ele_grid_field(ix_ele, 1, "base", as_dict=False)
-    field_file = grid_params["file"].value
+    grid_params = tao.ele_grid_field(ix_ele, 1, "base")
+    field_file = grid_params["file"]
     if cache is not None:
         if field_file in cache:
             field_mesh = cache[field_file]
@@ -293,7 +293,7 @@ def tao_create_impact_solrf_ele(
     assert np.allclose(freq, field_mesh.frequency), f"{freq} != {field_mesh.frequency}"
 
     # master_parameter = field_mesh.attrs.get('masterParameter', None)
-    master_parameter = grid_params["master_parameter"].value
+    master_parameter = grid_params["master_parameter"]
     if master_parameter == "<None>":
         master_parameter = None
 
@@ -346,7 +346,7 @@ def tao_create_impact_solrf_ele(
         phi0_ref = freq * ref_time_start
 
         # phi0_fieldmap = field_mesh.attrs['RFphase'] / (2*np.pi) # Bmad doesn't use at this point
-        phi0_fieldmap = grid_params["phi0_fieldmap"].value
+        phi0_fieldmap = grid_params["phi0_fieldmap"]
 
         # Phase based on absolute time tracking
         phi0_user = sum([edat["PHI0"], edat["PHI0_ERR"]])
