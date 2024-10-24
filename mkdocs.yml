@@ -21,10 +21,14 @@ nav:
             - examples/input_parsing_example.ipynb
             - examples/output_parsing_example.ipynb
             - examples/plotting_example.ipynb
+        - Conversion:
+            - bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
+            - bmad_to_impact/corrector_coil/compare.ipynb
         - Elements:
             - examples/elements/drift.ipynb
             - examples/elements/apex_gun.ipynb
             #- examples/elements/dipole.ipunb
+            - examples/elements/corrector_coil.ipynb
             - examples/elements/quadrupole.ipynb
             - examples/elements/solenoid.ipynb
             - examples/elements/tesla_9cell_cavity.ipynb

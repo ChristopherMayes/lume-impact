@@ -1,4 +1,4 @@
-# conda env create -f environment.yml
+# conda env create --file=environment.yml
 name: lume-impact-dev
 channels:
   - conda-forge
