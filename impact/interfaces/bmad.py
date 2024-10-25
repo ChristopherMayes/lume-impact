@@ -129,7 +129,7 @@ def tao_create_impact_emfield_cartesian_ele(
     L_ele = edat["L"]
     if not np.isclose(L_fm, L_ele):
         raise NotImplementedError(
-            f"Element length {L_ele} currently must be the same as the fieldmap length {L_fm}"
+            f"Element {ele_id} length {L_ele} currently must be the same as the fieldmap length {L_fm}"
         )
 
     # Find zedge
