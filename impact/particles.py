@@ -56,7 +56,8 @@ def track_to_s(impact_object, particles, s):
     impact_object.run()
 
     if "particles" in impact_object.output:
-        return impact_object.output["particles"]["final_particles"]
+        particles = impact_object.output["particles"]
+        return particles.get("final_particles", None)
     else:
         return None
 
