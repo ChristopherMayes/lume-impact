@@ -976,8 +976,10 @@ class Impact(CommandWrapper):
 
     @classmethod
     @functools.wraps(impact_from_tao)
-    def from_tao(cls, tao, fieldmap_style="fourier", n_coef=30):
-        return impact_from_tao(tao, fieldmap_style=fieldmap_style, n_coef=n_coef)
+    def from_tao(cls, tao, fieldmap_style="fourier", n_coef=30, **kwargs):
+        return impact_from_tao(
+            tao, fieldmap_style=fieldmap_style, n_coef=n_coef, **kwargs
+        )
 
     def __getitem__(self, key):
         """
