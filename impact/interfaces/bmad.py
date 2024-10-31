@@ -468,11 +468,18 @@ def tao_create_impact_lattice_and_fieldmaps(
     ----------
     tao: Tao object
 
-    solrf_eles: str, default = 'E_GUN::*,SOLENOID::*,LCAVITY::*'
-        Matching string for element names to be converted to Impact-T solrf elements.
+    emfield_cartesian_eles: str or list, default = "EM_FIELD::*"
+        Matching string or list of element names to be converted to Impact-T emfield_cartesian elements.
 
-    quadrupole_eles: str, default = 'quad::*'
-         Matching string for element names to be converted to Impact-T quadrupole elements.
+    solrf_eles: str or list, default = 'E_GUN::*,SOLENOID::*,LCAVITY::*'
+        Matching string or list for element names to be converted to Impact-T solrf elements.
+
+    quadrupole_eles: str or list, default = 'quad::*'
+         Matching string or list for element names to be converted to Impact-T quadrupole elements.
+
+    write_beam_eles: str or list, default = 'monitor::*'
+         Matching string or list for element names to be converted to Impact-T write beam elements.
+         Note that there is a limit to the number of these that can be created
 
     fieldmap_style: str, default = 'fourier'
         Style of fieldmap to create. One of: ('fourier', 'derivatives').
@@ -496,15 +503,21 @@ def tao_create_impact_lattice_and_fieldmaps(
     # Get unique name dict
     unique_name = tao_unique_names(tao)
 
+    def get_ixs(match_or_list):
+        if match_or_list is None:
+            return []
+        elif isinstance(match_or_list, str):
+            return list(
+                tao.lat_list(match_or_list, "ele.ix_ele", flags="-array_out -no_slaves")
+            )
+        else:
+            return [tao.ele_head(ele)["ix_ele"] for ele in match_or_list]
+
     # Extract elements to use
-    emfield_cartesian_ele_ixs = list(
-        tao.lat_list(
-            emfield_cartesian_eles, "ele.ix_ele", flags="-array_out -no_slaves"
-        )
-    )
+    emfield_cartesian_ele_ixs = get_ixs(emfield_cartesian_eles)
 
     solrf_ele_ixs = []
-    for ix_ele in tao.lat_list(solrf_eles, "ele.ix_ele", flags="-array_out -no_slaves"):
+    for ix_ele in get_ixs(solrf_eles):
         head = tao.ele_head(ix_ele)
         ngrid = head["num#grid_field"]
         if ngrid == 0:
@@ -558,18 +571,14 @@ def tao_create_impact_lattice_and_fieldmaps(
         fieldmaps[ele["filename"]] = res["fmap"]
 
     # Quadrupoles
-    quad_ix_eles = tao.lat_list(
-        quadrupole_eles, "ele.ix_ele", flags="-array_out -no_slaves"
-    )
+    quad_ix_eles = get_ixs(quadrupole_eles)
     for ix_ele in quad_ix_eles:
         name = unique_name[ix_ele]
         ele = tao_create_impact_quadrupole_ele(tao, ix_ele, name=name)["ele"]
         lattice.append(ele)
 
     # Write beams
-    write_beam_ix_eles = tao.lat_list(
-        write_beam_eles, "ele.ix_ele", flags="-array_out -no_slaves"
-    )
+    write_beam_ix_eles = get_ixs(write_beam_eles)
     for ix_ele in write_beam_ix_eles:
         head = tao.ele_head(ix_ele)
         ele = new_write_beam(
@@ -593,7 +602,16 @@ def tao_create_impact_lattice_and_fieldmaps(
     return lattice, fieldmaps
 
 
-def impact_from_tao(tao, fieldmap_style="fourier", n_coef=30, cls=None):
+def impact_from_tao(
+    tao,
+    fieldmap_style="fourier",
+    n_coef=30,
+    cls=None,
+    emfield_cartesian_eles="EM_FIELD::*",
+    solrf_eles="E_GUN::*,SOLENOID::*,LCAVITY::*",
+    quadrupole_eles="quad::*",
+    write_beam_eles="monitor::*",
+):
     """
     Create a complete Impact object from a running Pytao Tao instance.
 
@@ -604,6 +622,19 @@ def impact_from_tao(tao, fieldmap_style="fourier", n_coef=30, cls=None):
     fieldmap_style: str, default = 'fourier'
         Style of fieldmap to create. One of: ('fourier', 'derivatives').
 
+    emfield_cartesian_eles: str or list, default = "EM_FIELD::*"
+        Matching string or list of element names to be converted to Impact-T emfield_cartesian elements.
+
+    solrf_eles: str or list, default = 'E_GUN::*,SOLENOID::*,LCAVITY::*'
+        Matching string or list for element names to be converted to Impact-T solrf elements.
+
+    quadrupole_eles: str or list, default = 'quad::*'
+         Matching string or list for element names to be converted to Impact-T quadrupole elements.
+
+    write_beam_eles: str or list, default = 'monitor::*'
+         Matching string or list for element names to be converted to Impact-T write beam elements.
+         Note that there is a limit to the number of these that can be created
+
     Returns
     -------
     impact_object: Impact
@@ -611,7 +642,13 @@ def impact_from_tao(tao, fieldmap_style="fourier", n_coef=30, cls=None):
     """
 
     lattice, fieldmaps = tao_create_impact_lattice_and_fieldmaps(
-        tao, fieldmap_style=fieldmap_style, n_coef=n_coef
+        tao,
+        fieldmap_style=fieldmap_style,
+        n_coef=n_coef,
+        emfield_cartesian_eles=emfield_cartesian_eles,
+        solrf_eles=solrf_eles,
+        quadrupole_eles=quadrupole_eles,
+        write_beam_eles=write_beam_eles,
     )
 
     # Create blank object
