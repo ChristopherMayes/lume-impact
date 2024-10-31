@@ -3,6 +3,8 @@ from pmd_beamphysics.fields.analysis import accelerating_voltage_and_phase
 import numpy as np
 from copy import deepcopy
 from collections import Counter
+from impact.lattice import new_write_beam
+import warnings
 
 
 def tao_unique_names(tao):
@@ -453,6 +455,7 @@ def tao_create_impact_lattice_and_fieldmaps(
     emfield_cartesian_eles="EM_FIELD::*",
     solrf_eles="E_GUN::*,SOLENOID::*,LCAVITY::*",
     quadrupole_eles="quad::*",
+    write_beam_eles="monitor::*",
     fieldmap_style="fourier",
     n_coef=30,
 ):
@@ -499,17 +502,30 @@ def tao_create_impact_lattice_and_fieldmaps(
             emfield_cartesian_eles, "ele.ix_ele", flags="-array_out -no_slaves"
         )
     )
-    solrf_ele_ixs = list(
-        tao.lat_list(solrf_eles, "ele.ix_ele", flags="-array_out -no_slaves")
-    )
+
+    solrf_ele_ixs = []
+    for ix_ele in tao.lat_list(solrf_eles, "ele.ix_ele", flags="-array_out -no_slaves"):
+        head = tao.ele_head(ix_ele)
+        ngrid = head["num#grid_field"]
+        if ngrid == 0:
+            warnings.warn(
+                f"Solenoid {head['name']} has no grid. Impact-T cannot use hard-edge solenoids."
+            )
+        elif ngrid == 1:
+            solrf_ele_ixs.append(ix_ele)
+        else:
+            raise NotImplementedError(
+                f"Solenoid {head['name']}has more than one grid: {ngrid}"
+            )
 
     # Large list
     ele_ixs = emfield_cartesian_ele_ixs + solrf_ele_ixs
 
     # Make a dict of field_file:file_id
-    field_files = {
-        ele_ix: tao.ele_grid_field(ele_ix, 1, "base")["file"] for ele_ix in ele_ixs
-    }
+    field_files = {}
+    for ele_ix in ele_ixs:
+        field_files[ele_ix] = tao.ele_grid_field(ele_ix, 1, "base")["file"]
+
     # Make file_id lookup table
     file_id_lookup = {}
     for ix, ix_ele in enumerate(sorted(list(set(field_files.values())))):
@@ -550,8 +566,29 @@ def tao_create_impact_lattice_and_fieldmaps(
         ele = tao_create_impact_quadrupole_ele(tao, ix_ele, name=name)["ele"]
         lattice.append(ele)
 
+    # Write beams
+    write_beam_ix_eles = tao.lat_list(
+        write_beam_eles, "ele.ix_ele", flags="-array_out -no_slaves"
+    )
+    for ix_ele in write_beam_ix_eles:
+        head = tao.ele_head(ix_ele)
+        ele = new_write_beam(
+            name=head["name"],
+            s=head["s"],
+            ref_eles=lattice,
+        )  # ref_eles will ensure that there are no naming conflicts
+        lattice.append(ele)
+
     # must sort!
-    lattice = sorted(lattice, key=lambda d: d["zedge"])
+    def get_s(ele):
+        if "zedge" in ele:
+            return ele["zedge"]
+        elif "s" in ele:
+            return ele["s"]
+        else:
+            raise ValueError(f"No s or zedge found in {ele}")
+
+    lattice = sorted(lattice, key=get_s)
 
     return lattice, fieldmaps
 
