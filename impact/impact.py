@@ -643,10 +643,12 @@ class Impact(CommandWrapper):
             h5 = "impact_" + self.fingerprint() + ".h5"
 
         if isinstance(h5, str):
+            new_h5file = True
             fname = os.path.expandvars(h5)
             g = h5py.File(fname, "w")
             self.vprint(f"Archiving to file {fname}")
         else:
+            new_h5file = False
             g = h5
 
         # Write basic attributes
@@ -665,6 +667,10 @@ class Impact(CommandWrapper):
         # Control groups
         if self.group:
             archive.write_control_groups_h5(g, self.group, name="control_groups")
+
+        # Close file if created here.
+        if new_h5file:
+            g.close()
 
         return h5
 
