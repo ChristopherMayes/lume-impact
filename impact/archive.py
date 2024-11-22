@@ -269,8 +269,8 @@ def write_fieldmap_h5(h5, fieldmap, name=None):
     format = info["format"]
     if format == "solrf":
         data = data_from_solrf_fieldmap(fieldmap)
-    elif format == "solenoid_fieldmesh":
-        fieldmap["field"].write(h5, name="field")
+    elif format.endswith("_fieldmesh"):
+        fieldmap["field"].write(g, name="field")
         data = None
     else:
         data = fieldmap["data"]
