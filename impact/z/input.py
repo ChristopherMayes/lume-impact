@@ -1,9 +1,13 @@
 from __future__ import annotations
-import ast
-import pathlib
-from typing import cast, Literal, Sequence
-import pydantic
 
+import pathlib
+import shlex
+from typing import Literal, Sequence, cast
+
+import pydantic
+from lume import tools as lume_tools
+
+from . import parsers
 from .constants import (
     BoundaryType,
     DiagnosticType,
@@ -15,11 +19,7 @@ from .constants import (
     RFCavityCoordinateType,
     RFCavityDataMode,
 )
-
-
-class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
-    pass
-
+from .types import AnyPath, BaseModel, PydanticParticleGroup
 
 input_element_by_id = {}
 
@@ -40,9 +40,9 @@ class InputElement(BaseModel):
         input_element_by_id[element_id] = cls
 
     @staticmethod
-    def from_line(line: str | InputLine):
+    def from_line(line: str | parsers.InputLine):
         if isinstance(line, str):
-            parts = parse_input_line(line)
+            parts = parsers.parse_input_line(line)
         else:
             parts = line
 
@@ -764,14 +764,6 @@ class WriteFull(InputElement, element_id=-2):
     sample_frequency: int = 0
 
 
-InputLine = Sequence[float | int]
-
-
-class InputFileSection(BaseModel):
-    comments: list[str] = []
-    data: list[InputLine] = []
-
-
 class DensityProfileInput(InputElement, element_id=-3):
     """
     Class to represent the density profile input parameters.
@@ -1227,38 +1219,6 @@ class HaltExecution(InputElement, element_id=-99):
     type_id: Literal[-99]
 
 
-def parse_input_line(line: str) -> list[float | int]:
-    line = line.replace("D", "E").replace("d", "e")  # fortran float style
-    parts = line.split()
-    if "/" in parts:
-        parts = parts[: parts.index("/")]
-    return [ast.literal_eval(value) for value in parts]
-
-
-def parse_input_lines(lines: Sequence[str]) -> list[InputFileSection]:
-    section = InputFileSection()
-    sections = [section]
-    last_comment = True
-    for line in lines:
-        if line.startswith("!"):
-            if not last_comment and section is not None:
-                section = InputFileSection()
-                sections.append(section)
-
-            section.comments.append(line.lstrip("! "))
-        else:
-            parts = parse_input_line(line)
-            if parts:
-                section.data.append(parts)
-
-    return sections
-
-
-def read_input_file(filename):
-    with open(filename, "rt") as fp:
-        return parse_input_lines(fp.read().splitlines())
-
-
 class TwissXorY(
     BaseModel,
 ):
@@ -1324,6 +1284,8 @@ class TwissZ(BaseModel):
 
 
 class ImpactZInput(BaseModel):
+    initial_particles: PydanticParticleGroup | None = None
+
     ncpu_y: int = 0
     ncpu_z: int = 0
     gpu: GPUFlag = GPUFlag.disabled
@@ -1366,12 +1328,28 @@ class ImpactZInput(BaseModel):
     initial_phase_ref: float = 0.0
 
     elements: list[InputElement] = []
+    filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
 
     @classmethod
-    def from_file(cls, filename: pathlib.Path | str):
-        sections = read_input_file(filename)
+    def from_file(cls, filename: pathlib.Path | str) -> ImpactZInput:
+        sections = parsers.read_input_file(filename)
+        return cls._from_input_sections(sections, filename=filename)
+
+    @classmethod
+    def from_contents(
+        cls, contents: str, filename: AnyPath | None = None
+    ) -> ImpactZInput:
+        sections = parsers.parse_input_lines(contents)
+        return cls._from_input_sections(sections, filename=filename)
+
+    @classmethod
+    def _from_input_sections(
+        cls,
+        sections: list[parsers.InputFileSection],
+        filename: AnyPath | None,
+    ) -> ImpactZInput:
         data = sum((sect.data for sect in sections), [])
-        res = cls()
+        res = cls(filename=pathlib.Path(filename) if filename else None)
 
         # Casts here are to satisfy the linter. Actual validation will be handled by pydantic.
         if len(data[0]) >= 3:
@@ -1461,3 +1439,34 @@ class ImpactZInput(BaseModel):
 {self.current_averaged} {self.initial_kinetic_energy} {self.particle_mass} {self.particle_charge} {self.scaling_frequency} {self.initial_phase_ref}
 {elements}
         """.strip()
+
+    def write(self, workdir: AnyPath) -> list[pathlib.Path]:
+        contents = self.to_contents()
+        workdir = pathlib.Path(workdir)
+        if workdir.name == "ImpactZ.in":
+            input_file_path = workdir
+            workdir = workdir.parent
+        else:
+            input_file_path = workdir / "ImpactZ.in"
+
+        workdir.mkdir(exist_ok=True)
+        with open(input_file_path, "wt") as fp:
+            print(contents, file=fp)
+
+        extra_paths = []
+        if self.initial_particles:
+            # TODO cmayes cathode_kinetic_energy_ref?
+            particles_path = workdir / "particle.in"
+            self.initial_particles.write_impact(str(particles_path))
+            extra_paths.append(particles_path)
+
+        return [input_file_path, *extra_paths]
+
+    def write_run_script(
+        self,
+        path: pathlib.Path,
+        command_prefix: str = "ImpactZexe",
+    ) -> None:
+        with open(path, mode="wt") as fp:
+            print(shlex.join(shlex.split(command_prefix)), file=fp)
+        lume_tools.make_executable(str(path))

@@ -1,6 +1,5 @@
 import enum
 
-
 PARTICLE_TYPE = {
     "Electron": "510998.9461 -1.0",
     "Proton": "938272081.3 1.0",
