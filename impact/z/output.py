@@ -10,6 +10,8 @@ import pydantic
 import pydantic.alias_generators
 from typing_extensions import override
 
+from ..parsers import load_many_fort
+
 from .input import ImpactZInput
 from .types import BaseModel, OutputDataType
 
@@ -160,6 +162,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         ImpactZOutput
             The output data.
         """
+        print(load_many_fort(workdir, verbose=True))
         return ImpactZOutput()
         # output_filename = cls.get_output_filename(input, workdir)
         # return cls.from_files(

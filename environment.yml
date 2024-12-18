@@ -19,6 +19,7 @@ dependencies:
   - prettytable
   - pydantic
   - pydantic-settings
+  - rich
   # Developer
   - bmad
   - pytao

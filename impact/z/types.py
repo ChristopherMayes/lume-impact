@@ -96,9 +96,6 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
     def to_table(self):
         return tools.table_output(**self._repr_table_data_())
 
-    def _pretty_repr_(self) -> str:
-        return tools.pretty_repr(self, skip_defaults=True)
-
     def to_string(
         self, mode: Literal["html", "markdown", "native", "genesis", "repr"]
     ) -> str:
@@ -107,13 +104,12 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
         if mode == "markdown":
             return str(tools.ascii_table_repr(**self._repr_table_data_(), seen=[]))
         if mode == "native" or mode == "genesis":  # TODO compat
-            # TODO rich repr
-            # to_genesis = getattr(self, "to_genesis", None)
-            # if callable(to_genesis):
-            #     return to_genesis()
-            return self._pretty_repr_()
+            to_contents = getattr(self, "to_contents", None)
+            if callable(to_contents):
+                return to_contents()
+            return repr(self)
         if mode == "repr":
-            return self._pretty_repr_()
+            return repr(self)
 
         raise NotImplementedError(f"Render mode {mode} unsupported")
 
@@ -135,10 +131,6 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
     @override
     def __str__(self) -> str:
         return self.to_string(tools.global_display_options.console_render_mode)
-
-    @override
-    def __repr__(self) -> str:
-        return self._pretty_repr_()
 
     @override
     def __dir__(self) -> Iterable[str]:
