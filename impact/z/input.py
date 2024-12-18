@@ -1,7 +1,7 @@
 from __future__ import annotations
 import ast
 import pathlib
-from typing import Literal, Sequence
+from typing import cast, Literal, Sequence
 import pydantic
 
 from .constants import (
@@ -10,7 +10,10 @@ from .constants import (
     DistributionZType,
     GPUFlag,
     IntegratorType,
+    MultipoleType,
     OutputZType,
+    RFCavityCoordinateType,
+    RFCavityDataMode,
 )
 
 
@@ -46,6 +49,10 @@ class InputElement(BaseModel):
         type_idx = parts[3]
         ele_cls = input_element_by_id[type_idx]
 
+        # if ele_cls is Drift and len(parts) == 7:
+        #     # TODO: a known bit of 'extra' data in the examples
+        #     # patching in a hotfix here, but we may adjust later...
+        #     parts = parts[:5]
         if len(parts) > len(ele_cls.model_fields):
             raise ValueError(
                 f"Too many input elements for {ele_cls.__name__}: "
@@ -55,6 +62,17 @@ class InputElement(BaseModel):
         kwargs = dict(zip(ele_cls.model_fields, parts))
         return ele_cls(**kwargs)
 
+    def to_line(self) -> str:
+        parts = [getattr(self, attr) for attr in self.model_fields]
+
+        def as_string(v: float | int):
+            if isinstance(v, float):
+                return f"{v:g}"
+            return str(v)
+
+        line = " ".join(as_string(v) for v in parts)
+        return f"{line} /"
+
 
 class Drift(InputElement, element_id=0):
     """
@@ -63,7 +81,7 @@ class Drift(InputElement, element_id=0):
     Parameters
     ----------
     length : float
-        Length of the drift element in meters. Example: 0.0620822983935m.
+        Length of the drift element in meters.
     steps : int
         Number of space-charge kicks through the beamline element. Each
         "step" consists of a half-step, a space-charge kick, and another half-step.
@@ -71,12 +89,12 @@ class Drift(InputElement, element_id=0):
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
     radius : float
-        Radius of the pipe, in meters. Default example value is 1 m.
+        Radius of the pipe, in meters.
     """
 
     type_id: Literal[0]
     radius: float = 0.0
-    unused_0: float = 0.0  # TODO undocumented/unused?
+    unused_0: float = 0.0  # unused/undocumented; should we just ignore?
     unused_1: float = 0.0
 
 
@@ -87,14 +105,13 @@ class Quadrupole(InputElement, element_id=1):
     Parameters
     ----------
     length : float
-        The length of the quadrupole, given in meters, with a typical value of 0.05 m.
+        The length of the quadrupole, given in meters.
     steps : int
         Number of kicks. Usually indicated as "steps" for the quadrupole.
     map_steps : int
         Number of map steps. Typically, `map_steps` is set to 1 for a quadrupole.
     B1 : float
         The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-        A typical value is 16.4423850936 T/m.
     input_file_id : int
         An ID for the input gradient file. Determines profile behavior:
         if greater than 0, a fringe field profile is read; if less than -10,
@@ -103,12 +120,10 @@ class Quadrupole(InputElement, element_id=1):
         transfer map with the gradient.
     radius : float
         The radius of the quadrupole, measured in meters.
-    dx : float, optional
-        The x-direction misalignment error, given in meters. Defaults to 0.0 if
-        not specified.
-    dy : float, optional
-        The y-direction misalignment error, given in meters. Defaults to 0.0 if
-        not specified.
+    misalignment_error_x : float, optional
+        The x-direction misalignment error, given in meters.
+    misalignment_error_y : float, optional
+        The y-direction misalignment error, given in meters.
     rotation_error_x : float, optional
         Rotation error in radians.
     rotation_error_y : float, optional
@@ -121,8 +136,8 @@ class Quadrupole(InputElement, element_id=1):
     B1: float = 0.0
     input_file_id: int = 0
     radius: float = 0.0
-    dx: float = 0.0
-    dy: float = 0.0
+    misalignment_error_x: float = 0.0
+    misalignment_error_y: float = 0.0
 
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
@@ -189,7 +204,7 @@ class Solenoid(InputElement, element_id=3):
         Rotation error in the x-direction in radians.
     rotation_error_y : float
         Rotation error in the y-direction in radians.
-    misalignment_error_z : float
+    rotation_error_z : float
         Rotation error in the z-direction in radians.
     """
 
@@ -200,54 +215,108 @@ class Solenoid(InputElement, element_id=3):
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
     rotation_error_x: float = 0.0
-    y_rotation_error: float = 0.0
-    misalignment_error_z: float = 0.0
+    rotation_error_y: float = 0.0
+    rotation_error_z: float = 0.0
 
 
 class Dipole(InputElement, element_id=4):
     """
     Represents a dipole element used in beam simulations.
 
-    Parameters:
+    Parameters
     ----------
-    length : float
-        Length of the dipole in meters.
-    steps : int
-        The number of "steps" for tracking particles within the dipole.
-    map_steps : int
-        The number of "map steps" used in the simulation.
-    angle : float
-        Bending angle of the dipole in radians.
-    k1 : float
-        Quadrupole component (focusing strength) of the dipole.
-    input_switch : int
-        An input switch; if greater than 200, it indicates inclusion of 1D CSR.
-    half_gap : float
-        Half gap of the dipole in meters.
-    entrance_angle : float
-        Entrance pole face angle in radians.
-    exit_angle : float
-        Exit pole face angle in radians.
-    entrance_curvature : float
-        Curvature of the entrance face.
-    exit_curvature : float
-        Curvature of the exit face.
-    fringe_field : float
-        Integrated fringe field of the dipole.
-
+    x_field_strength : float, optional
+        Field strength in the x direction.
+    y_field_strength : float, optional
+        Field strength in the y direction.
+    file_id : float, optional
+        File ID: < 100 uses t integration; > 100 but < 200 uses z map + csr wake.
+    radius : float, optional
+        Radius of the dipole.
+    dx : float, optional
+        Displacement in the x direction (unused).
+    dy : float, optional
+        Displacement in the y direction (unused).
+    angle_x : float, optional
+        Angle in the x direction (unused).
+    angle_y : float, optional
+        Angle in the y direction (unused).
+    angle_z : float, optional
+        Angle in the z direction (unused).
+    misalignment_error_x : float, optional
+        Misalignment error in the x direction.
+    misalignment_error_y : float, optional
+        Misalignment error in the y direction.
+    rotation_error_x : float, optional
+        Rotation error around the x axis.
+    rotation_error_y : float, optional
+        Rotation error around the y axis.
+    rotation_error_z : float, optional
+        Rotation error around the z axis.
     """
 
     type_id: Literal[4]
-    angle: float = 0.0
-    k1: float = 0.0
-    input_switch: int = 0
-    half_gap: float = 0.0
-    entrance_angle: float = 0.0
-    exit_angle: float = 0.0
-    entrance_curvature: float = 0.0
-    exit_curvature: float = 0.0
-    fringe_field: float = 0.0
 
+    x_field_strength: float = 0.0
+    y_field_strength: float = 0.0
+    file_id: float = 0.0
+    radius: float = 0.0
+    dx: float = 0.0  # unused
+    dy: float = 0.0  # unused
+    angle_x: float = 0.0  # unused
+    angle_y: float = 0.0  # unused
+    angle_z: float = 0.0  # unused
+    misalignment_error_x: float = 0.0
+    misalignment_error_y: float = 0.0
+    rotation_error_x: float = 0.0
+    rotation_error_y: float = 0.0
+    rotation_error_z: float = 0.0
+
+    # Docs indicate the following parameters, but the code is different:
+    # angle: float = 0.0
+    # k1: float = 0.0
+    # input_switch: int = 0
+    # half_gap: float = 0.0
+    # entrance_angle: float = 0.0
+    # exit_angle: float = 0.0
+    # entrance_curvature: float = 0.0
+    # exit_curvature: float = 0.0
+    # fringe_field: float = 0.0
+
+
+class Multipole(InputElement, element_id=5):
+    """
+    Represents a multipole element used in beam simulations.
+
+    Parameters
+    ----------
+    multipole_type : MultipoleType
+        The type of multipole element, sextupole, octupole, or decapole.
+    field_strength : float, optional
+        The strength of the magnetic field.
+    file_id : float, optional
+        Identifier for related input data file.
+    radius : float, optional
+        The radius of the multipole.
+    misalignment_error_x : float, optional
+        Misalignment error in the x-direction.
+    misalignment_error_y : float, optional
+        Misalignment error in the y-direction.
+    rotation_error_x : float, optional
+        Rotation error around the x-axis.
+    rotation_error_y : float, optional
+        Rotation error around the y-axis.
+    rotation_error_z : float, optional
+        Rotation error around the z-axis.
+    """
+
+    type_id: Literal[5]
+
+    # TODO untested
+    multipole_type: MultipoleType
+    field_strength: float = 0.0
+    file_id: float = 0.0
+    radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
     rotation_error_x: float = 0.0
@@ -271,7 +340,7 @@ class DTL(InputElement, element_id=101):
         Scaling factor for the electrical/magnetic field.
     rf_frequency : float
         RF frequency in Hertz.
-    driven_phase : float
+    theta0 : float
         Driven phase in degrees.
     input_field_id : float
         Input field ID (using a simple sinusoidal model if ID<0).
@@ -310,23 +379,32 @@ class DTL(InputElement, element_id=101):
     type_id: Literal[101]
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    driven_phase: float = 0.0
+    theta0: float = 0.0
     input_field_id: float = 0.0
     radius: float = 0.0
     quad1_length: float = 0.0
     quad1_gradient: float = 0.0
     quad2_length: float = 0.0
     quad2_gradient: float = 0.0
-    misalignment_error_x: float = 0.0
-    misalignment_error_y: float = 0.0
-    rotation_error_x: float = 0.0
-    rotation_error_y: float = 0.0
-    rotation_error_z: float = 0.0
-    displacement_x: float = 0.0
-    displacement_y: float = 0.0
-    rotation_error_rf_x: float = 0.0
-    rotation_error_rf_y: float = 0.0
-    rotation_error_rf_z: float = 0.0
+
+    q1_misalignment_error_x: float = 0.0
+    q1_misalignment_error_y: float = 0.0
+    q1_rotation_error_x: float = 0.0
+    q1_rotation_error_y: float = 0.0
+    q1_rotation_error_z: float = 0.0
+
+    # TODO: docs are wrong per the code past this point
+    q2_misalignment_error_x: float = 0.0
+    q2_misalignment_error_y: float = 0.0
+    q2_rotation_error_x: float = 0.0
+    q2_rotation_error_y: float = 0.0
+    q2_rotation_error_z: float = 0.0
+
+    rf_misalignment_error_x: float = 0.0
+    rf_misalignment_error_y: float = 0.0
+    rf_rotation_error_x: float = 0.0
+    rf_rotation_error_y: float = 0.0
+    rf_rotation_error_z: float = 0.0
 
 
 class CCDTL(InputElement, element_id=102):
@@ -345,7 +423,7 @@ class CCDTL(InputElement, element_id=102):
         Field scaling factor.
     rf_frequency : float
         RF frequency in Hertz.
-    driven_phase : float
+    theta0 : float
         Driven phase in degrees.
     input_field_id : float
         Input field ID (if ID<0, use simple sinusoidal model, only works for the map integrator).
@@ -372,7 +450,7 @@ class CCDTL(InputElement, element_id=102):
     type_id: Literal[102]
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    driven_phase: float = 0.0
+    theta0: float = 0.0  # theta0
     input_field_id: float = 0.0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
@@ -398,7 +476,7 @@ class CCL(InputElement, element_id=103):
         Field scaling factor.
     rf_frequency : float
         RF frequency in Hertz.
-    driven_phase : float
+    theta0 : float
         Driven phase in degrees.
     input_field_id : float
         Input field ID. If ID < 0, use the simple sinusoidal model
@@ -421,7 +499,7 @@ class CCL(InputElement, element_id=103):
     type_id: Literal[103]
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    driven_phase: float = 0.0
+    theta0: float = 0.0  # driven phase
     input_field_id: float = 0.0
     radius: float = 0.0
     x_misalignment: float = 0.0
@@ -456,9 +534,16 @@ class SuperconductingCavity(InputElement, element_id=104):
     type_id: Literal[104]
     scale: float = 0.0
     frequency: float = 0.0
-    phase: float = 0.0
+    phase: float = 0.0  # theta0
     input_file_id: int = 0
     radius: float = 0.0
+
+    # TODO not in the docs:
+    x_misalignment: float = 0.0
+    y_misalignment: float = 0.0
+    rotation_error_x: float = 0.0
+    rotation_error_y: float = 0.0
+    rotation_error_z: float = 0.0
 
 
 class SolenoidWithRFCavity(InputElement, element_id=105):
@@ -477,7 +562,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105):
         The field scaling factor.
     rf_frequency : float
         The RF frequency in Hertz.
-    driven_phase : float
+    theta0 : float
         The driven phase in degrees.
     input_field_id : float
         The input field ID.
@@ -506,7 +591,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105):
     type_id: Literal[105]
     field_scaling: float  # field scaling factor
     rf_frequency: float  # RF frequency in Hz
-    driven_phase: float  # driven phase in degrees
+    theta0: float  # driven phase in degrees
     input_field_id: float  # input field ID
     radius: float  # radius in meters
     misalignment_error_x: float  # x misalignment error in meters
@@ -539,7 +624,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106):
         Scaling factor for the field.
     rf_frequency : float
         RF frequency, in Hertz.
-    driven_phase : float
+    theta0 : float
         Driven phase in degrees.
     input_field_id : float
         Input field ID.
@@ -572,7 +657,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106):
     type_id: Literal[106]
     field_scaling: float = 0.0  # scale
     rf_frequency: float = 0.0  # rf freq
-    theta0: float = 0.0  # theta0
+    theta0: float = 0.0  # driven_phase
     input_field_id: float = 0.0  # file_id
     radius: float = 0.0  # radius
     misalignment_error_x: float = 0.0
@@ -580,38 +665,17 @@ class TravelingWaveRFCavity(InputElement, element_id=106):
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
-    theta1: float = 0.0
+    theta1: float = 0.0  # phase diff
     aperture_size: float = 0.0
     gap_size: float = 0.0
     length_for_wakefield: float = 0.0
 
 
-#  1.48524 10 20 106
-# 1.0 field_scaling
-# 700.0e6 rf freq
-# 30. driven phase
-# 1.0 field id
-# 0.014 rad
-# 0. misx
-# 0.misy
-# 0. rotx
-# 0. roty
-# 0. rotz
-# 0.5 phase diff
-# 0. aperture size
-# 0. gap size
-# 0. length for wk
-# /
-# Traveling wave RF cavity, length=1.48524m, 10 "steps", 20 "map steps", field scaling=1.0, RF
-# frequency=700.0e6, driven phase=30.0 degree, input field ID=1.0, radius=0.014m, x misalignment
-# error=0.0m, y misalignment error=0.0m, rotation error x, y, z=0.0, 0., 0. rad, (pi - beta * d) phase
-# difference B and A, 0. "aperture size for wakefield", 0. "gap size for wk", 0. "length for wk". RF
-# structure wakefield only turned with length of wk>0.
-
-
 class UserDefinedRFCavity(InputElement, element_id=110):
     """
     A user-defined RF cavity element in the simulation.
+
+    EMfld in IMPACT-Z.
 
     Parameters
     ----------
@@ -657,7 +721,7 @@ class UserDefinedRFCavity(InputElement, element_id=110):
     type_id: Literal[110]
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    driven_phase: float = 0.0
+    theta0: float = 0.0  # driven phase
     input_field_id: float = 0.0
     radius_x: float = 0.0
     radius_y: float = 0.0
@@ -666,8 +730,8 @@ class UserDefinedRFCavity(InputElement, element_id=110):
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
-    data_mode: float = 0.0
-    coordinate_type: float = 0.0
+    data_mode: RFCavityDataMode = RFCavityDataMode.discrete
+    coordinate_type: RFCavityCoordinateType = RFCavityCoordinateType.cartesian
 
 
 class ShiftCentroid(InputElement, element_id=-1):
@@ -883,7 +947,7 @@ class WriteSliceInfo(InputElement, element_id=-8):
         return self.map_steps
 
     @file_id.setter
-    def file_id(self, value) -> int:
+    def file_id(self, value) -> None:
         self.map_steps = value
 
 
@@ -1163,7 +1227,7 @@ class HaltExecution(InputElement, element_id=-99):
     type_id: Literal[-99]
 
 
-def parse_input_line(line: str) -> list[InputFileSection]:
+def parse_input_line(line: str) -> list[float | int]:
     line = line.replace("D", "E").replace("d", "e")  # fortran float style
     parts = line.split()
     if "/" in parts:
@@ -1309,17 +1373,22 @@ class ImpactZInput(BaseModel):
         data = sum((sect.data for sect in sections), [])
         res = cls()
 
-        if len(data[0]) == 3:
-            res.ncpu_y, res.ncpu_z, res.gpu = data[0]
+        # Casts here are to satisfy the linter. Actual validation will be handled by pydantic.
+        if len(data[0]) >= 3:
+            # GPU flag is written by the Python GUI but not actually read out
+            # by IMPACT-Z.
+            res.ncpu_y, res.ncpu_z, res.gpu = cast(
+                tuple[int, int, GPUFlag], data[0][:3]
+            )
         else:
-            res.ncpu_y, res.ncpu_z = data[0]
+            res.ncpu_y, res.ncpu_z = cast(tuple[int, int], data[0][:2])
         (
             res.dim,
             res.np,
             res.integrator_type,
             res.err,
             res.output_z,
-        ) = data[1]
+        ) = cast(tuple[int, int, IntegratorType, int, OutputZType], data[1][:5])
         (
             res.ngx,
             res.ngy,
@@ -1328,17 +1397,17 @@ class ImpactZInput(BaseModel):
             res.x_rad,
             res.y_rad,
             res.z_period_size,
-        ) = data[2]
+        ) = cast(tuple[int, int, int, BoundaryType, float, float, float], data[2][:8])
         (
             res.distribution_z,
             res.restart,
             res.subcycle,
             res.nbunch,
-        ) = data[3]
+        ) = cast(tuple[DistributionZType, int, int, int], data[3][:4])
 
-        res.particle_list = data[4]
-        res.current = data[5]
-        res.charge = data[6]
+        res.particle_list = [int(v) for v in data[4]]
+        res.current = [float(v) for v in data[5]]
+        res.charge = [float(v) for v in data[6]]
 
         res.twiss_x = TwissXorY.from_file(*data[7])
         res.twiss_y = TwissXorY.from_file(*data[8])
@@ -1359,3 +1428,36 @@ class ImpactZInput(BaseModel):
             res.elements.append(ele)
 
         return res
+
+    def to_contents(
+        self,
+        header="Written by LUME-ImpactZ",
+        include_gpu: bool = True,
+    ) -> str:
+        twiss_x = self.twiss_x
+        twiss_y = self.twiss_y
+        twiss_z = self.twiss_z
+
+        def stringify_list(lst: Sequence[float | int]):
+            return " ".join(str(v) for v in lst)
+
+        if include_gpu:
+            gpu = f" {int(self.gpu)}"
+        else:
+            gpu = ""
+        elements = "\n".join(elem.to_line() for elem in self.elements)
+        return f"""
+! {header}
+{self.ncpu_y} {self.ncpu_z}{gpu}
+{self.dim} {self.np} {int(self.integrator_type)} {self.err} {int(self.output_z)}
+{self.ngx} {self.ngy} {self.ngz} {self.boundary_type} {self.x_rad} {self.y_rad} {self.z_period_size}
+{self.distribution_z} {self.restart} {self.subcycle} {self.nbunch}
+{stringify_list(self.particle_list)}
+{stringify_list(self.current)}
+{stringify_list(self.charge)}
+{twiss_x.alpha} {twiss_x.beta} {twiss_x.emit} {twiss_x.mismatch} {twiss_x.mismatch_p} {twiss_x.offset} {twiss_x.offset_p}
+{twiss_y.alpha} {twiss_y.beta} {twiss_y.emit} {twiss_y.mismatch} {twiss_y.mismatch_p} {twiss_y.offset} {twiss_y.offset_p}
+{twiss_z.alpha} {twiss_z.beta} {twiss_z.emit} {twiss_z.mismatch} {twiss_z.mismatch_e} {twiss_z.offset_phase} {twiss_z.offset_energy}
+{self.current_averaged} {self.initial_kinetic_energy} {self.particle_mass} {self.particle_charge} {self.scaling_frequency} {self.initial_phase_ref}
+{elements}
+        """.strip()

@@ -63,6 +63,23 @@ class IntegratorType(enum.IntEnum):
     non_linear = 2
 
 
+class MultipoleType(enum.IntEnum):
+    sextupole = 2
+    octupole = 3
+    decapole = 4
+
+
+class RFCavityDataMode(enum.IntEnum):
+    discrete = 1
+    both = 2  # analytical + discrete
+    analytical = 3  # other
+
+
+class RFCavityCoordinateType(enum.IntEnum):
+    cartesian = 2
+    cylindrical = 1
+
+
 class ElementID(enum.IntEnum):
     drift = 0
     quad = 1

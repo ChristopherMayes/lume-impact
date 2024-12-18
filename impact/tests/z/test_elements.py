@@ -294,3 +294,185 @@ def test_parse_element(ele_cls: type[InputElement], line: str):
     ele = InputElement.from_line(line)
     assert isinstance(ele, ele_cls)
     print(ele)
+
+
+### Source code reference for manually verifying IMPACT-Z element parameters:
+# Each of these parameters is 1-indexed *after* the type_id,
+# so 'DriftTube' actually has 6 parameters: (length, steps, map_steps, type_id) and then (radius, )
+"""
+ DriftTube
+radius  # 1
+
+ Quadrupole
+quad gradient  # 1
+file ID  # 2
+radius  # 3
+x misalignment error  # 4
+y misalignment error  # 5
+rotation error x  # 6
+rotation error y  # 7
+rotation error z  # 8
+
+
+ ConstFoc
+x focusing gradient: kx0^2  # 1
+y focusing gradient: ky0^2   # 2
+z focusing gradient: kz0^2   # 3
+radius   # 4
+
+
+ Sol
+Bz0  # 1
+file ID  # 2
+radius  # 3
+x misalignment error  # 4
+y misalignment error  # 5
+rotation error x  # 6
+rotation error y  # 7
+rotation error z  # 8
+
+
+ Dipole  TODO does not match
+x field strength  # 1
+y field strength  # 2
+file ID: < 100, using t integration; > 100 but < 200 using z map + csr wake;  # 3
+radius  # 4
+! dx = this%Param(5)  - unused
+! dy = this%Param(6)  - unused
+! anglex = this%Param(7) - unused
+! angley = this%Param(8) - unused
+! anglez = this%Param(9) - unused
+x misalignment error  # 10
+y misalignment error  # 11
+rotation error x  # 12
+rotation error y  # 13
+rotation error z  # 14
+
+
+ DTL
+scale  # 1
+RF frequency  # 2
+theta0  # 3
+file ID  # 4
+radius  # 5
+quad 1 length  # 6
+quad 1 gradient  # 7
+quad 2 length  # 8
+quad 2 gradient  # 9
+x misalignment error for Quad 1  # 10
+y misalignment error for Quad 1  # 11
+rotation error x for Quad 1  # 12
+rotation error y for Quad 1  # 13
+rotation error z for Quad 1  # 14
+x misalignment error for Quad 2  # 15
+x misalignment error for Quad 2  # 16
+rotation error x for Quad 2  # 17
+rotation error y for Quad 2  # 18
+rotation error z for Quad 2  # 19
+x misalignment error for RF cavity  # 20
+y misalignment error for RF cavity  # 21
+rotation error x for RF cavity  # 22
+rotation error y for RF cavity  # 23
+rotation error z for RF cavity  # 24
+
+
+
+ Multipole
+id for sextupole(2), octupole(3), decapole(4)  # 1
+field strength  # 2
+file ID  # 3
+radius  # 4
+x misalignment error  # 5
+y misalignment error  # 6
+rotation error x  # 7
+rotation error y  # 8
+rotation error z  # 9
+
+
+ CCDTL
+scale  # 1
+RF frequency  # 2
+theta0  # 3
+file ID  # 4
+radius  # 5
+x misalignment error  # 6
+y misalignment error  # 7
+rotation error x  # 8
+rotation error y  # 9
+rotation error z  # 10
+
+ CCL
+scale  # 1
+RF frequency  # 2
+theta0  # 3
+file ID  # 4
+radius  # 5
+x misalignment error  # 6
+y misalignment error  # 7
+rotation error x  # 8
+rotation error y  # 9
+rotation error z  # 10
+
+
+ SC
+scale  # 1
+RF frequency  # 2
+theta0  # 3
+file ID  # 4
+radius  # 5
+x misalignment error  # 6
+y misalignment error  # 7
+rotation error x  # 8
+rotation error y  # 9
+rotation error z  # 10
+
+ SolRF
+scale  # 1
+RF frequency  # 2
+theta0  # 3
+file ID  # 4
+radius  # 5
+x misalignment error  # 6
+y misalignment error  # 7
+rotation error x  # 8
+rotation error y  # 9
+rotation error z  # 10
+Bz0  # 11
+aawk: aperture size for the wakefield  # 12
+ggwk: gap size for the wakefield  # 13
+lengwk: length for the wakefield  # 14
+
+
+
+ TWS
+scale  # 1
+RF frequency  # 2
+theta0  # 3
+file ID  # 4
+radius  # 5
+x misalignment error  # 6
+y misalignment error  # 7
+rotation error x  # 8
+rotation error y  # 9
+rotation error z  # 10
+theta1 (pi - beta * d) phase difference B and A  # 11
+aawk: aperture size for the wakefield   # 12
+ggwk: gap size for the wakefield  # 13
+lengwk: length for the wakefield  # 14
+
+
+ EMfld
+scale  # 1
+RF frequency  # 2
+theta0  # 3
+file ID  # 4
+x radius  # 5
+y radius  # 6
+x misalignment error  # 7
+y misalignment error  # 8
+rotation error x  # 9
+rotation error y  # 10
+rotation error z  # 11
+flag for 3D discrete data(1),analytical+discrete(2),analytical(other)   # 12
+flag for Cartisian(2) or Cylindrical coordintate(1)  # 13
+"""
