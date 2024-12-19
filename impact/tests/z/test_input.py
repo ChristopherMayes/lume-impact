@@ -5,7 +5,8 @@ import re
 import numpy as np
 import pytest
 
-from ...z.input import ImpactZInput, parse_input_line
+from ...z.input import ImpactZInput
+from ...z.parsers import parse_input_line
 
 
 logger = logging.getLogger(__name__)
