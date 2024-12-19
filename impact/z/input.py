@@ -109,8 +109,12 @@ class Drift(InputElement, element_id=0):
 
     type_id: Literal[0] = 0
     radius: float = 0.0
-    unused_0: float = 0.0  # unused/undocumented; should we just ignore?
-    unused_1: float = 0.0
+    unused_0: float = pydantic.Field(
+        default=0.0, repr=False
+    )  # unused/undocumented; should we just ignore?
+    unused_1: float = pydantic.Field(
+        default=0.0, repr=False
+    )  # unused/undocumented; should we just ignore?
 
 
 class Quadrupole(InputElement, element_id=1):
@@ -1275,26 +1279,30 @@ class ImpactZInput(BaseModel):
 
     initial_particles: PydanticParticleGroup | None = None
 
+    # Line 1
     ncpu_y: int = 0
     ncpu_z: int = 0
     gpu: GPUFlag = GPUFlag.disabled
 
-    dim: int = 0
-    np: int = 0
+    # Line 2
+    seed: int = 0
+    n_particle: int = 0
     integrator_type: IntegratorType = IntegratorType.linear
     err: int = 0
     diagnostic_type: DiagnosticType = DiagnosticType.at_given_time
     output_z: OutputZType = OutputZType.standard
 
-    ngx: int = 0
-    ngy: int = 0
-    ngz: int = 0
+    # Line 3
+    nx: int = 0
+    ny: int = 0
+    nz: int = 0
     boundary_type: BoundaryType = BoundaryType.trans_open_longi_open
     x_rad: float = 0.0
     y_rad: float = 0.0
     z_period_size: float = 0.0
 
-    distribution_z: DistributionZType = DistributionZType.uniform
+    # Line 4
+    distribution: DistributionZType = DistributionZType.uniform
     restart: int = 0
     subcycle: int = 0
     nbunch: int = 0
@@ -1352,23 +1360,23 @@ class ImpactZInput(BaseModel):
         else:
             res.ncpu_y, res.ncpu_z = cast(tuple[int, int], data[0][:2])
         (
-            res.dim,
-            res.np,
+            res.seed,
+            res.n_particle,
             res.integrator_type,
             res.err,
             res.output_z,
         ) = cast(tuple[int, int, IntegratorType, int, OutputZType], data[1][:5])
         (
-            res.ngx,
-            res.ngy,
-            res.ngz,
+            res.nx,
+            res.ny,
+            res.nz,
             res.boundary_type,
             res.x_rad,
             res.y_rad,
             res.z_period_size,
         ) = cast(tuple[int, int, int, BoundaryType, float, float, float], data[2][:8])
         (
-            res.distribution_z,
+            res.distribution,
             res.restart,
             res.subcycle,
             res.nbunch,
@@ -1443,9 +1451,9 @@ class ImpactZInput(BaseModel):
         return f"""
 ! {header}
 {self.ncpu_y} {self.ncpu_z}{gpu}
-{self.dim} {self.np} {int(self.integrator_type)} {self.err} {int(self.output_z)}
-{self.ngx} {self.ngy} {self.ngz} {self.boundary_type} {self.x_rad} {self.y_rad} {self.z_period_size}
-{self.distribution_z} {self.restart} {self.subcycle} {self.nbunch}
+{self.seed} {self.n_particle} {int(self.integrator_type)} {self.err} {int(self.output_z)}
+{self.nx} {self.ny} {self.nz} {self.boundary_type} {self.x_rad} {self.y_rad} {self.z_period_size}
+{self.distribution} {self.restart} {self.subcycle} {self.nbunch}
 {stringify_list(self.particle_list)}
 {stringify_list(self.current)}
 {stringify_list(self.charge)}

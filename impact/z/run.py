@@ -155,6 +155,10 @@ class ImpactZ(CommandWrapper):
             input = ImpactZInput()
         elif isinstance(input, AnyPath):
             path, contents = read_if_path(input)
+            if "\n" not in contents:
+                raise FileNotFoundError(
+                    f"{input!r} looks like a path but it does not exist on disk"
+                )
             input = ImpactZInput.from_contents(contents, filename=path)
         elif isinstance(input, ImpactZInput):
             pass

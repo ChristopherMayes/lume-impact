@@ -6,7 +6,24 @@ from .lattice import ele_shape, remove_element_types, ele_bounds, ele_overlaps_s
 from .fieldmaps import lattice_field, FIELD_CALC_ELE_TYPES
 import numpy as np
 
-from pmd_beamphysics.labels import mathlabel
+from pmd_beamphysics.labels import mathlabel as _mathlabel
+
+
+_label_hotfixes = {
+    "loadbalance_min_n_particle",
+    "loadbalance_max_n_particle",
+    "charge_state_n_particle",
+    "neg_cov_z__gammabeta_z",
+    "neg_cov_y__gammabeta_y",
+    "neg_cov_x__gammabeta_x",
+    "neg_cov_x__gammabeta_x",
+}
+
+
+def mathlabel(key: str, **kwargs):
+    if key in _label_hotfixes:
+        key = key.replace("_", "-")
+    return _mathlabel(key, **kwargs)
 
 
 def plot_stat(impact_object, y="sigma_x", x="mean_z", nice=True):

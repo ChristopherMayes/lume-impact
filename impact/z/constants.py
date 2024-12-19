@@ -15,11 +15,30 @@ class GPUFlag(enum.IntEnum):
 
 
 class DistributionTType(enum.IntEnum):
+    """
+    Impact-T distribution types.
+
+    1 Uniform - 6d uniform distribution
+    2 Gauss3 - 6d Gaussian distribution
+    3 Waterbag - 6d Waterbag distribution
+    4 Semigauss - 3d Waterbag distribution in spatial and 3d Gaussian
+    distribution in momentum space
+    5 KV3d - transverse KV distribution and longitudinal uniform distribution
+    10 ParobGauss - transverse parabolic and longitudinal Gaussian distribution
+    15 SemicirGauss - transverse semi-circle and longitudinal Gaussian distribution
+    16 Read - read in an initial particle distribution from file Partcl.data
+    24 readParmela - read in Parmela particle format
+    25 readElegant - read in Elegant particle format
+    27 CylcoldZSob
+    """
+
     uniform = 1
     gauss = 2
     waterbag = 3
     semigauss = 4
     KV = 5
+    parabolic_gaussian = 10
+    semicircular_gaussian = 15
     read = 16
     read_parmela = 24
     read_elegant = 25
@@ -27,6 +46,8 @@ class DistributionTType(enum.IntEnum):
 
 
 class DistributionZType(enum.IntEnum):
+    """Impact-Z distribution types."""
+
     uniform = 1
     gauss = 2
     waterBag = 3
