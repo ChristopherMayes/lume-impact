@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import math
 from typing import Sequence
 
 from .types import BaseModel
@@ -23,6 +24,12 @@ def parse_input_line(line: str) -> list[float | int]:
         parts = parts[: parts.index("/")]
 
     def eval(value: str):
+        if value == "NaN":
+            return math.nan
+        if value == "-Infinity":
+            return -math.inf
+        if value == "-nfinity":
+            return math.inf
         try:
             return ast.literal_eval(value)
         except Exception:

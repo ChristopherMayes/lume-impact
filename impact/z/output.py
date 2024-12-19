@@ -3,16 +3,17 @@ from __future__ import annotations
 import logging
 import pathlib
 import typing
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Dict, Generator, Optional, TypeVar, Union
 
 import numpy as np
 import pydantic
 import pydantic.alias_generators
+from pydantic.dataclasses import dataclass
 from typing_extensions import override
 
-
+from . import parsers
 from .input import ImpactZInput
-from .types import BaseModel, OutputDataType
+from .types import AnyPath, BaseModel, OutputDataType
 
 try:
     from collections.abc import Mapping
@@ -106,6 +107,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         default_factory=RunInfo,
         description="Run-related information - output text and timing.",
     )
+    files: dict[int, list[FortranOutputFileData]] = {}
 
     @override
     def __eq__(self, other: Any) -> bool:
@@ -161,8 +163,12 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         ImpactZOutput
             The output data.
         """
-        # print(load_many_fort(workdir, verbose=True))
-        return ImpactZOutput()
+        files = {}
+        for fnum, cls in file_number_to_cls.items():
+            fn = workdir / f"fort.{fnum}"
+            if fn.exists():
+                files[fnum] = cls.from_file(fn)
+        return ImpactZOutput(files=files)
         # output_filename = cls.get_output_filename(input, workdir)
         # return cls.from_files(
         #     output_filename,
@@ -170,3 +176,170 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         #     load_particles=load_particles,
         #     smear=smear,
         # )
+        #
+        #
+
+
+file_number_to_cls = {}
+T = TypeVar("T", bound="FortranOutputFileData")
+
+
+class FortranOutputFileData:
+    def __init_subclass__(cls, file_id: int, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        assert isinstance(file_id, int)
+        assert file_id not in file_number_to_cls, f"Duplicate element ID {file_id}"
+        file_number_to_cls[file_id] = cls
+
+    @classmethod
+    def from_file(cls: type[T], filename: AnyPath) -> list[T]:
+        items = []
+        with open(filename, "rt") as fp:
+            for line in fp.read().splitlines():
+                data = parsers.parse_input_line(line)
+                items.append(cls(*data))
+        return items
+
+
+@dataclass
+class File18(FortranOutputFileData, file_id=18):
+    """
+    write(18,99)z,this%refptcl(5),gam,energy,bet,sqrt(glrmax)*xl
+    """
+
+    z: float
+    ref_particle_attribute: float
+    gamma: float
+    energy: float
+    beta: float
+    sqrt_glrmax_times_xl: float
+
+
+@dataclass
+class File24(FortranOutputFileData, file_id=24):
+    """
+    write(24,100)z,x0*xl,xrms*xl,px0/gambet,pxrms/gambet,-xpx/epx,epx*xl
+    """
+
+    z: float
+    x0: float
+    xrms: float
+    px0_over_gambet: float
+    pxrms_over_gambet: float
+    neg_xpx_over_epx: float
+    epx_times_xl: float
+
+
+@dataclass
+class File25(FortranOutputFileData, file_id=25):
+    """
+    write(25,100)z,y0*xl,yrms*xl,py0/gambet,pyrms/gambet,-ypy/epy,epy*xl
+    """
+
+    z: float
+    y0: float
+    yrms: float
+    py0_over_gambet: float
+    pyrms_over_gambet: float
+    neg_ypy_over_epy: float
+    epy_times_xl: float
+
+
+@dataclass
+class File26(FortranOutputFileData, file_id=26):
+    """
+    write(26,100)z,z0*xt,zrms*xt,pz0*qmc,pzrms*qmc,-zpz/epz,epz*qmc*xt
+    """
+
+    z: float
+    z0: float
+    zrms: float
+    pz0_times_qmc: float
+    pzrms_times_qmc: float
+    neg_zpz_over_epz: float
+    epz_times_qmc_xt: float
+
+
+@dataclass
+class File27(FortranOutputFileData, file_id=27):
+    """
+    write(27,100)z,glmax(1)*xl,glmax(2)/gambet,glmax(3)*xl,&
+                 glmax(4)/gambet,glmax(5)*xt,glmax(6)*qmc
+    """
+
+    z: float
+    glmax1_times_xl: float
+    glmax2_over_gambet: float
+    glmax3_times_xl: float
+    glmax4_over_gambet: float
+    glmax5_times_xt: float
+    glmax6_times_qmc: float
+
+
+@dataclass
+class File28(FortranOutputFileData, file_id=28):
+    """
+    write(28,101)z,npctmin,npctmax,nptot
+    """
+
+    z: float
+    npctmin: float
+    npctmax: float
+    nptot: float
+
+
+@dataclass
+class File29(FortranOutputFileData, file_id=29):
+    """
+    write(29,100)z,x03*xl,px03/gambet,y03*xl,py03/gambet,z03*xt,&
+                 pz03*qmc
+    """
+
+    z: float
+    x03: float
+    px03_over_gambet: float
+    y03: float
+    py03_over_gambet: float
+    z03: float
+    pz03_times_qmc: float
+
+
+@dataclass
+class File30(FortranOutputFileData, file_id=30):
+    """
+    write(30,100)z,x04*xl,px04/gambet,y04*xl,py04/gambet,z04*xt,&
+                 pz04*qmc
+    """
+
+    z: float
+    x04: float
+    px04_over_gambet: float
+    y04: float
+    py04_over_gambet: float
+    z04: float
+    pz04_times_qmc: float
+
+
+@dataclass
+class File32(FortranOutputFileData, file_id=32):
+    """
+    write(32,*)z,nptlist(1:nchrg)
+    """
+
+    z: float
+    nptlist: list[float]
+
+    @classmethod
+    def from_file(cls, filename: AnyPath) -> list[File32]:
+        items = []
+        with open(filename, "rt") as fp:
+            for line in fp.read().splitlines():
+                z, *nptlist = parsers.parse_input_line(line)
+                items.append(cls(z=z, nptlist=nptlist))
+        return items
+
+
+AnyOutputFile = Union[
+    File18, File24, File25, File26, File27, File28, File29, File30, File32
+]
