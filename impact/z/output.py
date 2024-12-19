@@ -10,9 +10,17 @@ import pydantic
 import pydantic.alias_generators
 from typing_extensions import override
 
+from pmd_beamphysics.units import pmd_unit
+
 from . import parsers
 from .input import ImpactZInput
-from .types import AnyPath, BaseModel, OutputDataType, SequenceBaseModel
+from .types import (
+    AnyPath,
+    BaseModel,
+    OutputDataType,
+    PydanticPmdUnit,
+    SequenceBaseModel,
+)
 
 try:
     from collections.abc import Mapping
@@ -89,6 +97,16 @@ class _OutputBase(BaseModel):
     )
 
 
+def load_stat_files_from_path(workdir: pathlib.Path) -> dict[str, np.ndarray]:
+    stats = {}
+    for fnum, cls in file_number_to_cls.items():
+        fn = workdir / f"fort.{fnum}"
+        if fn.exists():
+            stats.update(cls.from_file(fn))
+
+    return stats
+
+
 class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
     """
     IMPACT-Z command output.
@@ -106,7 +124,14 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         default_factory=RunInfo,
         description="Run-related information - output text and timing.",
     )
-    files: dict[int, np.ndarray] = {}
+    stats: dict[str, np.ndarray] = pydantic.Field(default={}, repr=False)
+    alias: dict[str, str] = pydantic.Field(
+        default={
+            "-cov_x__gammabeta_x": "neg_cov_x__gammabeta_x",
+            "mean_z": "z",
+        },
+    )
+    unit_map: dict[str, PydanticPmdUnit] = {}
 
     @override
     def __eq__(self, other: Any) -> bool:
@@ -123,17 +148,49 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
 
         # parent, array_attr = self._split_parent_and_attr(key)
         # return getattr(parent, array_attr)
-        # return None
+        key = self.alias.get(key, key)
+        return self.stats[key]
 
     @override
     def __iter__(self) -> Generator[str, None, None]:
         """Support for Mapping -> easy access to data."""
-        yield from self.alias
+        yield from self.stats
 
     @override
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
-        return len(self.alias)
+        return len(self.stats)
+
+    def units(self, key: str) -> pmd_unit:
+        return self.unit_map[self.alias.get(key, key)]
+
+    def stat(self, key: str):
+        """
+        Array from .output['stats'][key]
+
+        Additional keys are avalable:
+            'mean_energy': mean energy
+            'Ez': z component of the electric field at the centroid particle
+            'Bz'  z component of the magnetic field at the centroid particle
+            'cov_{a}__{b}': any symmetric covariance matrix term
+        """
+        if key in ("Ez", "Bz"):
+            raise NotImplementedError()
+            # return self.centroid_field(component=key[0:2])
+
+        if key == "mean_energy":
+            raise NotImplementedError()
+            # return self.stat("mean_kinetic_energy") + self.mc2
+
+        # Allow flipping covariance keys
+        if key.startswith("cov_") and key not in self.stats:
+            k1, k2 = key[4:].split("__")
+            key = f"cov_{k2}__{k1}"
+
+        if key not in self.stats:
+            raise ValueError(f"{key} is not available in the output data")
+
+        return self.stats[self.alias.get(key, key)]
 
     @classmethod
     def from_input_settings(
@@ -162,21 +219,66 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         ImpactZOutput
             The output data.
         """
-        files = {}
-        for fnum, cls in file_number_to_cls.items():
-            fn = workdir / f"fort.{fnum}"
-            if fn.exists():
-                files[fnum] = cls.from_file(fn)
-        return ImpactZOutput(files=files)
-        # output_filename = cls.get_output_filename(input, workdir)
-        # return cls.from_files(
-        #     output_filename,
-        #     load_fields=load_fields,
-        #     load_particles=load_particles,
-        #     smear=smear,
-        # )
-        #
-        #
+        stats = load_stat_files_from_path(workdir)
+        return ImpactZOutput(stats=stats)
+
+    def plot(
+        self,
+        y=["sigma_x", "sigma_y"],
+        x="mean_z",
+        xlim=None,
+        ylim=None,
+        ylim2=None,
+        y2=[],
+        nice=True,
+        include_layout=True,
+        include_labels=False,
+        include_markers=True,
+        include_particles=True,
+        include_field=True,
+        field_t=0,
+        include_legend=True,
+        return_figure=False,
+        tex=True,
+        **kwargs,
+    ):
+        """ """
+        from ..plot import plot_stats_with_layout
+
+        if not self.stats:
+            # Just plot fieldmaps if there are no stats
+            raise NotImplementedError()
+            # return plot_layout(
+            #     self,
+            #     xlim=xlim,
+            #     include_markers=include_markers,
+            #     include_labels=include_labels,
+            #     include_field=include_field,
+            #     field_t=field_t,
+            #     return_figure=return_figure,
+            #     **kwargs,
+            # )
+
+        return plot_stats_with_layout(
+            self,
+            ykeys=y,
+            ykeys2=y2,
+            xkey=x,
+            xlim=xlim,
+            ylim=ylim,
+            ylim2=ylim2,
+            nice=nice,
+            tex=tex,
+            include_layout=False,  # include_layout,
+            include_labels=include_labels,
+            include_field=include_field,
+            field_t=field_t,
+            include_markers=include_markers,
+            include_particles=include_particles,
+            include_legend=include_legend,
+            return_figure=return_figure,
+            **kwargs,
+        )
 
 
 file_number_to_cls = {}
@@ -192,23 +294,14 @@ class FortranOutputFileData(SequenceBaseModel):
         file_number_to_cls[file_id] = cls
 
     @classmethod
-    def from_file(cls: type[T], filename: AnyPath) -> np.ndarray:
-        items = []
+    def from_file(cls: type[T], filename: AnyPath) -> dict[str, np.ndarray]:
+        data = {attr: [] for attr in cls.model_fields}
         with open(filename, "rt") as fp:
             for line in fp.read().splitlines():
-                data = parsers.parse_input_line(line)
-                items.append(data)
+                for attr, value in zip(data, parsers.parse_input_line(line)):
+                    data[attr].append(value)
 
-        dtype = cls.model_dtype()
-        return np.asarray(items, dtype=dtype)
-
-    @classmethod
-    def model_dtype(cls):
-        return np.dtype([(fld, np.float64) for fld in cls.model_fields])
-
-    def to_numpy(self) -> np.ndarray:
-        values = [getattr(self, attr) for attr in self.model_fields]
-        return np.ndarray(values, dtype=self.model_dtype())
+        return {key: np.asarray(items) for key, items in data.items()}
 
 
 class ReferenceParticles(FortranOutputFileData, file_id=18):
@@ -221,13 +314,13 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
         Distance in meters (1st column).
     absolute_phase : float
         Absolute phase in radians (2nd column).
-    gamma : float
-        Gamma (3rd column).
-    kinetic_energy : float
-        Kinetic energy in MeV (4th column).
-    beta : float
+    mean_gamma : float
+        Mean gamma (3rd column).
+    mean_kinetic_energy_MeV : float
+        Mean kinetic energy in MeV (4th column).
+    mean_beta : float
         Beta (5th column).
-    rmax : float
+    max_r : float
         Rmax in meters, measured from the axis of pipe (6th column).
 
     Notes
@@ -238,10 +331,10 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
 
     z: float
     absolute_phase: float
-    gamma: float
-    kinetic_energy: float
-    beta: float
-    rmax: float
+    mean_gamma: float
+    mean_kinetic_energy_MeV: float
+    mean_beta: float
+    max_r: float
 
 
 class RmsX(FortranOutputFileData, file_id=24):
@@ -251,19 +344,19 @@ class RmsX(FortranOutputFileData, file_id=24):
     Attributes
     ----------
     z : float
-        z distance (m)
-    centroid_location : float
-        centroid location (m)
-    rms_size : float
+        Mean z distance (m)
+    mean_x : float
+        Centroid location (m)
+    sigma_x : float
         RMS size (m)
-    centroid_momentum : float
-        Centroid momentum [rad] (rad for fort.24 and fort.25, MeV for fort.26)
-    rms_momentum : float
-        RMS momentum [rad] (rad for fort.24 and fort.25, MeV for fort.26)
-    twiss_alpha : float
+    mean_gammabeta_x : float
+        Centroid momentum [rad]
+    sigma_gammabeta_x : float
+        RMS momentum [rad]
+    neg_cov_x__gammabeta_x : float
         Twiss parameter, alpha
-    norm_rms_emittance : float
-        normalized RMS emittance [m-rad] (m-rad for transverse and degree-MeV for fort.26)
+    norm_emit_x : float
+        normalized RMS emittance [m-rad]
 
     Notes
     -----
@@ -272,12 +365,12 @@ class RmsX(FortranOutputFileData, file_id=24):
     """
 
     z: float
-    centroid_location: float
-    rms_size: float
-    centroid_momentum: float
-    rms_momentum: float
-    twiss_alpha: float
-    norm_rms_emittance: float
+    mean_x: float
+    sigma_x: float
+    mean_gammabeta_x: float
+    sigma_gammabeta_x: float
+    neg_cov_x__gammabeta_x: float
+    norm_emit_x: float
 
 
 class RmsY(FortranOutputFileData, file_id=25):
@@ -288,18 +381,18 @@ class RmsY(FortranOutputFileData, file_id=25):
     ----------
     z : float
         z distance (m)
-    centroid_location : float
+    mean_y : float
         centroid location (m)
-    rms_size : float
+    sigma_y : float
         RMS size (m)
-    centroid_momentum : float
-        Centroid momentum [rad] (rad for fort.24 and fort.25, MeV for fort.26)
-    rms_momentum : float
-        RMS momentum [rad] (rad for fort.24 and fort.25, MeV for fort.26)
-    twiss_alpha : float
+    mean_gammabeta_y : float
+        Centroid momentum [rad]
+    sigma_gammabeta_y : float
+        RMS momentum [rad]
+    neg_cov_y__gammabeta_y : float
         Twiss parameter, alpha
-    norm_rms_emittance : float
-        normalized RMS emittance [m-rad] (m-rad for transverse and degree-MeV for fort.26)
+    norm_emit_y : float
+        normalized RMS emittance [m-rad]
 
     Notes
     -----
@@ -308,12 +401,12 @@ class RmsY(FortranOutputFileData, file_id=25):
     """
 
     z: float
-    centroid_location: float
-    rms_size: float
-    centroid_momentum: float
-    rms_momentum: float
-    twiss_alpha: float
-    norm_rms_emittance: float
+    mean_y: float
+    sigma_y: float
+    mean_gammabeta_y: float
+    sigma_gammabeta_y: float
+    neg_cov_y__gammabeta_y: float
+    norm_emit_y: float
 
 
 class RmsZ(FortranOutputFileData, file_id=26):
@@ -324,17 +417,17 @@ class RmsZ(FortranOutputFileData, file_id=26):
     ----------
     z : float
         z distance (m)
-    centroid_location : float
+    mean_z : float
         centroid location (m)
-    rms_size : float
+    sigma_z : float
         RMS size (m)
-    centroid_momentum : float
+    mean_gammabeta_z : float
         Centroid momentum [MeV]
-    rms_momentum : float
+    sigma_gammabeta_z : float
         RMS momentum [MeV]
-    twiss_alpha : float
+    neg_cov_z__gammabeta_z : float
         Twiss parameter, alpha
-    norm_rms_emittance : float
+    norm_emit_z : float
         normalized RMS emittance [degree-MeV]
 
     Notes
@@ -344,12 +437,12 @@ class RmsZ(FortranOutputFileData, file_id=26):
     """
 
     z: float
-    centroid_location: float
-    rms_size: float
-    centroid_momentum: float
-    rms_momentum: float
-    twiss_alpha: float
-    norm_rms_emittance: float
+    mean_z: float
+    sigma_z: float
+    mean_gammabeta_z: float
+    sigma_gammabeta_z: float
+    neg_cov_z__gammabeta_z: float
+    norm_emit_z: float
 
 
 class MaxAmplitude(FortranOutputFileData, file_id=27):
@@ -360,17 +453,17 @@ class MaxAmplitude(FortranOutputFileData, file_id=27):
     ----------
     z : float
         z distance (m)
-    max_x : float
+    max_amplitude_x : float
         Maximum X (m)
-    max_px : float
+    max_amplitude_gammabeta_x : float
         Maximum Px (rad)
-    max_y : float
+    max_amplitude_y : float
         Maximum Y (m)
-    max_py : float
+    max_amplitude_gammabeta_y : float
         Maximum Py (rad)
-    max_phase : float
+    max_amplitude_phase : float
         Maximum Phase (degree)
-    max_energy_dev : float
+    max_amplitude_energy_dev : float
         Maximum Energy deviation (MeV)
 
     Notes
@@ -381,12 +474,12 @@ class MaxAmplitude(FortranOutputFileData, file_id=27):
     """
 
     z: float
-    max_x: float
-    max_px: float
-    max_y: float
-    max_py: float
-    max_phase: float
-    max_energy_dev: float
+    max_amplitude_x: float
+    max_amplitude_gammabeta_x: float
+    max_amplitude_y: float
+    max_amplitude_gammabeta_y: float
+    max_amplitude_phase: float
+    max_amplitude_energy_dev: float
 
 
 class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
@@ -397,11 +490,11 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
     ----------
     z : float
         z distance (m)
-    min_particles : float
+    loadbalance_min_n_particle : float
         Minimum number of particles on a PE
-    max_particles : float
+    loadbalance_max_n_particle : float
         Maximum number of particles on a PE
-    total_particles : float
+    n_particle : float
         Total number of particles in the bunch
 
     Notes
@@ -411,9 +504,9 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
     """
 
     z: float
-    min_particles: float
-    max_particles: float
-    total_particles: float
+    loadbalance_min_n_particle: float
+    loadbalance_max_n_particle: float
+    n_particle: float
 
 
 class BeamDistribution3rd(FortranOutputFileData, file_id=29):
@@ -424,17 +517,17 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
     ----------
     z : float
         z distance (m)
-    x : float
+    moment3_x : float
         X (m)
-    px : float
+    moment3_gammabeta_x : float
         Px (rad)
-    y : float
+    moment3_y : float
         Y (m)
-    py : float
+    moment3_gammabeta_y : float
         Py (rad)
-    phase : float
+    moment3_phase : float
         phase (degree)
-    energy_deviation : float
+    moment3_energy_deviation : float
         Energy deviation (MeV)
 
     Notes
@@ -445,12 +538,12 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
     """
 
     z: float
-    x: float
-    px: float
-    y: float
-    py: float
-    phase: float
-    energy_deviation: float
+    moment3_x: float
+    moment3_gammabeta_x: float
+    moment3_y: float
+    moment3_gammabeta_y: float
+    moment3_phase: float
+    moment3_energy_deviation: float
 
 
 class BeamDistribution4th(FortranOutputFileData, file_id=30):
@@ -461,17 +554,17 @@ class BeamDistribution4th(FortranOutputFileData, file_id=30):
     ----------
     z : float
         z distance (m)
-    x : float
+    moment4_x : float
         X (m)
-    px : float
+    moment4_gammabeta_x : float
         Px (rad)
-    y : float
+    moment4_y : float
         Y (m)
-    py : float
+    moment4_gammabeta_y : float
         Py (rad)
-    phase : float
+    moment4_phase : float
         Phase (degree)
-    energy_deviation : float
+    moment4_energy_deviation : float
         Energy deviation (MeV)
 
     Notes
@@ -482,12 +575,12 @@ class BeamDistribution4th(FortranOutputFileData, file_id=30):
     """
 
     z: float
-    x: float
-    px: float
-    y: float
-    py: float
-    phase: float
-    energy_deviation: float
+    moment4_x: float
+    moment4_gammabeta_x: float
+    moment4_y: float
+    moment4_gammabeta_y: float
+    moment4_phase: float
+    moment4_energy_deviation: float
 
 
 class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
@@ -501,7 +594,7 @@ class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
     ----------
     z : float
         The z distance in meters.
-    particles : int
+    charge_state_n_particle : int
         The number of particles for each charge state.
 
     Notes
@@ -511,4 +604,4 @@ class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
     """
 
     z: float
-    npt: float
+    charge_state_n_particle: float

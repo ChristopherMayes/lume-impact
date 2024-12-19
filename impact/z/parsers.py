@@ -24,7 +24,7 @@ def parse_input_line(line: str) -> list[float | int]:
     if "/" in parts:
         parts = parts[: parts.index("/")]
 
-    def eval(value: str):
+    def literal_eval(value: str):
         if value == "NaN":
             return math.nan
         if value == "-Infinity":
@@ -39,7 +39,7 @@ def parse_input_line(line: str) -> list[float | int]:
                 f"as it does not correspond to a valid Python constant."
             ) from None
 
-    return [eval(value) for value in parts]
+    return [literal_eval(value) for value in parts]
 
 
 def parse_input_lines(lines: str | Sequence[str]) -> list[InputFileSection]:
