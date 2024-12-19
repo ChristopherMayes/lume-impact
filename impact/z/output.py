@@ -3,17 +3,16 @@ from __future__ import annotations
 import logging
 import pathlib
 import typing
-from typing import Any, Dict, Generator, Optional, TypeVar, Union
+from typing import Any, Dict, Generator, Optional, TypeVar
 
 import numpy as np
 import pydantic
 import pydantic.alias_generators
-from pydantic.dataclasses import dataclass
 from typing_extensions import override
 
 from . import parsers
 from .input import ImpactZInput
-from .types import AnyPath, BaseModel, OutputDataType
+from .types import AnyPath, BaseModel, OutputDataType, SequenceBaseModel
 
 try:
     from collections.abc import Mapping
@@ -107,7 +106,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         default_factory=RunInfo,
         description="Run-related information - output text and timing.",
     )
-    files: dict[int, list[FortranOutputFileData]] = {}
+    files: dict[int, np.ndarray] = {}
 
     @override
     def __eq__(self, other: Any) -> bool:
@@ -184,7 +183,7 @@ file_number_to_cls = {}
 T = TypeVar("T", bound="FortranOutputFileData")
 
 
-class FortranOutputFileData:
+class FortranOutputFileData(SequenceBaseModel):
     def __init_subclass__(cls, file_id: int, **kwargs):
         super().__init_subclass__(**kwargs)
 
@@ -193,16 +192,25 @@ class FortranOutputFileData:
         file_number_to_cls[file_id] = cls
 
     @classmethod
-    def from_file(cls: type[T], filename: AnyPath) -> list[T]:
+    def from_file(cls: type[T], filename: AnyPath) -> np.ndarray:
         items = []
         with open(filename, "rt") as fp:
             for line in fp.read().splitlines():
                 data = parsers.parse_input_line(line)
-                items.append(cls(*data))
-        return items
+                items.append(data)
+
+        dtype = cls.model_dtype()
+        return np.asarray(items, dtype=dtype)
+
+    @classmethod
+    def model_dtype(cls):
+        return np.dtype([(fld, np.float64) for fld in cls.model_fields])
+
+    def to_numpy(self) -> np.ndarray:
+        values = [getattr(self, attr) for attr in self.model_fields]
+        return np.ndarray(values, dtype=self.model_dtype())
 
 
-@dataclass
 class File18(FortranOutputFileData, file_id=18):
     """
     write(18,99)z,this%refptcl(5),gam,energy,bet,sqrt(glrmax)*xl
@@ -216,7 +224,6 @@ class File18(FortranOutputFileData, file_id=18):
     sqrt_glrmax_times_xl: float
 
 
-@dataclass
 class File24(FortranOutputFileData, file_id=24):
     """
     write(24,100)z,x0*xl,xrms*xl,px0/gambet,pxrms/gambet,-xpx/epx,epx*xl
@@ -231,7 +238,6 @@ class File24(FortranOutputFileData, file_id=24):
     epx_times_xl: float
 
 
-@dataclass
 class File25(FortranOutputFileData, file_id=25):
     """
     write(25,100)z,y0*xl,yrms*xl,py0/gambet,pyrms/gambet,-ypy/epy,epy*xl
@@ -246,7 +252,6 @@ class File25(FortranOutputFileData, file_id=25):
     epy_times_xl: float
 
 
-@dataclass
 class File26(FortranOutputFileData, file_id=26):
     """
     write(26,100)z,z0*xt,zrms*xt,pz0*qmc,pzrms*qmc,-zpz/epz,epz*qmc*xt
@@ -261,7 +266,6 @@ class File26(FortranOutputFileData, file_id=26):
     epz_times_qmc_xt: float
 
 
-@dataclass
 class File27(FortranOutputFileData, file_id=27):
     """
     write(27,100)z,glmax(1)*xl,glmax(2)/gambet,glmax(3)*xl,&
@@ -277,7 +281,6 @@ class File27(FortranOutputFileData, file_id=27):
     glmax6_times_qmc: float
 
 
-@dataclass
 class File28(FortranOutputFileData, file_id=28):
     """
     write(28,101)z,npctmin,npctmax,nptot
@@ -289,7 +292,6 @@ class File28(FortranOutputFileData, file_id=28):
     nptot: float
 
 
-@dataclass
 class File29(FortranOutputFileData, file_id=29):
     """
     write(29,100)z,x03*xl,px03/gambet,y03*xl,py03/gambet,z03*xt,&
@@ -305,7 +307,6 @@ class File29(FortranOutputFileData, file_id=29):
     pz03_times_qmc: float
 
 
-@dataclass
 class File30(FortranOutputFileData, file_id=30):
     """
     write(30,100)z,x04*xl,px04/gambet,y04*xl,py04/gambet,z04*xt,&
@@ -321,7 +322,6 @@ class File30(FortranOutputFileData, file_id=30):
     pz04_times_qmc: float
 
 
-@dataclass
 class File32(FortranOutputFileData, file_id=32):
     """
     write(32,*)z,nptlist(1:nchrg)
@@ -331,15 +331,16 @@ class File32(FortranOutputFileData, file_id=32):
     nptlist: list[float]
 
     @classmethod
-    def from_file(cls, filename: AnyPath) -> list[File32]:
+    def from_file(cls, filename: AnyPath) -> np.ndarray:
         items = []
         with open(filename, "rt") as fp:
             for line in fp.read().splitlines():
                 z, *nptlist = parsers.parse_input_line(line)
-                items.append(cls(z=z, nptlist=nptlist))
-        return items
+                items.append(np.array([z, *nptlist]))
 
+        if not items:
+            return np.zeros((0,))
 
-AnyOutputFile = Union[
-    File18, File24, File25, File26, File27, File28, File29, File30, File32
-]
+        npts = len(items[-1]) - 1
+        dtype = [("z", np.float64), *[(f"pt{n}", np.float64) for n in range(npts)]]
+        return np.asarray(items, dtype=dtype)

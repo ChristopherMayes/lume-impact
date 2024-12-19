@@ -84,7 +84,10 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
     """
     LUME-Impact customized pydantic BaseModel.
 
-    Alters `dir()` handling and other things for user convenience.
+    * `dir()` handling for user convenience.
+    * JupyterLab and console repr improvements.
+    * Customized equality checks for fields with numpy arrays.
+    * `to_string` and `to_table` helpers.
     """
 
     def _repr_table_data_(self) -> ReprTableData:
@@ -143,6 +146,20 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
         return [
             attr for attr in full if not attr.startswith("_") and attr not in base_model
         ]
+
+
+class SequenceBaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
+    """
+    LUME-Impact customized pydantic BaseModel that represents a fixed sequence of data.
+
+    This means that positional instantiation (via `.from_sequence`) can be a
+    useful and natural way of using the model.
+    """
+
+    @classmethod
+    def from_sequence(cls, args: Sequence[Any]):
+        kwargs: dict[str, Any] = dict(zip(cls.model_fields, args))
+        return cls(**kwargs)
 
 
 class _PydanticNDArray(BaseModel):

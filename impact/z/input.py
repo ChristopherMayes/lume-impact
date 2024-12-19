@@ -1284,6 +1284,8 @@ class TwissZ(BaseModel):
 
 
 class ImpactZInput(BaseModel):
+    """Input settings for an IMPACT-Z run."""
+
     initial_particles: PydanticParticleGroup | None = None
 
     ncpu_y: int = 0
