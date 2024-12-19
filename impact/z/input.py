@@ -92,7 +92,7 @@ class Drift(InputElement, element_id=0):
         Radius of the pipe, in meters.
     """
 
-    type_id: Literal[0]
+    type_id: Literal[0] = 0
     radius: float = 0.0
     unused_0: float = 0.0  # unused/undocumented; should we just ignore?
     unused_1: float = 0.0
@@ -132,7 +132,7 @@ class Quadrupole(InputElement, element_id=1):
         Rotation error in radians.
     """
 
-    type_id: Literal[1]
+    type_id: Literal[1] = 1
     B1: float = 0.0
     input_file_id: int = 0
     radius: float = 0.0
@@ -170,7 +170,7 @@ class ConstantFocusing(InputElement, element_id=2):
     This class does not work for the Lorentz integrator option.
     """
 
-    type_id: Literal[2]
+    type_id: Literal[2] = 2
     kx0_squared: float = 0.0
     ky0_squared: float = 0.0
     kz0_squared: float = 0.0
@@ -208,7 +208,7 @@ class Solenoid(InputElement, element_id=3):
         Rotation error in the z-direction in radians.
     """
 
-    type_id: Literal[3]
+    type_id: Literal[3] = 3
     Bz0: float = 0.0
     input_field_file_id: float = 0.0
     radius: float = 0.0
@@ -255,7 +255,7 @@ class Dipole(InputElement, element_id=4):
         Rotation error around the z axis.
     """
 
-    type_id: Literal[4]
+    type_id: Literal[4] = 4
 
     x_field_strength: float = 0.0
     y_field_strength: float = 0.0
@@ -310,7 +310,7 @@ class Multipole(InputElement, element_id=5):
         Rotation error around the z-axis.
     """
 
-    type_id: Literal[5]
+    type_id: Literal[5] = 5
 
     # TODO untested
     multipole_type: MultipoleType
@@ -376,7 +376,7 @@ class DTL(InputElement, element_id=101):
         Rotation error around the z-axis for the RF field in radians.
     """
 
-    type_id: Literal[101]
+    type_id: Literal[101] = 101
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0
@@ -447,7 +447,7 @@ class CCDTL(InputElement, element_id=102):
         Type of the element, set as 'ccdtl'.
     """
 
-    type_id: Literal[102]
+    type_id: Literal[102] = 102
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0  # theta0
@@ -496,7 +496,7 @@ class CCL(InputElement, element_id=103):
         Rotation error about the z-axis in radians.
     """
 
-    type_id: Literal[103]
+    type_id: Literal[103] = 103
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0  # driven phase
@@ -531,7 +531,7 @@ class SuperconductingCavity(InputElement, element_id=104):
         Radius in meters.
     """
 
-    type_id: Literal[104]
+    type_id: Literal[104] = 104
     scale: float = 0.0
     frequency: float = 0.0
     phase: float = 0.0  # theta0
@@ -588,7 +588,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105):
         The length for wake, indicating RF structure wakefield should be turned on if this value is greater than zero.
     """
 
-    type_id: Literal[105]
+    type_id: Literal[105] = 105
     field_scaling: float  # field scaling factor
     rf_frequency: float  # RF frequency in Hz
     theta0: float  # driven phase in degrees
@@ -654,7 +654,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106):
     `length_for_wakefield`.
     """
 
-    type_id: Literal[106]
+    type_id: Literal[106] = 106
     field_scaling: float = 0.0  # scale
     rf_frequency: float = 0.0  # rf freq
     theta0: float = 0.0  # driven_phase
@@ -718,7 +718,7 @@ class UserDefinedRFCavity(InputElement, element_id=110):
     each dimension compared to the input intervals.
     """
 
-    type_id: Literal[110]
+    type_id: Literal[110] = 110
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0  # driven phase
@@ -735,7 +735,7 @@ class UserDefinedRFCavity(InputElement, element_id=110):
 
 
 class ShiftCentroid(InputElement, element_id=-1):
-    type_id: Literal[-1]
+    type_id: Literal[-1] = -1
 
 
 class WriteFull(InputElement, element_id=-2):
@@ -759,7 +759,7 @@ class WriteFull(InputElement, element_id=-2):
       gamma).
     """
 
-    type_id: Literal[-2]
+    type_id: Literal[-2] = -2
     unused_2: float = 0.0
     sample_frequency: int = 0
 
@@ -786,7 +786,7 @@ class DensityProfileInput(InputElement, element_id=-3):
         Maximum Pz in mc^2.
     """
 
-    type_id: Literal[-3]
+    type_id: Literal[-3] = -3
 
     radius: float = 0.0
     xmax: float = 0.0
@@ -819,7 +819,7 @@ class DensityProfile(InputElement, element_id=-4):
         Maximum value in Z direction momentum in mc^2.
     """
 
-    type_id: Literal[-4]
+    type_id: Literal[-4] = -4
 
     radius: float = 0.0
     xmax: float = 0.0
@@ -852,7 +852,7 @@ class Projection2D(InputElement, element_id=-5):
         The maximum pz value.
     """
 
-    type_id: Literal[-5]
+    type_id: Literal[-5] = -5
 
     radius: float = 0.0
     xmax: float = 0.0
@@ -886,7 +886,7 @@ class Density3D(InputElement, element_id=-6):
 
     """
 
-    type_id: Literal[-6]
+    type_id: Literal[-6] = -6
 
     radius: float = 0.0
     xmax: float = 0.0
@@ -904,7 +904,7 @@ class WritePhaseSpaceInfo(InputElement, element_id=-7):
     fort.(1000+Nprocessor-1). This function is used for restart purposes.
     """
 
-    type_id: Literal[-7]
+    type_id: Literal[-7] = -7
 
 
 class WriteSliceInfo(InputElement, element_id=-8):
@@ -927,7 +927,7 @@ class WriteSliceInfo(InputElement, element_id=-8):
         Twiss parameter betaY at the location (m).
     """
 
-    type_id: Literal[-8]
+    type_id: Literal[-8] = -8
     slices: float = 0.0
     alphaX: float = 0.0
     betaX: float = 0.0
@@ -965,7 +965,7 @@ class ScaleMismatchParticle6DCoordinates(InputElement, element_id=-10):
         The pt-coordinate mismatch.
     """
 
-    type_id: Literal[-10]
+    type_id: Literal[-10] = -10
     radius: float = 0.0
     xmis: float = 0.0
     pxmis: float = 0.0
@@ -993,7 +993,7 @@ class CollimateBeamWithRectangularAperture(InputElement, element_id=-13):
         Maximum y value in meters.
     """
 
-    type_id: Literal[-13]
+    type_id: Literal[-13] = -13
     radius: float = 0.0
     xmin: float = 0.0
     xmax: float = 0.0
@@ -1021,7 +1021,7 @@ class RotateBeamWithRespectToLongitudinalAxis(InputElement, element_id=-18):
         The rotation angle in radians.
     """
 
-    type_id: Literal[-18]
+    type_id: Literal[-18] = -18
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
@@ -1040,7 +1040,7 @@ class BeamShift(InputElement, element_id=-19):
         The amount to shift the beam longitudinally so that <dt>=<dE>=0.
     """
 
-    type_id: Literal[-19]
+    type_id: Literal[-19] = -19
     shift: float = 0.0
 
 
@@ -1056,7 +1056,7 @@ class BeamEnergySpread(InputElement, element_id=-20):
         The increased energy spread in eV.
     """
 
-    type_id: Literal[-20]
+    type_id: Literal[-20] = -20
     radius: float = 0.0
     energy_spread: float = 0.0
 
@@ -1083,7 +1083,7 @@ class ShiftBeamCentroid(InputElement, element_id=-21):
         Shift in z momentum in MeV.
     """
 
-    type_id: Literal[-21]
+    type_id: Literal[-21] = -21
 
     radius: float = 0.0
     xshift: float = 0.0
@@ -1110,7 +1110,7 @@ class IntegratorTypeSwitch(InputElement, element_id=-25):
         Use the nonlinear Lorentz integrator for complicated external fields where transfer maps are not available.
     """
 
-    type_id: Literal[-25]
+    type_id: Literal[-25] = -25
     beam_centroid_6D: float = 0.0
     radius: float = 0.0
     linear_map_integrator: float = 0.0
@@ -1133,7 +1133,7 @@ class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
         Radius in meters (not used).
     """
 
-    type_id: Literal[-40]
+    type_id: Literal[-40] = -40
     vmax: float = 0.0
     phi0: float = 0.0
     harm: int = 0
@@ -1148,7 +1148,7 @@ class RfcavityStructureWakefield(InputElement, element_id=-41):
     ----------
     """
 
-    type_id: Literal[-41]
+    type_id: Literal[-41] = -41
     not_used: float = 1.0
     file_id: int = 0
     # TODO -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
@@ -1169,7 +1169,7 @@ class EnergyModulation(InputElement, element_id=-52):
         The uncorrelated energy spread in eV.
     """
 
-    type_id: Literal[-52]
+    type_id: Literal[-52] = -52
 
     beam_size: float = 0.0
     laser_wavelength: float = 0.0
@@ -1199,7 +1199,7 @@ class KickBeamUsingMultipole(InputElement, element_id=-55):
         Seventh parameter.
     """
 
-    type_id: Literal[-55]
+    type_id: Literal[-55] = -55
     param1: float = 0.0
     param2: float = 0.0
     param3: float = 0.0
@@ -1216,7 +1216,7 @@ class HaltExecution(InputElement, element_id=-99):
     This is useful if you have a big file and want to run part-way through it without deleting a lot of lines.
     """
 
-    type_id: Literal[-99]
+    type_id: Literal[-99] = -99
 
 
 class TwissXorY(
@@ -1329,7 +1329,7 @@ class ImpactZInput(BaseModel):
     scaling_frequency: float = 0.0
     initial_phase_ref: float = 0.0
 
-    elements: list[InputElement] = []
+    lattice: list[InputElement] = []
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
 
     @classmethod
@@ -1402,10 +1402,10 @@ class ImpactZInput(BaseModel):
             res.initial_phase_ref,
         ) = data[10]
 
-        res.elements = []
+        res.lattice = []
         for lattice_line in data[11:]:
             ele = InputElement.from_line(lattice_line)
-            res.elements.append(ele)
+            res.lattice.append(ele)
 
         return res
 
@@ -1425,7 +1425,7 @@ class ImpactZInput(BaseModel):
             gpu = f" {int(self.gpu)}"
         else:
             gpu = ""
-        elements = "\n".join(elem.to_line() for elem in self.elements)
+        lattice = "\n".join(elem.to_line() for elem in self.lattice)
         return f"""
 ! {header}
 {self.ncpu_y} {self.ncpu_z}{gpu}
@@ -1439,7 +1439,7 @@ class ImpactZInput(BaseModel):
 {twiss_y.alpha} {twiss_y.beta} {twiss_y.emit} {twiss_y.mismatch} {twiss_y.mismatch_p} {twiss_y.offset} {twiss_y.offset_p}
 {twiss_z.alpha} {twiss_z.beta} {twiss_z.emit} {twiss_z.mismatch} {twiss_z.mismatch_e} {twiss_z.offset_phase} {twiss_z.offset_energy}
 {self.current_averaged} {self.initial_kinetic_energy} {self.particle_mass} {self.particle_charge} {self.scaling_frequency} {self.initial_phase_ref}
-{elements}
+{lattice}
         """.strip()
 
     def write(self, workdir: AnyPath) -> list[pathlib.Path]:
