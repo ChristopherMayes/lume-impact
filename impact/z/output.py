@@ -3,24 +3,23 @@ from __future__ import annotations
 import logging
 import pathlib
 import typing
-from typing import Any, Dict, Generator, Optional, TypeVar
+from typing import Any, Dict, Generator, Optional, Sequence, TypeVar
 
 import numpy as np
 import pydantic
 import pydantic.alias_generators
-from typing_extensions import override
-
 from pmd_beamphysics.units import pmd_unit
+from typing_extensions import override
 
 from . import parsers
 from .input import ImpactZInput
 from .types import (
     AnyPath,
     BaseModel,
-    OutputDataType,
     PydanticPmdUnit,
     SequenceBaseModel,
 )
+from .units import Degrees, Meters, MeV, Radians, Unitless, known_unit
 
 try:
     from collections.abc import Mapping
@@ -84,27 +83,29 @@ class RunInfo(BaseModel):
         return not self.error
 
 
-def _empty_ndarray():
-    return np.zeros(0)
+# def _empty_ndarray():
+#     return np.zeros(0)
 
 
-class _OutputBase(BaseModel):
-    """Output model base class."""
-
-    # units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
-    extra: Dict[str, OutputDataType] = pydantic.Field(
-        default_factory=dict, description="Additional output data."
-    )
-
-
-def load_stat_files_from_path(workdir: pathlib.Path) -> dict[str, np.ndarray]:
+def load_stat_files_from_path(
+    workdir: pathlib.Path,
+) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
+    units = {}
     for fnum, cls in file_number_to_cls.items():
         fn = workdir / f"fort.{fnum}"
         if fn.exists():
             stats.update(cls.from_file(fn))
+            for key, field in cls.model_fields.items():
+                field_units = field.metadata[0]["units"]
 
-    return stats
+                if field_units == "MeV":
+                    field_units = known_unit["eV"]
+                    stats[key] *= 1e6
+
+                units[key] = field_units
+
+    return stats, units
 
 
 class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
@@ -131,7 +132,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             "mean_z": "z",
         },
     )
-    unit_map: dict[str, PydanticPmdUnit] = {}
+    key_to_unit: Dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
 
     @override
     def __eq__(self, other: Any) -> bool:
@@ -162,7 +163,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         return len(self.stats)
 
     def units(self, key: str) -> pmd_unit:
-        return self.unit_map[self.alias.get(key, key)]
+        return self.key_to_unit[self.alias.get(key, key)]
 
     def stat(self, key: str):
         """
@@ -219,13 +220,13 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         ImpactZOutput
             The output data.
         """
-        stats = load_stat_files_from_path(workdir)
-        return ImpactZOutput(stats=stats)
+        stats, units = load_stat_files_from_path(workdir)
+        return ImpactZOutput(stats=stats, key_to_unit=units)
 
     def plot(
         self,
-        y=["sigma_x", "sigma_y"],
-        x="mean_z",
+        y: str | Sequence[str] = ("sigma_x", "sigma_y"),
+        x: str = "mean_z",
         xlim=None,
         ylim=None,
         ylim2=None,
@@ -281,7 +282,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         )
 
 
-file_number_to_cls = {}
+file_number_to_cls: dict[str, "FortranOutputFileData"] = {}
 T = TypeVar("T", bound="FortranOutputFileData")
 
 
@@ -329,12 +330,12 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
     write(18,99)z,this%refptcl(5),gam,energy,bet,sqrt(glrmax)*xl
     """
 
-    z: float
-    absolute_phase: float
-    mean_gamma: float
-    mean_kinetic_energy_MeV: float
-    mean_beta: float
-    max_r: float
+    z: Meters
+    absolute_phase: Radians
+    mean_gamma: Unitless
+    mean_kinetic_energy_MeV: MeV
+    mean_beta: Unitless
+    max_r: Meters
 
 
 class RmsX(FortranOutputFileData, file_id=24):
@@ -364,13 +365,13 @@ class RmsX(FortranOutputFileData, file_id=24):
     write(24,100)z,x0*xl,xrms*xl,px0/gambet,pxrms/gambet,-xpx/epx,epx*xl
     """
 
-    z: float
-    mean_x: float
-    sigma_x: float
-    mean_gammabeta_x: float
-    sigma_gammabeta_x: float
-    neg_cov_x__gammabeta_x: float
-    norm_emit_x: float
+    z: Meters
+    mean_x: Meters
+    sigma_x: Meters
+    mean_gammabeta_x: Radians
+    sigma_gammabeta_x: Radians
+    neg_cov_x__gammabeta_x: Meters
+    norm_emit_x: Meters  # m-rad
 
 
 class RmsY(FortranOutputFileData, file_id=25):
@@ -400,13 +401,13 @@ class RmsY(FortranOutputFileData, file_id=25):
     write(25,100)z,y0*xl,yrms*xl,py0/gambet,pyrms/gambet,-ypy/epy,epy*xl
     """
 
-    z: float
-    mean_y: float
-    sigma_y: float
-    mean_gammabeta_y: float
-    sigma_gammabeta_y: float
-    neg_cov_y__gammabeta_y: float
-    norm_emit_y: float
+    z: Meters
+    mean_y: Meters
+    sigma_y: Meters
+    mean_gammabeta_y: Radians
+    sigma_gammabeta_y: Radians
+    neg_cov_y__gammabeta_y: Meters
+    norm_emit_y: Meters  # m-rad
 
 
 class RmsZ(FortranOutputFileData, file_id=26):
@@ -436,13 +437,13 @@ class RmsZ(FortranOutputFileData, file_id=26):
     write(26,100)z,z0*xt,zrms*xt,pz0*qmc,pzrms*qmc,-zpz/epz,epz*qmc*xt
     """
 
-    z: float
-    mean_z: float
-    sigma_z: float
-    mean_gammabeta_z: float
-    sigma_gammabeta_z: float
-    neg_cov_z__gammabeta_z: float
-    norm_emit_z: float
+    z: Meters
+    mean_z: Meters
+    sigma_z: Meters
+    mean_gammabeta_z: MeV
+    sigma_gammabeta_z: MeV
+    neg_cov_z__gammabeta_z: Unitless
+    norm_emit_z: Meters
 
 
 class MaxAmplitude(FortranOutputFileData, file_id=27):
@@ -473,13 +474,13 @@ class MaxAmplitude(FortranOutputFileData, file_id=27):
                  glmax(4)/gambet,glmax(5)*xt,glmax(6)*qmc
     """
 
-    z: float
-    max_amplitude_x: float
-    max_amplitude_gammabeta_x: float
-    max_amplitude_y: float
-    max_amplitude_gammabeta_y: float
-    max_amplitude_phase: float
-    max_amplitude_energy_dev: float
+    z: Meters
+    max_amplitude_x: Meters
+    max_amplitude_gammabeta_x: Radians
+    max_amplitude_y: Meters
+    max_amplitude_gammabeta_y: Radians
+    max_amplitude_phase: Degrees  # really?
+    max_amplitude_energy_dev: MeV
 
 
 class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
@@ -503,10 +504,10 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
     write(28,101)z,npctmin,npctmax,nptot
     """
 
-    z: float
-    loadbalance_min_n_particle: float
-    loadbalance_max_n_particle: float
-    n_particle: float
+    z: Meters
+    loadbalance_min_n_particle: Unitless
+    loadbalance_max_n_particle: Unitless
+    n_particle: Unitless
 
 
 class BeamDistribution3rd(FortranOutputFileData, file_id=29):
@@ -537,13 +538,13 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
                  pz03*qmc
     """
 
-    z: float
-    moment3_x: float
-    moment3_gammabeta_x: float
-    moment3_y: float
-    moment3_gammabeta_y: float
-    moment3_phase: float
-    moment3_energy_deviation: float
+    z: Meters
+    moment3_x: Meters
+    moment3_gammabeta_x: Radians
+    moment3_y: Meters
+    moment3_gammabeta_y: Radians
+    moment3_phase: Degrees
+    moment3_energy_deviation: MeV
 
 
 class BeamDistribution4th(FortranOutputFileData, file_id=30):
@@ -574,13 +575,13 @@ class BeamDistribution4th(FortranOutputFileData, file_id=30):
                  pz04*qmc
     """
 
-    z: float
-    moment4_x: float
-    moment4_gammabeta_x: float
-    moment4_y: float
-    moment4_gammabeta_y: float
-    moment4_phase: float
-    moment4_energy_deviation: float
+    z: Meters
+    moment4_x: Meters
+    moment4_gammabeta_x: Radians
+    moment4_y: Meters
+    moment4_gammabeta_y: Radians
+    moment4_phase: Degrees
+    moment4_energy_deviation: MeV
 
 
 class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
@@ -603,5 +604,5 @@ class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
     write(32,*)z,nptlist(1:nchrg)
     """
 
-    z: float
-    charge_state_n_particle: float
+    z: Meters
+    charge_state_n_particle: Unitless

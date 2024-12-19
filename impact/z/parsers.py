@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import ast
 import math
-import numpy as np
 from typing import Sequence
+
+import numpy as np
 
 from .types import BaseModel
 

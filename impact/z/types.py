@@ -11,8 +11,8 @@ from pmd_beamphysics.units import pmd_unit
 from rich.pretty import pretty_repr
 from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
 
-from . import tools
 from ..repr import detailed_html_repr
+from . import tools
 
 
 class ReprTableData(TypedDict):

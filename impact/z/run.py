@@ -622,41 +622,25 @@ class ImpactZ(CommandWrapper):
             #     smear=smear,
         )
 
-    # def load_raw_h5_output(self) -> h5py.File:
-    #     """
-    #     Load the unprocessed IMPACT-Z HDF5 file from the last run.
-    #
-    #     Returns
-    #     -------
-    #     h5py.File
-    #     """
-    #     if self.path is None:
-    #         raise ValueError(
-    #             "Cannot load the output if path is not set. "
-    #             "Did you forget to run `.configure()`?"
-    #         )
-    #     filename = ImpactZOutput.get_output_filename(
-    #         self.input,
-    #         workdir=pathlib.Path(self.path),
-    #     )
-    #     return h5py.File(filename)
-    #
     @override
     def plot(
         self,
-        y: Union[str, Sequence[str]] = "field_energy",
-        x="zplot",
+        y: str | Sequence[str] = ("sigma_x", "sigma_y"),
+        x: str = "mean_z",
         xlim=None,
         ylim=None,
         ylim2=None,
-        yscale="linear",
-        yscale2="linear",
         y2=[],
         nice=True,
         include_layout=True,
+        include_labels=False,
+        include_markers=True,
+        include_particles=True,
+        include_field=True,
+        field_t=0,
         include_legend=True,
         return_figure=False,
-        tex=False,
+        tex=True,
         **kwargs,
     ):
         """
@@ -697,34 +681,36 @@ class ImpactZ(CommandWrapper):
         fig : matplotlib.pyplot.figure.Figure
             The plot figure for further customizations or `None` if `return_figure` is set to False.
         """
-        raise NotImplementedError()
 
-    #     if self.output is None:
-    #         raise RuntimeError(
-    #             "IMPACT-Z has not yet been run; there is no output to plot."
-    #         )
-    #
-    #     if not tools.is_jupyter():
-    #         # If not in jupyter mode, return a figure by default.
-    #         return_figure = True
-    #
-    #     return self.output.plot(
-    #         y=y,
-    #         x=x,
-    #         xlim=xlim,
-    #         ylim=ylim,
-    #         ylim2=ylim2,
-    #         yscale=yscale,
-    #         yscale2=yscale2,
-    #         y2=y2,
-    #         nice=nice,
-    #         include_layout=include_layout,
-    #         include_legend=include_legend,
-    #         return_figure=return_figure,
-    #         tex=tex,
-    #         **kwargs,
-    #     )
-    #
+        if self.output is None:
+            raise RuntimeError(
+                "IMPACT-Z has not yet been run; there is no output to plot."
+            )
+
+        if not tools.is_jupyter():
+            # If not in jupyter mode, return a figure by default.
+            return_figure = True
+
+        return self.output.plot(
+            y=y,
+            x=x,
+            xlim=xlim,
+            ylim=ylim,
+            ylim2=ylim2,
+            y2=y2,
+            nice=nice,
+            include_layout=include_layout,
+            include_labels=include_labels,
+            include_markers=include_markers,
+            include_particles=include_particles,
+            include_field=include_field,
+            field_t=field_t,
+            include_legend=include_legend,
+            return_figure=return_figure,
+            tex=tex,
+            **kwargs,
+        )
+
     def stat(self, key: str):
         """
         Calculate a statistic of the beam or field along z.
