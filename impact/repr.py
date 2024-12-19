@@ -4,7 +4,6 @@ import logging
 
 import numpy as np
 import pydantic
-import pytao
 import rich.console
 import rich.terminal_theme
 from rich.repr import RichReprResult
@@ -126,16 +125,16 @@ def rich_html_model_repr(
     console = _internal_rich_console()
     try:
         if include_defaults:
-            pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_with_defaults
+            # pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_with_defaults
             pydantic.BaseModel.__rich_repr__ = _pydantic_rich_repr_with_defaults
         else:
             pydantic.BaseModel.__rich_repr__ = _pydantic_rich_repr_without_defaults
-            pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_without_defaults
+            # pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_without_defaults
         console.print(obj)
         return console.export_html(theme=_rich_terminal_themes[theme])
     finally:
         pydantic.BaseModel.__rich_repr__ = _orig_rich_repr
-        pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_with_defaults
+        # pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_with_defaults
 
 
 def detailed_html_repr(obj, theme: str = "solarized_light") -> str:

@@ -3,42 +3,44 @@ repo_url: https://github.com/ChristopherMayes/lume-impact
 repo_name: ChristopherMayeslume-impact
 
 nav:
-    - Home: index.md
+  - Home: index.md
 
-    - Examples:
-        - Basic:
-            - examples/basic_impact_examples.ipynb
-            - examples/distgen_example.ipynb
-            - examples/parallel_run_example.ipynb
-            - examples/functional_impact_run.ipynb
-        - Fieldmaps:
-            - examples/fieldmap_reconstruction.ipynb
-            - examples/solrf_fieldmaps.ipynb
-        - Utilities:
-            - examples/autophase_example.ipynb
-            - examples/bmad_interface.ipynb
-            - examples/movie_example.ipynb
-            - examples/input_parsing_example.ipynb
-            - examples/output_parsing_example.ipynb
-            - examples/plotting_example.ipynb
-        - Conversion:
-            - examples/bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
-            - examples/bmad_to_impact/corrector_coil/compare.ipynb
-        - Elements:
-            - examples/elements/drift.ipynb
-            - examples/elements/apex_gun.ipynb
-            #- examples/elements/dipole.ipunb
-            - examples/elements/corrector_coil.ipynb
-            - examples/elements/quadrupole.ipynb
-            - examples/elements/solenoid.ipynb
-            - examples/elements/tesla_9cell_cavity.ipynb
-            - examples/elements/traveling_wave_cavity.ipynb
-            - examples/elements/wakefield.ipynb
-            - examples/elements/3d_field.ipynb
-            - examples/elements/awa_flatbeam.ipynb
+  - Examples:
+      - Basic:
+          - examples/basic_impact_examples.ipynb
+          - examples/distgen_example.ipynb
+          - examples/parallel_run_example.ipynb
+          - examples/functional_impact_run.ipynb
+      - Fieldmaps:
+          - examples/fieldmap_reconstruction.ipynb
+          - examples/solrf_fieldmaps.ipynb
+      - Utilities:
+          - examples/autophase_example.ipynb
+          - examples/bmad_interface.ipynb
+          - examples/movie_example.ipynb
+          - examples/input_parsing_example.ipynb
+          - examples/output_parsing_example.ipynb
+          - examples/plotting_example.ipynb
+      - Conversion:
+          - examples/bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
+          - examples/bmad_to_impact/corrector_coil/compare.ipynb
+      - Elements:
+          - examples/elements/drift.ipynb
+          - examples/elements/apex_gun.ipynb
+          #- examples/elements/dipole.ipunb
+          - examples/elements/corrector_coil.ipynb
+          - examples/elements/quadrupole.ipynb
+          - examples/elements/solenoid.ipynb
+          - examples/elements/tesla_9cell_cavity.ipynb
+          - examples/elements/traveling_wave_cavity.ipynb
+          - examples/elements/wakefield.ipynb
+          - examples/elements/3d_field.ipynb
+          - examples/elements/awa_flatbeam.ipynb
 
+  - IMPACT-Z:
+      - examples/z/example1/example1.ipynb
 
-    - API:
+  - API:
       - Impact: api/impact.md
 
 theme:

@@ -8,9 +8,11 @@ import pydantic
 import pydantic_core
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
+from rich.pretty import pretty_repr
 from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
 
 from . import tools
+from ..repr import detailed_html_repr
 
 
 class ReprTableData(TypedDict):
@@ -113,12 +115,11 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
 
         raise NotImplementedError(f"Render mode {mode} unsupported")
 
-    def _repr_html_(self) -> str:
-        render_mode = tools.global_display_options.jupyter_render_mode
-        as_string = self.to_string(render_mode)
-        if render_mode == "html":
-            return as_string
-        return f"<pre>{as_string}</pre>"
+    def __repr__(self):
+        return pretty_repr(self)
+
+    def _repr_html_(self):
+        return detailed_html_repr(self)
 
     @override
     def __eq__(self, other: Any) -> bool:

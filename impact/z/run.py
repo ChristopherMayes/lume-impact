@@ -171,6 +171,10 @@ class ImpactZ(CommandWrapper):
             workdir = pathlib.Path(".")
 
         self.original_path = workdir
+
+        if pathlib.Path(workdir).exists() and not pathlib.Path(workdir).is_dir():
+            raise ValueError(f"`workdir` exists and is not a directory: {workdir}")
+
         self._input = input
         self.output = output
 
@@ -401,10 +405,8 @@ class ImpactZ(CommandWrapper):
                 # *self.input.arguments,
             ]
         )
-
         if write_to_path:
             self.write_run_script()
-
         return runscript
 
     def write_run_script(self, path: Optional[AnyPath] = None) -> pathlib.Path:
@@ -464,6 +466,12 @@ class ImpactZ(CommandWrapper):
 
         path = pathlib.Path(path)
         self.input.write(workdir=path)
+
+        if write_run_script:
+            self.input.write_run_script(
+                path / "run",
+                command_prefix=self.get_run_prefix(),
+            )
 
     @property
     @override
