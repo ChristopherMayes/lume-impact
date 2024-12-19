@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 import pathlib
 import shlex
 from typing import Literal, Sequence, cast
 
+import numpy as np
 import pydantic
 from lume import tools as lume_tools
 
@@ -19,9 +21,10 @@ from .constants import (
     RFCavityCoordinateType,
     RFCavityDataMode,
 )
-from .types import AnyPath, BaseModel, PydanticParticleGroup
+from .types import AnyPath, BaseModel, NDArray, PydanticParticleGroup, SequenceBaseModel
 
 input_element_by_id = {}
+logger = logging.getLogger(__name__)
 
 
 class InputElement(BaseModel):
@@ -73,6 +76,18 @@ class InputElement(BaseModel):
         line = " ".join(as_string(v) for v in parts)
         return f"{line} /"
 
+    @property
+    def input_filename(self) -> str | None:
+        file_id = getattr(self, "file_id", None)
+        if file_id is not None:
+            return f"rfdata{int(file_id)}.in"
+
+        field_id = getattr(self, "input_field_id", None)
+        if field_id is not None:
+            return f"rfdata{int(field_id)}.in"
+
+        return None
+
 
 class Drift(InputElement, element_id=0):
     """
@@ -112,7 +127,7 @@ class Quadrupole(InputElement, element_id=1):
         Number of map steps. Typically, `map_steps` is set to 1 for a quadrupole.
     B1 : float
         The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-    input_file_id : int
+    file_id : int
         An ID for the input gradient file. Determines profile behavior:
         if greater than 0, a fringe field profile is read; if less than -10,
         a linear transfer map of an undulator is used; if between -10 and 0,
@@ -134,7 +149,7 @@ class Quadrupole(InputElement, element_id=1):
 
     type_id: Literal[1] = 1
     B1: float = 0.0
-    input_file_id: int = 0
+    file_id: int = 0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -142,6 +157,18 @@ class Quadrupole(InputElement, element_id=1):
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
+
+    @property
+    def input_filename(self) -> str | None:
+        # An ID for the input gradient file. Determines profile behavior:
+        # if greater than 0, a fringe field profile is read; if less than -10,
+        # a linear transfer map of an undulator is used; if between -10 and 0,
+        # it's the k-value linear transfer map; if equal to 0, it uses the linear
+        # transfer map with the gradient.
+        # TODO what does this... mean?
+        if self.file_id < 0:
+            return None
+        return f"rfdata{int(self.file_id)}.in"
 
 
 class ConstantFocusing(InputElement, element_id=2):
@@ -192,7 +219,7 @@ class Solenoid(InputElement, element_id=3):
         The number of map steps.
     Bz0 : float
         The axial magnetic field at the center of the solenoid in Tesla.
-    input_field_file_id : float
+    file_id : float
         The identifier for the input field file.
     radius : float
         The radius of the solenoid in meters.
@@ -210,7 +237,7 @@ class Solenoid(InputElement, element_id=3):
 
     type_id: Literal[3] = 3
     Bz0: float = 0.0
-    input_field_file_id: float = 0.0
+    file_id: int = 0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -525,7 +552,7 @@ class SuperconductingCavity(InputElement, element_id=104):
         RF frequency in Hz.
     phase : float
         Driven phase in degrees (design phase with 0 for maximum energy gain).
-    input_file_id : int
+    file_id : int
         Input field ID (if ID < 0, only works for the map integrator).
     radius : float
         Radius in meters.
@@ -535,7 +562,7 @@ class SuperconductingCavity(InputElement, element_id=104):
     scale: float = 0.0
     frequency: float = 0.0
     phase: float = 0.0  # theta0
-    input_file_id: int = 0
+    file_id: int = 0
     radius: float = 0.0
 
     # TODO not in the docs:
@@ -1219,9 +1246,7 @@ class HaltExecution(InputElement, element_id=-99):
     type_id: Literal[-99] = -99
 
 
-class TwissXorY(
-    BaseModel,
-):
+class TwissX(SequenceBaseModel):
     alpha: float = 0.0
     beta: float = 0.0
     emit: float = 0.0
@@ -1230,29 +1255,12 @@ class TwissXorY(
     offset: float = 0.0
     offset_p: float = 0.0
 
-    @classmethod
-    def from_file(
-        cls,
-        alpha: float = 0.0,
-        beta: float = 0.0,
-        emit: float = 0.0,
-        mismatch: float = 0.0,
-        mismatch_p: float = 0.0,
-        offset: float = 0.0,
-        offset_p: float = 0.0,
-    ):
-        return cls(
-            alpha=alpha,
-            beta=beta,
-            emit=emit,
-            mismatch=mismatch,
-            mismatch_p=mismatch_p,
-            offset=offset,
-            offset_p=offset_p,
-        )
+
+class TwissY(TwissX):
+    pass
 
 
-class TwissZ(BaseModel):
+class TwissZ(SequenceBaseModel):
     alpha: float = 0.0
     beta: float = 0.0
     emit: float = 0.0
@@ -1260,27 +1268,6 @@ class TwissZ(BaseModel):
     mismatch_e: float = 0.0
     offset_phase: float = 0.0
     offset_energy: float = 0.0
-
-    @classmethod
-    def from_file(
-        cls,
-        alpha: float = 0.0,
-        beta: float = 0.0,
-        emit: float = 0.0,
-        mismatch: float = 0.0,
-        mismatch_e: float = 0.0,
-        offset_phase: float = 0.0,
-        offset_energy: float = 0.0,
-    ):
-        return cls(
-            alpha=alpha,
-            beta=beta,
-            emit=emit,
-            mismatch=mismatch,
-            mismatch_e=mismatch_e,
-            offset_phase=offset_phase,
-            offset_energy=offset_energy,
-        )
 
 
 class ImpactZInput(BaseModel):
@@ -1318,8 +1305,8 @@ class ImpactZInput(BaseModel):
 
     charge: list[float] = []
 
-    twiss_x: TwissXorY = TwissXorY()
-    twiss_y: TwissXorY = TwissXorY()
+    twiss_x: TwissX = TwissX()
+    twiss_y: TwissY = TwissY()
     twiss_z: TwissZ = TwissZ()
 
     current_averaged: float = 0.0
@@ -1331,6 +1318,8 @@ class ImpactZInput(BaseModel):
 
     lattice: list[InputElement] = []
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
+
+    file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
 
     @classmethod
     def from_file(cls, filename: pathlib.Path | str) -> ImpactZInput:
@@ -1389,9 +1378,9 @@ class ImpactZInput(BaseModel):
         res.current = [float(v) for v in data[5]]
         res.charge = [float(v) for v in data[6]]
 
-        res.twiss_x = TwissXorY.from_file(*data[7])
-        res.twiss_y = TwissXorY.from_file(*data[8])
-        res.twiss_z = TwissZ.from_file(*data[9])
+        res.twiss_x = TwissX.from_sequence(data[7])
+        res.twiss_y = TwissY.from_sequence(data[8])
+        res.twiss_z = TwissZ.from_sequence(data[9])
 
         (
             res.current_averaged,
@@ -1402,10 +1391,35 @@ class ImpactZInput(BaseModel):
             res.initial_phase_ref,
         ) = data[10]
 
+        if filename is not None:
+            work_dir = pathlib.Path(filename).parent
+        else:
+            work_dir = None
+
         res.lattice = []
-        for lattice_line in data[11:]:
+        for idx, lattice_line in enumerate(data[11:], start=1):
             ele = InputElement.from_line(lattice_line)
             res.lattice.append(ele)
+
+            if ele.input_filename and work_dir is not None:
+                file_id = getattr(ele, "file_id", getattr(ele, "input_field_id", None))
+                if file_id is None:
+                    raise RuntimeError(
+                        f"Internal error - referenced file in lattice element {idx} (of type {type(ele).__name__}) "
+                        f"does has no associated ID?"
+                    )
+                file_id = int(file_id)
+
+                ext_data_fn = work_dir / ele.input_filename
+                try:
+                    res.file_data[file_id] = parsers.sections_to_ndarray(
+                        parsers.read_input_file(ext_data_fn)
+                    )
+                except FileNotFoundError:
+                    logger.warning(
+                        f"Referenced file in lattice element {idx} (of type {type(ele).__name__}) "
+                        f"does not exist in: {ext_data_fn}"
+                    )
 
         return res
 
@@ -1425,7 +1439,7 @@ class ImpactZInput(BaseModel):
             gpu = f" {int(self.gpu)}"
         else:
             gpu = ""
-        lattice = "\n".join(elem.to_line() for elem in self.lattice)
+        lattice = "\n".join(ele.to_line() for ele in self.lattice)
         return f"""
 ! {header}
 {self.ncpu_y} {self.ncpu_z}{gpu}
@@ -1462,6 +1476,13 @@ class ImpactZInput(BaseModel):
             self.initial_particles.write_impact(str(particles_path))
             extra_paths.append(particles_path)
 
+        for ele in self.lattice:
+            fn = ele.input_filename
+            if fn is not None:
+                file_id = getattr(ele, "file_id", getattr(ele, "input_field_id", None))
+                data = self.file_data[file_id]
+                np.savetxt(workdir / fn, data)
+
         return [input_file_path, *extra_paths]
 
     def write_run_script(
@@ -1469,6 +1490,7 @@ class ImpactZInput(BaseModel):
         path: pathlib.Path,
         command_prefix: str = "ImpactZexe",
     ) -> None:
+        path.parent.mkdir(exist_ok=True)
         with open(path, mode="wt") as fp:
             print(shlex.join(shlex.split(command_prefix)), file=fp)
         lume_tools.make_executable(str(path))

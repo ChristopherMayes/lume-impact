@@ -406,7 +406,7 @@ class ImpactZ(CommandWrapper):
             ]
         )
         if write_to_path:
-            self.write_run_script()
+            self.write_run_script(path=pathlib.Path(self.path) / "run")
         return runscript
 
     def write_run_script(self, path: Optional[AnyPath] = None) -> pathlib.Path:

@@ -39,6 +39,8 @@ nav:
 
   - IMPACT-Z:
       - examples/z/example1/example1.ipynb
+      - examples/z/example2/example2.ipynb
+      - examples/z/example3/example3.ipynb
 
   - API:
       - Impact: api/impact.md

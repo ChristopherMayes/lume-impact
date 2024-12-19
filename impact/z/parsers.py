@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import math
+import numpy as np
 from typing import Sequence
 
 from .types import BaseModel
@@ -66,3 +67,12 @@ def parse_input_lines(lines: str | Sequence[str]) -> list[InputFileSection]:
 def read_input_file(filename):
     with open(filename, "rt") as fp:
         return parse_input_lines(fp.read().splitlines())
+
+
+def sections_to_data(sections: list[InputFileSection]) -> list[InputLine]:
+    return sum((section.data for section in sections), [])
+
+
+def sections_to_ndarray(sections: list[InputFileSection]) -> np.ndarray:
+    data = sections_to_data(sections)
+    return np.asarray(data)
