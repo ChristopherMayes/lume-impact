@@ -38,6 +38,8 @@ def normalize_source(source: str) -> str:
 
 
 def compare_inputs(expected: str, generated: str):
+    orig_expected = expected  # noqa
+    orig_generated = generated  # noqa
     expected = normalize_source(expected)
     generated = normalize_source(generated)
 
