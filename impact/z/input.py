@@ -79,7 +79,7 @@ class InputElement(BaseModel):
     @property
     def input_filename(self) -> str | None:
         file_id = getattr(self, "file_id", None)
-        if file_id is not None:
+        if file_id is not None and file_id >= 0:
             return f"rfdata{int(file_id)}.in"
 
         field_id = getattr(self, "input_field_id", None)
@@ -1464,7 +1464,9 @@ class ImpactZInput(BaseModel):
 {lattice}
         """.strip()
 
-    def write(self, workdir: AnyPath) -> list[pathlib.Path]:
+    def write(
+        self, workdir: AnyPath, error_if_missing: bool = False
+    ) -> list[pathlib.Path]:
         contents = self.to_contents()
         workdir = pathlib.Path(workdir)
         if workdir.name == "ImpactZ.in":
@@ -1488,8 +1490,14 @@ class ImpactZInput(BaseModel):
             fn = ele.input_filename
             if fn is not None:
                 file_id = getattr(ele, "file_id", getattr(ele, "input_field_id", None))
-                data = self.file_data[file_id]
-                np.savetxt(workdir / fn, data)
+                try:
+                    data = self.file_data[file_id]
+                except KeyError:
+                    if error_if_missing:
+                        raise FileNotFoundError(f"Missing input file: {fn}")
+                    logger.warning(f"File unavailable: {file_id}")
+                else:
+                    np.savetxt(workdir / fn, data)
 
         return [input_file_path, *extra_paths]
 
