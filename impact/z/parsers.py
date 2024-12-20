@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -66,7 +66,7 @@ def parse_input_lines(lines: str | Sequence[str]) -> list[InputFileSection]:
 
 
 def read_input_file(filename):
-    with open(filename, "rt") as fp:
+    with open(filename) as fp:
         return parse_input_lines(fp.read().splitlines())
 
 

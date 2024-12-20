@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 import pathlib
 import shlex
-from typing import Literal, Sequence, cast
+from typing import Literal, cast
+from collections.abc import Sequence
 
 import numpy as np
 import pydantic
@@ -1476,7 +1477,7 @@ class ImpactZInput(BaseModel):
             input_file_path = workdir / "ImpactZ.in"
 
         workdir.mkdir(exist_ok=True)
-        with open(input_file_path, "wt") as fp:
+        with open(input_file_path, "w") as fp:
             print(contents, file=fp)
 
         extra_paths = []
@@ -1507,6 +1508,6 @@ class ImpactZInput(BaseModel):
         command_prefix: str = "ImpactZexe",
     ) -> None:
         path.parent.mkdir(exist_ok=True)
-        with open(path, mode="wt") as fp:
+        with open(path, mode="w") as fp:
             print(shlex.join(shlex.split(command_prefix)), file=fp)
         lume_tools.make_executable(str(path))

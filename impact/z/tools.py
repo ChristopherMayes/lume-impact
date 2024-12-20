@@ -13,7 +13,8 @@ import subprocess
 import sys
 import traceback
 import uuid
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Union
+from collections.abc import Mapping, Sequence
 
 import prettytable
 import pydantic
@@ -93,8 +94,7 @@ def execute(cmd, cwd=None):
         cmd, stdout=subprocess.PIPE, universal_newlines=True, cwd=cwd
     )
     assert popen.stdout is not None
-    for stdout_line in iter(popen.stdout.readline, ""):
-        yield stdout_line
+    yield from iter(popen.stdout.readline, "")
     popen.stdout.close()
     return_code = popen.wait()
     if return_code:
@@ -112,7 +112,7 @@ def execute2(cmd, timeout=None, cwd=None, encoding="utf-8"):
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            universal_newlines=True,
+            text=True,
             timeout=timeout,
             cwd=cwd,
         )
@@ -269,11 +269,11 @@ def _clean_annotation(annotation) -> str:
 
 
 def table_output(
-    obj: Union[pydantic.BaseModel, Dict[str, Any]],
+    obj: pydantic.BaseModel | dict[str, Any],
     display_options: DisplayOptions = global_display_options,
-    descriptions: Optional[Mapping[str, Optional[str]]] = None,
-    annotations: Optional[Mapping[str, Optional[str]]] = None,
-    headers: Optional[Sequence[str]] = None,
+    descriptions: Mapping[str, str | None] | None = None,
+    annotations: Mapping[str, str | None] | None = None,
+    headers: Sequence[str] | None = None,
 ):
     """
     Create a table based on user settings for the given object.
@@ -355,9 +355,9 @@ def _copy_to_clipboard_html(contents: str) -> str:
 
 
 def _get_table_fields(
-    obj: Union[pydantic.BaseModel, Dict[str, Any]],
-    descriptions: Optional[Mapping[str, Optional[str]]] = None,
-    annotations: Optional[Mapping[str, Optional[str]]] = None,
+    obj: pydantic.BaseModel | dict[str, Any],
+    descriptions: Mapping[str, str | None] | None = None,
+    annotations: Mapping[str, str | None] | None = None,
 ):
     """Get values, descriptions, and annotations for a table."""
     if isinstance(obj, pydantic.BaseModel):
@@ -387,12 +387,12 @@ def _get_table_fields(
 
 
 def html_table_repr(
-    obj: Union[pydantic.BaseModel, Dict[str, Any]],
+    obj: pydantic.BaseModel | dict[str, Any],
     seen: list,
     display_options: DisplayOptions = global_display_options,
-    descriptions: Optional[Mapping[str, Optional[str]]] = None,
-    annotations: Optional[Mapping[str, Optional[str]]] = None,
-    headers: Optional[Sequence[str]] = None,
+    descriptions: Mapping[str, str | None] | None = None,
+    annotations: Mapping[str, str | None] | None = None,
+    headers: Sequence[str] | None = None,
 ) -> str:
     """
     Pydantic model table HTML representation for Jupyter.
@@ -483,12 +483,12 @@ def html_table_repr(
 
 
 def ascii_table_repr(
-    obj: Union[pydantic.BaseModel, Dict[str, Any]],
+    obj: pydantic.BaseModel | dict[str, Any],
     seen: list,
     display_options: DisplayOptions = global_display_options,
-    descriptions: Optional[Mapping[str, Optional[str]]] = None,
-    annotations: Optional[Mapping[str, Optional[str]]] = None,
-    headers: Optional[Sequence[str]] = None,
+    descriptions: Mapping[str, str | None] | None = None,
+    annotations: Mapping[str, str | None] | None = None,
+    headers: Sequence[str] | None = None,
 ) -> prettytable.PrettyTable:
     """
     Pydantic model table ASCII representation for the terminal.
@@ -557,7 +557,7 @@ def ascii_table_repr(
     return table
 
 
-def check_if_existing_path(input: str) -> Optional[pathlib.Path]:
+def check_if_existing_path(input: str) -> pathlib.Path | None:
     """
     Check if the ``input`` path exists, and convert it to a `pathlib.Path`.
 
@@ -579,9 +579,9 @@ def check_if_existing_path(input: str) -> Optional[pathlib.Path]:
 
 
 def read_if_path(
-    input: Union[pathlib.Path, str],
-    source_path: Optional[Union[pathlib.Path, str]] = None,
-) -> Tuple[Optional[pathlib.Path], str]:
+    input: pathlib.Path | str,
+    source_path: pathlib.Path | str | None = None,
+) -> tuple[pathlib.Path | None, str]:
     """
     Read ``input`` if it's an existing path.
 

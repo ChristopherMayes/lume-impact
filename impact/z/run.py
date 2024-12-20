@@ -8,7 +8,8 @@ import shlex
 import shutil
 import traceback
 from time import monotonic
-from typing import Any, ClassVar, Dict, Optional, Sequence, Union
+from typing import Any, ClassVar
+from collections.abc import Sequence
 
 import h5py
 import psutil
@@ -111,7 +112,7 @@ class ImpactZ(CommandWrapper):
     COMMAND: ClassVar[str] = "ImpactZexe"
     COMMAND_MPI: ClassVar[str] = "ImpactZexe-mpi"
     MPI_RUN: ClassVar[str] = find_mpirun()
-    WORKDIR: ClassVar[Optional[str]] = find_workdir()
+    WORKDIR: ClassVar[str | None] = find_workdir()
 
     # Environmental variables to search for executables
     command_env: str = "IMPACTZ_BIN"
@@ -119,24 +120,24 @@ class ImpactZ(CommandWrapper):
     original_path: AnyPath
 
     _input: ImpactZInput
-    output: Optional[Any]
+    output: Any | None
 
     def __init__(
         self,
-        input: Optional[Union[ImpactZInput, str, pathlib.Path]] = None,
+        input: ImpactZInput | str | pathlib.Path | None = None,
         *,
-        workdir: Optional[Union[str, pathlib.Path]] = None,
-        output: Optional[Any] = None,  # TODO
-        alias: Optional[Dict[str, str]] = None,
-        units: Optional[Dict[str, pmd_unit]] = None,
-        command: Optional[str] = None,
-        command_mpi: Optional[str] = None,
+        workdir: str | pathlib.Path | None = None,
+        output: Any | None = None,  # TODO
+        alias: dict[str, str] | None = None,
+        units: dict[str, pmd_unit] | None = None,
+        command: str | None = None,
+        command_mpi: str | None = None,
         use_mpi: bool = False,
         mpi_run: str = "",
         use_temp_dir: bool = True,
         verbose: bool = tools.global_display_options.verbose >= 1,
-        timeout: Optional[float] = None,
-        initial_particles: Optional[ParticleGroup] = None,
+        timeout: float | None = None,
+        initial_particles: ParticleGroup | None = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -213,7 +214,7 @@ class ImpactZ(CommandWrapper):
         return self._nproc
 
     @nproc.setter
-    def nproc(self, nproc: Optional[int]):
+    def nproc(self, nproc: int | None):
         if nproc is None or nproc == 0:
             nproc = psutil.cpu_count(logical=False)
         elif nproc < 0:
@@ -241,7 +242,7 @@ class ImpactZ(CommandWrapper):
         load_particles: bool = False,
         smear: bool = True,
         raise_on_error: bool = True,
-        verbose: Optional[bool] = None,
+        verbose: bool | None = None,
     ) -> ImpactZOutput:
         """
         Execute IMPACT-Z with the configured input settings.
@@ -413,7 +414,7 @@ class ImpactZ(CommandWrapper):
             self.write_run_script(path=pathlib.Path(self.path) / "run")
         return runscript
 
-    def write_run_script(self, path: Optional[AnyPath] = None) -> pathlib.Path:
+    def write_run_script(self, path: AnyPath | None = None) -> pathlib.Path:
         """
         Write the 'run' script which can be used in a terminal to launch IMPACT-Z.
 
@@ -448,7 +449,7 @@ class ImpactZ(CommandWrapper):
     @override
     def write_input(
         self,
-        path: Optional[AnyPath] = None,
+        path: AnyPath | None = None,
         write_run_script: bool = True,
     ):
         """
@@ -479,14 +480,14 @@ class ImpactZ(CommandWrapper):
 
     @property
     @override
-    def initial_particles(self) -> Optional[ParticleGroup]:
+    def initial_particles(self) -> ParticleGroup | None:
         """Initial particles, if defined.  Property is alias for `.input.main.initial_particles`."""
         return self.input.initial_particles
 
     @initial_particles.setter
     def initial_particles(
         self,
-        value: Optional[ParticleGroup],
+        value: ParticleGroup | None,
     ) -> None:
         self.input.initial_particles = value
 
@@ -506,7 +507,7 @@ class ImpactZ(CommandWrapper):
     #         self.output.archive(h5.create_group("output"))
     #
     @override
-    def archive(self, dest: Union[AnyPath, h5py.Group]) -> None:
+    def archive(self, dest: AnyPath | h5py.Group) -> None:
         """
         Archive the latest run, input and output, to a single HDF5 file.
 
@@ -532,7 +533,7 @@ class ImpactZ(CommandWrapper):
     #         self.output = None
     #
     @override
-    def load_archive(self, arch: Union[AnyPath, h5py.Group]) -> None:
+    def load_archive(self, arch: AnyPath | h5py.Group) -> None:
         """
         Load an archive from a single HDF5 file into this ImpactZ object.
 
@@ -549,7 +550,7 @@ class ImpactZ(CommandWrapper):
 
     @override
     @classmethod
-    def from_archive(cls, arch: Union[AnyPath, h5py.Group]) -> ImpactZ:
+    def from_archive(cls, arch: AnyPath | h5py.Group) -> ImpactZ:
         """
         Create a new ImpactZ object from an archive file.
 

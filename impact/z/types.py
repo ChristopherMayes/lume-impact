@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Union
+from collections.abc import Iterable, Sequence
 
 import numpy as np
 import pydantic
@@ -9,7 +10,8 @@ import pydantic_core
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 from rich.pretty import pretty_repr
-from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
+from typing_extensions import Literal, NotRequired, TypedDict, override
+from typing import Annotated
 
 from ..repr import detailed_html_repr
 from . import tools
@@ -18,9 +20,9 @@ from . import tools
 class ReprTableData(TypedDict):
     """Data to use for table output."""
 
-    obj: Union[BaseModel, Dict[str, Any]]
-    descriptions: Optional[Dict[str, str]]
-    annotations: Optional[Dict[str, str]]
+    obj: BaseModel | dict[str, Any]
+    descriptions: dict[str, str] | None
+    annotations: dict[str, str] | None
 
 
 def _check_equality(obj1: Any, obj2: Any) -> bool:
@@ -166,7 +168,7 @@ class _PydanticNDArray:
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        source: Type[Any],
+        source: type[Any],
         handler: pydantic.GetCoreSchemaHandler,
     ) -> pydantic_core.core_schema.CoreSchema:
         def serialize(obj: np.ndarray, info: pydantic.SerializationInfo):
@@ -187,7 +189,7 @@ class _PydanticNDArray:
     @classmethod
     def _pydantic_validate(
         cls,
-        value: Union[Any, np.ndarray, Sequence, dict],
+        value: Any | np.ndarray | Sequence | dict,
         info: pydantic.ValidationInfo,
     ) -> np.ndarray:
         if isinstance(value, np.ndarray):
@@ -248,7 +250,7 @@ class _PydanticParticleGroup:
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        source: Type[Any],
+        source: type[Any],
         handler: pydantic.GetCoreSchemaHandler,
     ) -> pydantic_core.core_schema.CoreSchema:
         return pydantic_core.core_schema.no_info_plain_validator_function(
@@ -259,9 +261,7 @@ class _PydanticParticleGroup:
         )
 
     @classmethod
-    def _pydantic_validate(
-        cls, value: Union[ParticleData, ParticleGroup]
-    ) -> ParticleGroup:
+    def _pydantic_validate(cls, value: ParticleData | ParticleGroup) -> ParticleGroup:
         if isinstance(value, ParticleGroup):
             return value
         if isinstance(value, dict):
@@ -272,7 +272,7 @@ class _PydanticParticleGroup:
 class _PydanticPmdUnit:
     unitSI: float
     unitSymbol: str
-    unitDimension: Tuple[int, ...]
+    unitDimension: tuple[int, ...]
 
     @staticmethod
     def _from_dict(dct: dict) -> pmd_unit:
@@ -282,7 +282,7 @@ class _PydanticPmdUnit:
             dim = tuple(dim)
         return pmd_unit(**dct, unitDimension=dim)
 
-    def _as_dict(self) -> Dict[str, Any]:
+    def _as_dict(self) -> dict[str, Any]:
         return {
             "unitSI": self.unitSI,
             "unitSymbol": self.unitSymbol,
@@ -292,7 +292,7 @@ class _PydanticPmdUnit:
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        source: Type[Any],
+        source: type[Any],
         handler: pydantic.GetCoreSchemaHandler,
     ) -> pydantic_core.core_schema.CoreSchema:
         return pydantic_core.core_schema.no_info_plain_validator_function(
@@ -303,9 +303,7 @@ class _PydanticPmdUnit:
         )
 
     @classmethod
-    def _pydantic_validate(
-        cls, value: Union[Dict[str, Any], pmd_unit, Any]
-    ) -> pmd_unit:
+    def _pydantic_validate(cls, value: dict[str, Any] | pmd_unit | Any) -> pmd_unit:
         if isinstance(value, pmd_unit):
             return value
         if isinstance(value, dict):

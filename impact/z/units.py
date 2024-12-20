@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit
-from typing_extensions import Annotated
+from typing import Annotated
 
 # Patch these into the lookup dict.
 known_unit["mec2"] = pmd_unit("m_ec^2", mec2 * e_charge, "energy")

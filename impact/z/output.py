@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 import pathlib
 import typing
-from typing import Any, Dict, Generator, Optional, Sequence, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Generator, Sequence
 
 import numpy as np
 import pydantic
@@ -58,7 +59,7 @@ class RunInfo(BaseModel):
     error: bool = pydantic.Field(
         default=False, description="`True` if an error occurred during the Impact-Z run"
     )
-    error_reason: Optional[str] = pydantic.Field(
+    error_reason: str | None = pydantic.Field(
         default=None, description="Error explanation, if `error` is set."
     )
     run_script: str = pydantic.Field(
@@ -132,7 +133,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             "mean_z": "z",
         },
     )
-    key_to_unit: Dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
+    key_to_unit: dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
 
     @override
     def __eq__(self, other: Any) -> bool:
@@ -153,7 +154,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         return self.stats[key]
 
     @override
-    def __iter__(self) -> Generator[str, None, None]:
+    def __iter__(self) -> Generator[str]:
         """Support for Mapping -> easy access to data."""
         yield from self.stats
 
@@ -282,7 +283,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         )
 
 
-file_number_to_cls: dict[str, "FortranOutputFileData"] = {}
+file_number_to_cls: dict[str, FortranOutputFileData] = {}
 T = TypeVar("T", bound="FortranOutputFileData")
 
 
@@ -297,7 +298,7 @@ class FortranOutputFileData(SequenceBaseModel):
     @classmethod
     def from_file(cls: type[T], filename: AnyPath) -> dict[str, np.ndarray]:
         data = {attr: [] for attr in cls.model_fields}
-        with open(filename, "rt") as fp:
+        with open(filename) as fp:
             for line in fp.read().splitlines():
                 for attr, value in zip(data, parsers.parse_input_line(line)):
                     data[attr].append(value)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 import numpy as np
 from pmd_beamphysics import ParticleGroup
@@ -27,7 +27,7 @@ class ImpactZParticles(BaseModel):
 
     @classmethod
     def from_contents(
-        cls, contents: str, filename: Optional[AnyPath] = None
+        cls, contents: str, filename: AnyPath | None = None
     ) -> ImpactZParticles:
         """
         Load main input from its file contents.
@@ -120,7 +120,7 @@ class ImpactZParticles(BaseModel):
         return ParticleGroup(data=data)
 
     def write_impact(self, fn: AnyPath) -> None:
-        with open(fn, "wt") as fp:
+        with open(fn, "w") as fp:
             print(len(self.particles), file=fp)
             for particle in self.particles:
                 print(" ".join(f"{v:g}" for v in particle), file=fp)
