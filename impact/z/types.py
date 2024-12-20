@@ -162,7 +162,7 @@ class SequenceBaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=
         return cls(**kwargs)
 
 
-class _PydanticNDArray(BaseModel):
+class _PydanticNDArray:
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
@@ -235,7 +235,7 @@ class ParticleData(TypedDict):
     id: NotRequired[NDArray]
 
 
-class _PydanticParticleGroup(pydantic.BaseModel):
+class _PydanticParticleGroup:
     data: ParticleData
 
     @staticmethod
@@ -269,7 +269,7 @@ class _PydanticParticleGroup(pydantic.BaseModel):
         raise ValueError(f"No conversion from {value!r} to ParticleGroup")  # type: ignore[unreachable]
 
 
-class _PydanticPmdUnit(BaseModel):
+class _PydanticPmdUnit:
     unitSI: float
     unitSymbol: str
     unitDimension: Tuple[int, ...]
