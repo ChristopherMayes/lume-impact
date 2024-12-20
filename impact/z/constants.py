@@ -65,8 +65,9 @@ class DiagnosticType(enum.IntEnum):
 
 
 class OutputZType(enum.IntEnum):
+    none = 0
     standard = 1
-    emittance_95_percent = 2
+    extended = 2
 
 
 class BoundaryType(enum.IntEnum):

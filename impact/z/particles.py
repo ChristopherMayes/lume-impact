@@ -121,6 +121,8 @@ class ImpactZParticles(BaseModel):
 
     def write_impact(self, fn: AnyPath) -> None:
         with open(fn, "w") as fp:
+            print("Writing particles to", fn)
             print(len(self.particles), file=fp)
             for particle in self.particles:
-                print(" ".join(f"{v:g}" for v in particle), file=fp)
+                extended_particle = list(particle) + [0.0, 0.0, 0.0]  # extra data?
+                print(" ".join(f"{v:g}" for v in extended_particle), file=fp)

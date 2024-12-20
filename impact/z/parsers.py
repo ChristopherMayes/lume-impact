@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import math
+import re
 from collections.abc import Sequence
 
 import numpy as np
@@ -18,9 +19,13 @@ class InputFileSection(BaseModel):
 
 InputLine = Sequence[float | int]
 
+re_missing_exponent = re.compile(r"([+-]?\d*\.\d+)([+-]\d+)")
+
 
 def parse_input_line(line: str) -> list[float | int]:
     line = line.replace("D", "E").replace("d", "e")  # fortran float style
+    line = re_missing_exponent.sub(r"\1E\2", line)
+
     parts = line.split()
     if "/" in parts:
         parts = parts[: parts.index("/")]

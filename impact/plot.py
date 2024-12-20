@@ -236,6 +236,7 @@ def plot_stats_with_layout(
     include_particles=True,
     include_legend=True,
     return_figure=False,
+    ax=None,
     **kwargs,
 ):
     """
@@ -263,6 +264,9 @@ def plot_stats_with_layout(
         fig, all_axis = plt.subplots(2, gridspec_kw={"height_ratios": [4, 1]}, **kwargs)
         ax_layout = all_axis[-1]
         ax_plot = [all_axis[0]]
+    elif ax is not None:
+        ax_plot = [ax]
+        fig = ax.get_figure()
     else:
         fig, all_axis = plt.subplots(**kwargs)
         ax_plot = [all_axis]

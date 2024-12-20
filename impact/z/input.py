@@ -22,7 +22,7 @@ from .constants import (
     RFCavityCoordinateType,
     RFCavityDataMode,
 )
-from .types import AnyPath, BaseModel, NDArray, PydanticParticleGroup, SequenceBaseModel
+from .types import AnyPath, BaseModel, NDArray, PydanticParticleGroup
 
 input_element_by_id = {}
 logger = logging.getLogger(__name__)
@@ -66,16 +66,22 @@ class InputElement(BaseModel):
         kwargs = dict(zip(ele_cls.model_fields, parts))
         return ele_cls(**kwargs)
 
-    def to_line(self) -> str:
-        parts = [getattr(self, attr) for attr in self.model_fields]
-
+    def to_line(self, *, with_description: bool = True) -> str:
         def as_string(v: float | int):
             if isinstance(v, float):
                 return f"{v:g}"
             return str(v)
 
-        line = " ".join(as_string(v) for v in parts)
-        return f"{line} /"
+        attr_to_value = {
+            attr: as_string(getattr(self, attr)) for attr in self.model_fields
+        }
+
+        line = " ".join(attr_to_value.values())
+        if not with_description:
+            return f"{line} /"
+
+        desc = f"! {type(self).__name__}: " + " ".join(attr_to_value)
+        return f"{desc}\n{line} /"
 
     @property
     def input_filename(self) -> str | None:
@@ -1251,30 +1257,6 @@ class HaltExecution(InputElement, element_id=-99):
     type_id: Literal[-99] = -99
 
 
-class TwissX(SequenceBaseModel):
-    alpha: float = 0.0
-    beta: float = 0.0
-    emit: float = 0.0
-    mismatch: float = 0.0
-    mismatch_p: float = 0.0
-    offset: float = 0.0
-    offset_p: float = 0.0
-
-
-class TwissY(TwissX):
-    pass
-
-
-class TwissZ(SequenceBaseModel):
-    alpha: float = 0.0
-    beta: float = 0.0
-    emit: float = 0.0
-    mismatch: float = 0.0
-    mismatch_e: float = 0.0
-    offset_phase: float = 0.0
-    offset_energy: float = 0.0
-
-
 class ImpactZInput(BaseModel):
     """Input settings for an IMPACT-Z run."""
 
@@ -1289,17 +1271,17 @@ class ImpactZInput(BaseModel):
     seed: int = 0
     n_particle: int = 0
     integrator_type: IntegratorType = IntegratorType.linear
-    err: int = 0
+    err: int = 1
     diagnostic_type: DiagnosticType = DiagnosticType.at_given_time
-    output_z: OutputZType = OutputZType.standard
+    output_z: OutputZType = OutputZType.extended
 
     # Line 3
     nx: int = 0
     ny: int = 0
     nz: int = 0
     boundary_type: BoundaryType = BoundaryType.trans_open_longi_open
-    x_rad: float = 0.0
-    y_rad: float = 0.0
+    radius_x: float = 0.0
+    radius_y: float = 0.0
     z_period_size: float = 0.0
 
     # Line 4
@@ -1310,18 +1292,38 @@ class ImpactZInput(BaseModel):
 
     particle_list: list[int] = []
 
-    current: list[float] = []
+    current_list: list[float] = []
 
-    charge: list[float] = []
+    charge_over_mass_list: list[float] = []
 
-    twiss_x: TwissX = TwissX()
-    twiss_y: TwissY = TwissY()
-    twiss_z: TwissZ = TwissZ()
+    twiss_alpha_x: float = 0.0
+    twiss_beta_x: float = 1.0
+    twiss_norm_emit_x: float = 1e-6
+    twiss_mismatch_x: float = 1.0
+    twiss_mismatch_px: float = 1.0
+    twiss_offset_x: float = 0.0
+    twiss_offset_px: float = 0.0
 
-    current_averaged: float = 0.0
+    twiss_alpha_y: float = 0.0
+    twiss_beta_y: float = 1.0
+    twiss_norm_emit_y: float = 1e-6
+    twiss_mismatch_y: float = 1.0
+    twiss_mismatch_py: float = 1.0
+    twiss_offset_y: float = 0.0
+    twiss_offset_py: float = 0.0
+
+    twiss_alpha_z: float = 0.0
+    twiss_beta_z: float = 1.0
+    twiss_norm_emit_z: float = 1e-6
+    twiss_mismatch_z: float = 1.0
+    twiss_mismatch_e_z: float = 1.0
+    twiss_offset_phase_z: float = 0.0
+    twiss_offset_energy_z: float = 0.0
+
+    average_current: float = 1.0
     initial_kinetic_energy: float = 0.0
-    particle_mass: float = 0.0
-    particle_charge: float = 0.0
+    reference_particle_mass: float = 0.0
+    reference_particle_charge: float = 0.0
     scaling_frequency: float = 0.0
     initial_phase_ref: float = 0.0
 
@@ -1372,8 +1374,8 @@ class ImpactZInput(BaseModel):
             res.ny,
             res.nz,
             res.boundary_type,
-            res.x_rad,
-            res.y_rad,
+            res.radius_x,
+            res.radius_y,
             res.z_period_size,
         ) = cast(tuple[int, int, int, BoundaryType, float, float, float], data[2][:8])
         (
@@ -1384,18 +1386,42 @@ class ImpactZInput(BaseModel):
         ) = cast(tuple[DistributionZType, int, int, int], data[3][:4])
 
         res.particle_list = [int(v) for v in data[4]]
-        res.current = [float(v) for v in data[5]]
-        res.charge = [float(v) for v in data[6]]
-
-        res.twiss_x = TwissX.from_sequence(data[7])
-        res.twiss_y = TwissY.from_sequence(data[8])
-        res.twiss_z = TwissZ.from_sequence(data[9])
+        res.current_list = [float(v) for v in data[5]]
+        res.charge_over_mass_list = [float(v) for v in data[6]]
 
         (
-            res.current_averaged,
+            res.twiss_alpha_x,
+            res.twiss_beta_x,
+            res.twiss_norm_emit_x,
+            res.twiss_mismatch_x,
+            res.twiss_mismatch_px,
+            res.twiss_offset_x,
+            res.twiss_offset_px,
+        ) = data[7]
+        (
+            res.twiss_alpha_y,
+            res.twiss_beta_y,
+            res.twiss_norm_emit_y,
+            res.twiss_mismatch_y,
+            res.twiss_mismatch_py,
+            res.twiss_offset_y,
+            res.twiss_offset_py,
+        ) = data[8]
+        (
+            twiss_alpha_z,
+            twiss_beta_z,
+            twiss_norm_emit_z,
+            twiss_mismatch_z,
+            twiss_mismatch_e_z,
+            twiss_offset_phase_z,
+            twiss_offset_energy_z,
+        ) = data[9]
+
+        (
+            res.average_current,
             res.initial_kinetic_energy,
-            res.particle_mass,
-            res.particle_charge,
+            res.reference_particle_mass,
+            res.reference_particle_charge,
             res.scaling_frequency,
             res.initial_phase_ref,
         ) = data[10]
@@ -1437,10 +1463,6 @@ class ImpactZInput(BaseModel):
         header="Written by LUME-ImpactZ",
         include_gpu: bool = True,
     ) -> str:
-        twiss_x = self.twiss_x
-        twiss_y = self.twiss_y
-        twiss_z = self.twiss_z
-
         def stringify_list(lst: Sequence[float | int]):
             return " ".join(str(v) for v in lst)
 
@@ -1448,20 +1470,33 @@ class ImpactZInput(BaseModel):
             gpu = f" {int(self.gpu)}"
         else:
             gpu = ""
+
         lattice = "\n".join(ele.to_line() for ele in self.lattice)
         return f"""
 ! {header}
+! ncpu_y ncpu_z
 {self.ncpu_y} {self.ncpu_z}{gpu}
+! seed n_particle integrator_type err output_z
 {self.seed} {self.n_particle} {int(self.integrator_type)} {self.err} {int(self.output_z)}
-{self.nx} {self.ny} {self.nz} {self.boundary_type} {self.x_rad} {self.y_rad} {self.z_period_size}
+! nx ny nz boundary_type radius_x radius_y z_period_size
+{self.nx} {self.ny} {self.nz} {self.boundary_type} {self.radius_x} {self.radius_y} {self.z_period_size}
+! distribution restart subcycle nbunch
 {self.distribution} {self.restart} {self.subcycle} {self.nbunch}
+! particle_list
 {stringify_list(self.particle_list)}
-{stringify_list(self.current)}
-{stringify_list(self.charge)}
-{twiss_x.alpha} {twiss_x.beta} {twiss_x.emit} {twiss_x.mismatch} {twiss_x.mismatch_p} {twiss_x.offset} {twiss_x.offset_p}
-{twiss_y.alpha} {twiss_y.beta} {twiss_y.emit} {twiss_y.mismatch} {twiss_y.mismatch_p} {twiss_y.offset} {twiss_y.offset_p}
-{twiss_z.alpha} {twiss_z.beta} {twiss_z.emit} {twiss_z.mismatch} {twiss_z.mismatch_e} {twiss_z.offset_phase} {twiss_z.offset_energy}
-{self.current_averaged} {self.initial_kinetic_energy} {self.particle_mass} {self.particle_charge} {self.scaling_frequency} {self.initial_phase_ref}
+! current_list
+{stringify_list(self.current_list)}
+! charge_over_mass_list
+{stringify_list(self.charge_over_mass_list)}
+! twiss_alpha_x twiss_beta_x twiss_norm_emit_x twiss_mismatch_x twiss_mismatch_px twiss_offset_x twiss_offset_px
+{self.twiss_alpha_x} {self.twiss_beta_x} {self.twiss_norm_emit_x} {self.twiss_mismatch_x} {self.twiss_mismatch_px} {self.twiss_offset_x} {self.twiss_offset_px}
+! twiss_alpha_y twiss_beta_y twiss_norm_emit_y twiss_mismatch_y twiss_mismatch_py twiss_offset_y twiss_offset_py
+{self.twiss_alpha_y} {self.twiss_beta_y} {self.twiss_norm_emit_y} {self.twiss_mismatch_y} {self.twiss_mismatch_py} {self.twiss_offset_y} {self.twiss_offset_py}
+! twiss_alpha_z twiss_beta_z twiss_norm_emit_z twiss_mismatch_z twiss_mismatch_e_z twiss_offset_phase_z twiss_offset_energy_z
+{self.twiss_alpha_z} {self.twiss_beta_z} {self.twiss_norm_emit_z} {self.twiss_mismatch_z} {self.twiss_mismatch_e_z} {self.twiss_offset_phase_z} {self.twiss_offset_energy_z}
+! average_current initial_kinetic_energy reference_particle_mass reference_particle_charge scaling_frequency initial_phase_ref
+{self.average_current} {self.initial_kinetic_energy} {self.reference_particle_mass} {self.reference_particle_charge} {self.scaling_frequency} {self.initial_phase_ref}
+! ** lattice **
 {lattice}
         """.strip()
 
