@@ -318,8 +318,9 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
         Absolute phase in radians (2nd column).
     mean_gamma : float
         Mean gamma (3rd column).
-    mean_kinetic_energy_MeV : float
+    mean_kinetic_energy : float
         Mean kinetic energy in MeV (4th column).
+        LUME-ImpactZ converts this automatically to eV.
     mean_beta : float
         Beta (5th column).
     max_r : float
@@ -334,7 +335,7 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
     z: Meters
     absolute_phase: Radians
     mean_gamma: Unitless
-    mean_kinetic_energy_MeV: MeV
+    mean_kinetic_energy: MeV
     mean_beta: Unitless
     max_r: Meters
 
