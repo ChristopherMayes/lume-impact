@@ -20,10 +20,11 @@ _label_hotfixes = {
 }
 
 
-def mathlabel(key: str, **kwargs):
-    if key in _label_hotfixes:
-        key = key.replace("_", "-")
-    return _mathlabel(key, **kwargs)
+def mathlabel(*keys: str, **kwargs):
+    fixed_keys = [
+        key.replace("_", "-") if key in _label_hotfixes else key for key in keys
+    ]
+    return _mathlabel(*fixed_keys, **kwargs)
 
 
 def plot_stat(impact_object, y="sigma_x", x="mean_z", nice=True):
