@@ -43,10 +43,6 @@ doc = [
 [project.urls]
 Homepage = "https://github.com/ChristopherMayes/lume-impact"
 
-[options]
-zip_safe = false
-include_package_data = true
-
 [tool.setuptools.packages.find]
 where = ["."]
 include = [ "impact*", ]
