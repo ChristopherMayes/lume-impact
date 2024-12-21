@@ -9,14 +9,16 @@ from collections.abc import Generator, Sequence
 import numpy as np
 import pydantic
 import pydantic.alias_generators
+from .particles import ImpactZParticles
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
 from . import parsers
-from .input import ImpactZInput
+from .input import ImpactZInput, WriteFull
 from .types import (
     AnyPath,
     BaseModel,
+    PydanticParticleGroup,
     PydanticPmdUnit,
     SequenceBaseModel,
 )
@@ -133,6 +135,8 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             "mean_z": "z",
         },
     )
+    final_particles_raw: ImpactZParticles | None = None
+    final_particles: PydanticParticleGroup | None = None
     key_to_unit: dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
 
     @override
@@ -222,7 +226,25 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             The output data.
         """
         stats, units = load_stat_files_from_path(workdir)
-        return ImpactZOutput(stats=stats, key_to_unit=units)
+
+        final_particles_raw = None
+        final_particles = None
+        for ele in input.lattice:
+            if isinstance(ele, WriteFull) and final_particles is None:
+                final_particles_raw = ImpactZParticles.from_file(
+                    workdir / f"fort.{ele.file_id}"
+                )
+                final_particles = final_particles_raw.to_particle_group(
+                    reference_kinetic_energy=input.initial_kinetic_energy,
+                    reference_frequency=input.scaling_frequency,
+                    # species=...
+                )
+
+        return ImpactZOutput(
+            stats=stats,
+            key_to_unit=units,
+            final_particles=final_particles,
+        )
 
     def plot(
         self,

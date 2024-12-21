@@ -863,6 +863,14 @@ class WriteFull(InputElement, element_id=-2):
     unused_2: float = 0.0
     sample_frequency: int = 0
 
+    @property
+    def file_id(self) -> int:
+        return self.map_steps
+
+    @file_id.setter
+    def file_id(self, value) -> None:
+        self.map_steps = value
+
 
 class DensityProfileInput(InputElement, element_id=-3):
     """
@@ -1448,7 +1456,7 @@ class ImpactZInput(BaseModel):
     initial_kinetic_energy: float = 0.0
     reference_particle_mass: float = 0.0
     reference_particle_charge: float = 0.0
-    scaling_frequency: float = 0.0
+    scaling_frequency: float = 0.0  # TODO change to reference_frequency
     initial_phase_ref: float = 0.0
 
     lattice: list[InputElement] = []
@@ -1585,7 +1593,7 @@ class ImpactZInput(BaseModel):
     def to_contents(
         self,
         header="Written by LUME-ImpactZ",
-        include_gpu: bool = True,
+        include_gpu: bool = False,
     ) -> str:
         def stringify_list(lst: Sequence[float | int]):
             return " ".join(str(v) for v in lst)

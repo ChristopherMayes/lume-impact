@@ -22,6 +22,11 @@ InputLine = Sequence[float | int]
 re_missing_exponent = re.compile(r"([+-]?\d*\.\d+)([+-]\d+)")
 
 
+def fix_line(contents: str) -> str:
+    contents = contents.replace("D", "E").replace("d", "e")  # fortran float style
+    return re_missing_exponent.sub(r"\1E\2", contents)
+
+
 def parse_input_line(line: str) -> list[float | int]:
     line = line.replace("D", "E").replace("d", "e")  # fortran float style
     line = re_missing_exponent.sub(r"\1E\2", line)

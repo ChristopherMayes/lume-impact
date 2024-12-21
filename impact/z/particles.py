@@ -1,28 +1,51 @@
 from __future__ import annotations
 
 import pathlib
-from typing import NamedTuple
+from typing import Generator, NamedTuple
 
 import numpy as np
 from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.interfaces.impact import impact_particles_to_particle_data
 from pydantic import Field
 
-from .parsers import parse_input_line
-from .types import AnyPath, BaseModel
+from pmd_beamphysics.particles import c_light
+
+from ..particles import SPECIES_MASS
+from .parsers import fix_line
+from .types import AnyPath, BaseModel, NDArray
 
 
 class Particle(NamedTuple):
-    x: float
-    GBx: float
-    y: float
-    GBy: float
-    z: float
-    GBz: float
+    impactz_x: float  # col 1
+    impactz_px: float  # col 2
+    impactz_y: float  # col 3
+    impactz_py: float  # col 4
+    impactz_phase: float  # col 5
+    impactz_pz: float  # col 6
+    impactz_charge_to_mass_ratio: float  # col 7
+    impactz_weight: float  # col 8
+    impactz_id: int  # col 9
+
+    # 1. x: multiply by c_light/omega to get x in  meters
+    # 2 px: multiply by the particle's rest mass (0.511... e6 for electrons) to be momentum px in eV/c
+    # 3. y: (same as 1)
+    # 4. py (same as 2
+    # 5. phase: multiply by -1/omega to get t time in seconds
+    # 6.  we need the reference energy at the element to know how to convert to for pz
+    # 7: Use this mass in 2
+    # 8: this is the weight
+    # 9: cast to int and use as id
 
 
 class ImpactZParticles(BaseModel):
-    particles: list[Particle]
+    impactz_x: NDArray
+    impactz_px: NDArray
+    impactz_y: NDArray
+    impactz_py: NDArray
+    impactz_phase: NDArray
+    impactz_pz: NDArray
+    impactz_charge_to_mass_ratio: NDArray
+    impactz_weight: NDArray
+    impactz_id: NDArray
     filename: pathlib.Path | None = Field(default=None, exclude=True)
 
     @classmethod
@@ -44,17 +67,39 @@ class ImpactZParticles(BaseModel):
         ImpactZParticles
         """
 
-        particles = []
-        for lineno, line in enumerate(contents.splitlines()[1:], start=2):
-            parts = parse_input_line(line)
-            if len(parts) < 6:
-                raise ValueError(
-                    f"Particles data on line {lineno} insufficient ({len(parts)} is less than 6)"
-                )
-            particles.append(Particle(*parts[:6]))
-
+        contents = fix_line(contents)
+        dtype = np.dtype(
+            {
+                "names": (
+                    "impactz_x",
+                    "impactz_px",
+                    "impactz_y",
+                    "impactz_py",
+                    "impactz_phase",
+                    "impactz_pz",
+                    "impactz_charge_to_mass_ratio",
+                    "impactz_weight",
+                    "impactz_id",
+                ),
+                "formats": [np.float64] * 8 + [np.int64],
+            }
+        )
+        (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id) = np.loadtxt(
+            contents.splitlines(),
+            unpack=True,
+            dtype=dtype,
+            skiprows=1,  # TODO: this may be 0 or 1 depending on input particles or output particles
+        )
         return ImpactZParticles(
-            particles=particles,
+            impactz_x=x,
+            impactz_px=px,
+            impactz_y=y,
+            impactz_py=py,
+            impactz_phase=phase,
+            impactz_pz=pz,
+            impactz_charge_to_mass_ratio=charge_to_mass_ratio,
+            impactz_weight=weight,
+            impactz_id=id,
             filename=pathlib.Path(filename) if filename else None,
         )
 
@@ -78,51 +123,68 @@ class ImpactZParticles(BaseModel):
 
     def to_particle_group(
         self,
-        mc2: float = 0.0,
-        species: str = "",
-        time: float = 0.0,
-        macrocharge: float = 0.0,
-        cathode_kinetic_energy_ref: float | None = None,
-        verbose: bool = False,
+        reference_frequency: float,
+        reference_kinetic_energy: float,
+        species: str = "electron",
     ) -> ParticleGroup:
         """
-        Convert impact particles ParticleGroup.
-
-        particle_charge is the charge in units of |e|
-
-        At the cathode, Impact-T translates z to t = z / (beta*c) for emission,
-        where (beta*c) is the velocity calculated from kinetic energy:
-            header['Bkenergy'] in eV.
-        This is purely a conversion factor.
-
-        If cathode_kinetic_energy_ref is given, z will be parsed appropriately to t, and z will be set to 0.
-
-        Otherwise, particles will be set to the same time.
+        Convert ImpactZ particles to ParticleGroup.
         """
-        particles = {
-            "x": np.asarray([particle.x for particle in self.particles]),
-            "y": np.asarray([particle.y for particle in self.particles]),
-            "z": np.asarray([particle.z for particle in self.particles]),
-            "GBx": np.asarray([particle.GBx for particle in self.particles]),
-            "GBy": np.asarray([particle.GBy for particle in self.particles]),
-            "GBz": np.asarray([particle.GBz for particle in self.particles]),
-        }
 
-        data = impact_particles_to_particle_data(
-            particles,
-            mc2=mc2,
-            species=species,
-            time=time,
-            macrocharge=macrocharge,
-            cathode_kinetic_energy_ref=cathode_kinetic_energy_ref,
-            verbose=verbose,
-        )
+        mc2 = SPECIES_MASS[species]
+
+        if species == "electron":
+            assert np.allclose(-1.0 / self.impactz_charge_to_mass_ratio, mc2)
+
+        omega = 2 * np.pi * reference_frequency
+
+        x = self.impactz_x * c_light / omega
+        px = self.impactz_px * mc2
+
+        y = self.impactz_y * c_light / omega
+        py = self.impactz_py * mc2
+
+        E = reference_kinetic_energy + (1.0 - self.impactz_pz) * mc2
+        pz = np.sqrt(E**2 - self.impactz_px**2 - self.impactz_py**2 * mc2**2)
+        t = self.impactz_phase / omega  # TODO maybe minus sign as well?
+        weight = np.abs(self.impactz_weight)
+        weight[np.where(weight == 0.0)] = 1e-30
+
+        data = {
+            "x": x,
+            "px": px,
+            "y": y,
+            "py": py,
+            "z": np.zeros_like(self.impactz_x),
+            "pz": pz,
+            "t": t,
+            "weight": weight,
+            "species": species,
+            "status": np.ones_like(self.impactz_x),
+        }
         return ParticleGroup(data=data)
+
+    @property
+    def rows(self) -> Generator[tuple[float, ...], None, None]:
+        for row in zip(
+            (
+                self.impactz_x,
+                self.impactz_px,
+                self.impactz_y,
+                self.impactz_py,
+                self.impactz_phase,
+                self.impactz_pz,
+                self.impactz_charge_to_mass_ratio,
+                self.impactz_weight,
+                self.impactz_id,
+            )
+        ):
+            yield tuple(float(v) for v in row)
 
     def write_impact(self, fn: AnyPath) -> None:
         with open(fn, "w") as fp:
             print("Writing particles to", fn)
-            print(len(self.particles), file=fp)
-            for particle in self.particles:
-                extended_particle = list(particle) + [0.0, 0.0, 0.0]  # extra data?
-                print(" ".join(f"{v:g}" for v in extended_particle), file=fp)
+            print(len(self.x), file=fp)
+
+            for row in self.rows:
+                print(" ".join(f"{v:g}" for v in row), file=fp)
