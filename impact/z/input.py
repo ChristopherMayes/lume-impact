@@ -113,7 +113,7 @@ class Drift(InputElement, element_id=0):
     steps: int = 0
     map_steps: int = 0
     type_id: Literal[0] = 0
-    radius: float = 0.0
+    radius: float = 1.0
     unused_0: float = pydantic.Field(
         default=0.0, repr=False
     )  # unused/undocumented; should we just ignore?

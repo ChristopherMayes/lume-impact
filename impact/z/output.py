@@ -135,7 +135,9 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             "mean_z": "z",
         },
     )
-    final_particles_raw: ImpactZParticles | None = None
+    final_particles_raw: ImpactZParticles | None = pydantic.Field(
+        default=None, repr=False
+    )
     final_particles: PydanticParticleGroup | None = None
     key_to_unit: dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
 
@@ -244,6 +246,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             stats=stats,
             key_to_unit=units,
             final_particles=final_particles,
+            final_particles_raw=final_particles_raw,
         )
 
     def plot(

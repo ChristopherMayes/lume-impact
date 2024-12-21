@@ -148,7 +148,7 @@ class ImpactZParticles(BaseModel):
         pz = np.sqrt(E**2 - self.impactz_px**2 - self.impactz_py**2 * mc2**2)
         t = self.impactz_phase / omega  # TODO maybe minus sign as well?
         weight = np.abs(self.impactz_weight)
-        weight[np.where(weight == 0.0)] = 1e-30
+        weight[np.where(weight == 0.0)] = 1e-20
 
         data = {
             "x": x,
