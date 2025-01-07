@@ -15,13 +15,14 @@ from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
 from . import parsers
-from .input import HasOutputFile, ImpactZInput
+from .input import HasOutputFile, ImpactZInput, WriteSliceInfo
 from .types import (
     AnyPath,
     BaseModel,
     PydanticParticleGroup,
     PydanticPmdUnit,
     SequenceBaseModel,
+    NDArray,
 )
 from .units import Degrees, Meters, MeV, Radians, Unitless, known_unit
 
@@ -112,6 +113,142 @@ def load_stat_files_from_path(
     return stats, units
 
 
+class ImpactZSlices(BaseModel):
+    """
+    A class to represent the impact Z slices.
+
+    Attributes
+    ----------
+    bunch_length : NDArray
+        Bunch length coordinate (m).
+    particles_per_slice : NDArray
+        Number of particles per slice.
+    current_per_slice : NDArray
+        Current (A) per slice.
+    normalized_emittance_x : NDArray
+        X normalized emittance (m-rad) per slice.
+    normalized_emittance_y : NDArray
+        Y normalized emittance (m-rad) per slice.
+    dE_E : NDArray
+        dE/E.
+    uncorrelated_energy_spread : NDArray
+        Uncorrelated energy spread (eV) per slice.
+    mean_x : NDArray
+        <x> (m) of each slice.
+    mean_y : NDArray
+        <y> (m) of each slice.
+    mismatch_factor_x : NDArray
+        X mismatch factor.
+    mismatch_factor_y : NDArray
+        Y mismatch factor.
+    """
+
+    bunch_length: NDArray = np.zeros(0)
+    particles_per_slice: NDArray = np.zeros(0)
+    current_per_slice: NDArray = np.zeros(0)
+    normalized_emittance_x: NDArray = np.zeros(0)
+    normalized_emittance_y: NDArray = np.zeros(0)
+    dE_E: NDArray = np.zeros(0)
+    uncorrelated_energy_spread: NDArray = np.zeros(0)
+    mean_x: NDArray = np.zeros(0)
+    mean_y: NDArray = np.zeros(0)
+    mismatch_factor_x: NDArray = np.zeros(0)
+    mismatch_factor_y: NDArray = np.zeros(0)
+
+    filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
+
+    def debug_plot_all(self, xkey: str, figsize=(12, 12)):
+        keys = list(self.model_fields)
+        keys = keys[: keys.index("filename")]
+        keys.remove(xkey)
+
+        assert len(keys) % 2 == 0
+        fig, axs = plt.subplot_mosaic(
+            list(list(pair) for pair in zip(keys[::2], keys[1::2])),
+            figsize=figsize,
+        )
+
+        x = getattr(self, xkey)
+        for ykey in keys:
+            ax = axs[ykey]
+            try:
+                y = getattr(self, ykey)
+                ax.scatter(x, y)
+            except Exception as ex:
+                logger.error(f"Failed to plot key: {ykey} {ex.__class__.__name__} {ex}")
+            else:
+                ax.set_xlabel(xkey)
+                ax.set_ylabel(ykey)
+
+        fig.tight_layout()
+        return fig, axs
+
+    @classmethod
+    def from_contents(
+        cls, contents: str, filename: AnyPath | None = None
+    ) -> ImpactZSlices:
+        """
+        Load main input from its file contents.
+
+        Parameters
+        ----------
+        contents : str
+            The contents of the main input file.
+        filename : AnyPath or None, optional
+            The filename, if known.
+
+        Returns
+        -------
+        ImpactZSlices
+        """
+
+        contents = parsers.fix_line(contents)
+        fields = list(cls.model_fields)[:9]
+        dtype = np.dtype(
+            {
+                "names": fields,
+                "formats": [np.float64] * 9,
+            }
+        )
+
+        lines = contents.splitlines()
+        if not lines:
+            return ImpactZSlices(
+                filename=pathlib.Path(filename) if filename else None,
+            )
+
+        arrays = np.loadtxt(
+            lines,
+            dtype=dtype,
+            usecols=range(len(fields)),
+            unpack=True,
+        )
+
+        data = {field: arr for field, arr in zip(fields, arrays)}
+        return ImpactZSlices(
+            **data,
+            filename=pathlib.Path(filename) if filename else None,
+        )
+
+    @classmethod
+    def from_file(cls, filename: AnyPath) -> ImpactZSlices:
+        """
+        Load a main input file from disk.
+
+        Parameters
+        ----------
+        filename : AnyPath
+            The filename to load.
+
+        Returns
+        -------
+        ImpactZSlices
+        """
+        with open(filename) as fp:
+            contents = fp.read()
+        return cls.from_contents(contents, filename=filename)
+
+
 class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
     """
     IMPACT-Z command output.
@@ -141,6 +278,10 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         repr=False,
     )
     particles: dict[int, PydanticParticleGroup] = pydantic.Field(
+        default={},
+        repr=False,
+    )
+    slices: dict[int, ImpactZSlices] = pydantic.Field(
         default={},
         repr=False,
     )
@@ -236,15 +377,20 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
 
         particles_raw = {}
         particles = {}
+        slices = {}
         for ele in input.lattice:
-            if ele.class_information().has_output_file and isinstance(
+            if isinstance(ele, WriteSliceInfo):
+                slices[ele.file_id] = ImpactZSlices.from_file(
+                    workdir / f"fort.{ele.file_id}"
+                )
+            elif ele.class_information().has_output_file and isinstance(
                 ele, HasOutputFile
             ):
                 raw = ImpactZParticles.from_file(workdir / f"fort.{ele.file_id}")
                 particles_raw[ele.file_id] = raw
                 particles[ele.file_id] = raw.to_particle_group(
                     reference_kinetic_energy=input.initial_kinetic_energy,
-                    reference_frequency=input.scaling_frequency,
+                    reference_frequency=input.reference_frequency,
                     # species=...
                 )
 
@@ -253,6 +399,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             key_to_unit=units,
             particles=particles,
             particles_raw=particles_raw,
+            slices=slices,
         )
 
     def plot(
@@ -324,7 +471,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             try:
                 self.plot(key, ax=axs[key])
             except Exception as ex:
-                print("failed to plot key", key, type(ex), str(ex))
+                logger.error(f"Failed to plot key: {key} {ex.__class__.__name__} {ex}")
 
         fig.tight_layout()
         return fig, axs

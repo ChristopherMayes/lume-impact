@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 import logging
 import pathlib
 import shlex
@@ -10,6 +11,8 @@ import numpy as np
 import pydantic
 from lume import tools as lume_tools
 from typing_extensions import Protocol, runtime_checkable
+
+from impact.z.particles import ImpactZParticles
 
 from . import parsers
 from .constants import (
@@ -38,6 +41,10 @@ class InputElementMetadata(BaseModel):
 @runtime_checkable
 class HasInputFile(Protocol):
     file_id: float
+
+    @property
+    @abstractmethod
+    def input_filename(self) -> str | None: ...
 
 
 @runtime_checkable
@@ -1486,7 +1493,7 @@ class ImpactZInput(BaseModel):
     initial_kinetic_energy: float = 0.0
     reference_particle_mass: float = 0.0
     reference_particle_charge: float = 0.0
-    scaling_frequency: float = 0.0  # TODO change to reference_frequency
+    reference_frequency: float = 0.0
     initial_phase_ref: float = 0.0
 
     lattice: list[InputElement] = []
@@ -1584,7 +1591,7 @@ class ImpactZInput(BaseModel):
             res.initial_kinetic_energy,
             res.reference_particle_mass,
             res.reference_particle_charge,
-            res.scaling_frequency,
+            res.reference_frequency,
             res.initial_phase_ref,
         ) = data[10]
 
@@ -1599,17 +1606,15 @@ class ImpactZInput(BaseModel):
             res.lattice.append(ele)
 
             if ele.input_filename and work_dir is not None:
-                file_id = getattr(ele, "file_id", None)
-                if file_id is None:
-                    raise RuntimeError(
-                        f"Internal error - referenced file in lattice element {idx} (of type {type(ele).__name__}) "
-                        f"does has no associated ID?"
-                    )
-                file_id = int(file_id)
+                if not ele.class_information().has_input_file or not isinstance(
+                    ele, HasInputFile
+                ):
+                    continue
 
+                ele_file_id = int(ele.file_id)
                 ext_data_fn = work_dir / ele.input_filename
                 try:
-                    res.file_data[file_id] = parsers.sections_to_ndarray(
+                    res.file_data[str(ele_file_id)] = parsers.sections_to_ndarray(
                         parsers.read_input_file(ext_data_fn)
                     )
                 except FileNotFoundError:
@@ -1656,8 +1661,8 @@ class ImpactZInput(BaseModel):
 {self.twiss_alpha_y} {self.twiss_beta_y} {self.twiss_norm_emit_y} {self.twiss_mismatch_y} {self.twiss_mismatch_py} {self.twiss_offset_y} {self.twiss_offset_py}
 ! twiss_alpha_z twiss_beta_z twiss_norm_emit_z twiss_mismatch_z twiss_mismatch_e_z twiss_offset_phase_z twiss_offset_energy_z
 {self.twiss_alpha_z} {self.twiss_beta_z} {self.twiss_norm_emit_z} {self.twiss_mismatch_z} {self.twiss_mismatch_e_z} {self.twiss_offset_phase_z} {self.twiss_offset_energy_z}
-! average_current initial_kinetic_energy reference_particle_mass reference_particle_charge scaling_frequency initial_phase_ref
-{self.average_current} {self.initial_kinetic_energy} {self.reference_particle_mass} {self.reference_particle_charge} {self.scaling_frequency} {self.initial_phase_ref}
+! average_current initial_kinetic_energy reference_particle_mass reference_particle_charge reference_frequency initial_phase_ref
+{self.average_current} {self.initial_kinetic_energy} {self.reference_particle_mass} {self.reference_particle_charge} {self.reference_frequency} {self.initial_phase_ref}
 ! ** lattice **
 {lattice}
         """.strip()
@@ -1681,7 +1686,17 @@ class ImpactZInput(BaseModel):
         if self.initial_particles:
             # TODO cmayes cathode_kinetic_energy_ref?
             particles_path = workdir / "particle.in"
-            self.initial_particles.write_impact(str(particles_path))
+            iz_particles = ImpactZParticles.from_particle_group(
+                self.initial_particles,
+                reference_frequency=self.reference_frequency,
+                reference_kinetic_energy=self.initial_kinetic_energy,
+            )
+            iz_particles.write_impact(particles_path)
+            # TODO: support this in openpmd-beamphysics
+            # self.initial_particles.write_impact(
+            #     str(particles_path),
+            #     cathode_kinetic_energy_ref=self.initial_kinetic_energy,
+            # )
             extra_paths.append(particles_path)
 
         for ele in self.lattice:
