@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 import pathlib
 import shlex
-from typing import Literal, cast
+from typing import ClassVar, Literal, cast
 from collections.abc import Sequence
 
 import numpy as np
 import pydantic
 from lume import tools as lume_tools
+from typing_extensions import Protocol, runtime_checkable
 
 from . import parsers
 from .constants import (
@@ -28,8 +29,32 @@ input_element_by_id = {}
 logger = logging.getLogger(__name__)
 
 
+class InputElementMetadata(BaseModel):
+    element_id: int
+    has_input_file: bool = False
+    has_output_file: bool = False
+
+
+@runtime_checkable
+class HasInputFile(Protocol):
+    file_id: float
+
+
+@runtime_checkable
+class HasOutputFile(Protocol):
+    file_id: float
+
+
 class InputElement(BaseModel):
-    def __init_subclass__(cls, element_id: int, **kwargs):
+    _impactz_metadata_: ClassVar[InputElementMetadata]
+
+    def __init_subclass__(
+        cls,
+        element_id: int,
+        has_input_file: bool = False,
+        has_output_file: bool = False,
+        **kwargs,
+    ):
         super().__init_subclass__(**kwargs)
 
         assert isinstance(element_id, int)
@@ -37,6 +62,15 @@ class InputElement(BaseModel):
             element_id not in input_element_by_id
         ), f"Duplicate element ID {element_id}"
         input_element_by_id[element_id] = cls
+        cls._impactz_metadata_ = InputElementMetadata(
+            element_id=element_id,
+            has_input_file=has_input_file,
+            has_output_file=has_output_file,
+        )
+
+    @classmethod
+    def class_information(cls):
+        return cls._impactz_metadata_
 
     @staticmethod
     def from_line(line: str | parsers.InputLine):
@@ -84,10 +118,6 @@ class InputElement(BaseModel):
         if file_id is not None and file_id >= 0:
             return f"rfdata{int(file_id)}.in"
 
-        field_id = getattr(self, "input_field_id", None)
-        if field_id is not None:
-            return f"rfdata{int(field_id)}.in"
-
         return None
 
 
@@ -122,7 +152,7 @@ class Drift(InputElement, element_id=0):
     )  # unused/undocumented; should we just ignore?
 
 
-class Quadrupole(InputElement, element_id=1):
+class Quadrupole(InputElement, element_id=1, has_input_file=True):
     """
     A quadrupole element.
 
@@ -219,7 +249,7 @@ class ConstantFocusing(InputElement, element_id=2):
     radius: float = 0.0
 
 
-class Solenoid(InputElement, element_id=3):
+class Solenoid(InputElement, element_id=3, has_input_file=True):
     """
     Solenoid used in beam dynamics simulations.
 
@@ -265,7 +295,7 @@ class Solenoid(InputElement, element_id=3):
     rotation_error_z: float = 0.0
 
 
-class Dipole(InputElement, element_id=4):
+class Dipole(InputElement, element_id=4, has_input_file=True):
     """
     Represents a dipole element used in beam simulations.
 
@@ -333,7 +363,7 @@ class Dipole(InputElement, element_id=4):
     # fringe_field: float = 0.0
 
 
-class Multipole(InputElement, element_id=5):
+class Multipole(InputElement, element_id=5, has_input_file=True):
     """
     Represents a multipole element used in beam simulations.
 
@@ -394,7 +424,7 @@ class DTL(InputElement, element_id=101):
         RF frequency in Hertz.
     theta0 : float
         Driven phase in degrees.
-    input_field_id : float
+    file_id : float
         Input field ID (using a simple sinusoidal model if ID<0).
     radius : float
         Radius in meters.
@@ -436,7 +466,7 @@ class DTL(InputElement, element_id=101):
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0
-    input_field_id: float = 0.0
+    file_id: float = 0.0
     radius: float = 0.0
     quad1_length: float = 0.0
     quad1_gradient: float = 0.0
@@ -481,7 +511,7 @@ class CCDTL(InputElement, element_id=102):
         RF frequency in Hertz.
     theta0 : float
         Driven phase in degrees.
-    input_field_id : float
+    file_id : float
         Input field ID (if ID<0, use simple sinusoidal model, only works for the map integrator).
         The phase is the design phase with 0 for maximum energy gain.
     radius : float
@@ -511,7 +541,7 @@ class CCDTL(InputElement, element_id=102):
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0  # theta0
-    input_field_id: float = 0.0
+    file_id: float = 0.0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -538,7 +568,7 @@ class CCL(InputElement, element_id=103):
         RF frequency in Hertz.
     theta0 : float
         Driven phase in degrees.
-    input_field_id : float
+    file_id : float
         Input field ID. If ID < 0, use the simple sinusoidal model
         (only works for the map integrator, phase is the design phase
         with 0 for maximum energy gain).
@@ -564,7 +594,7 @@ class CCL(InputElement, element_id=103):
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0  # driven phase
-    input_field_id: float = 0.0
+    file_id: float = 0.0
     radius: float = 0.0
     x_misalignment: float = 0.0
     y_misalignment: float = 0.0
@@ -573,7 +603,7 @@ class CCL(InputElement, element_id=103):
     rotation_error_z: float = 0.0
 
 
-class SuperconductingCavity(InputElement, element_id=104):
+class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
     """
     Attributes
     ----------
@@ -632,7 +662,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105):
         The RF frequency in Hertz.
     theta0 : float
         The driven phase in degrees.
-    input_field_id : float
+    file_id : float
         The input field ID.
     radius : float
         The radius of the solenoid in meters.
@@ -664,7 +694,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105):
     field_scaling: float  # field scaling factor
     rf_frequency: float  # RF frequency in Hz
     theta0: float  # driven phase in degrees
-    input_field_id: float  # input field ID
+    file_id: float  # input field ID
     radius: float  # radius in meters
     misalignment_error_x: float  # x misalignment error in meters
     misalignment_error_y: float  # y misalignment error in meters
@@ -677,7 +707,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105):
     length_for_wk: float  # length for wake, RF structure wakefield turned on if > 0
 
 
-class TravelingWaveRFCavity(InputElement, element_id=106):
+class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
     """
     Traveling Wave RF Cavity element.
 
@@ -698,7 +728,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106):
         RF frequency, in Hertz.
     theta0 : float
         Driven phase in degrees.
-    input_field_id : float
+    file_id : float
         Input field ID.
     radius : float
         Radius of the cavity in meters.
@@ -734,7 +764,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106):
     field_scaling: float = 0.0  # scale
     rf_frequency: float = 0.0  # rf freq
     theta0: float = 0.0  # driven_phase
-    input_field_id: float = 0.0  # file_id
+    file_id: float = 0.0  # file_id
     radius: float = 0.0  # radius
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -767,7 +797,7 @@ class UserDefinedRFCavity(InputElement, element_id=110):
         RF frequency in Hertz.
     theta0 : float
         Driven phase in degrees.
-    input_field_id : float
+    file_id : float
         ID of the input field.
     x_radius : float
         X radius in meters.
@@ -802,7 +832,7 @@ class UserDefinedRFCavity(InputElement, element_id=110):
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     theta0: float = 0.0  # driven phase
-    input_field_id: float = 0.0
+    file_id: float = 0.0
     radius_x: float = 0.0
     radius_y: float = 0.0
     misalignment_error_x: float = 0.0
@@ -821,7 +851,7 @@ class ShiftCentroid(InputElement, element_id=-1):
     type_id: Literal[-1] = -1
 
 
-class WriteFull(InputElement, element_id=-2):
+class WriteFull(InputElement, element_id=-2, has_output_file=True):
     """
     Write the particle distribution into a fort.N file.
 
@@ -1030,7 +1060,7 @@ class WritePhaseSpaceInfo(InputElement, element_id=-7):
     type_id: Literal[-7] = -7
 
 
-class WriteSliceInfo(InputElement, element_id=-8):
+class WriteSliceInfo(InputElement, element_id=-8, has_output_file=True):
     """
     Write slice information into file fort.{file_id} using specific slices.
 
@@ -1296,7 +1326,7 @@ class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
     radius: float = 0.0
 
 
-class RfcavityStructureWakefield(InputElement, element_id=-41):
+class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=True):
     """
     Class representing the read-in RF cavity structure wakefield.
 
@@ -1310,7 +1340,7 @@ class RfcavityStructureWakefield(InputElement, element_id=-41):
     type_id: Literal[-41] = -41
 
     not_used: float = 1.0
-    file_id: int = 0
+    file_id: float = 0
     # TODO -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
     enable_wakefield: float = 0.0
 
@@ -1569,7 +1599,7 @@ class ImpactZInput(BaseModel):
             res.lattice.append(ele)
 
             if ele.input_filename and work_dir is not None:
-                file_id = getattr(ele, "file_id", getattr(ele, "input_field_id", None))
+                file_id = getattr(ele, "file_id", None)
                 if file_id is None:
                     raise RuntimeError(
                         f"Internal error - referenced file in lattice element {idx} (of type {type(ele).__name__}) "
@@ -1655,9 +1685,14 @@ class ImpactZInput(BaseModel):
             extra_paths.append(particles_path)
 
         for ele in self.lattice:
+            if not ele.class_information().has_input_file or not isinstance(
+                ele, HasInputFile
+            ):
+                continue
+
             fn = ele.input_filename
             if fn is not None:
-                file_id = getattr(ele, "file_id", getattr(ele, "input_field_id", None))
+                file_id = ele.file_id
                 try:
                     data = self.file_data[file_id]
                 except KeyError:
