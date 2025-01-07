@@ -38,9 +38,12 @@ nav:
           - examples/elements/awa_flatbeam.ipynb
 
   - IMPACT-Z:
-      - examples/z/example1/example1.ipynb
-      - examples/z/example2/example2.ipynb
-      - examples/z/example3/example3.ipynb
+      - Examples:
+          - examples/z/example1/example1.ipynb
+          - examples/z/example2/example2.ipynb
+          - examples/z/example3/example3.ipynb
+      - Elements:
+          - examples/z/elements/drift.ipynb
 
   - API:
       - Impact: api/impact.md

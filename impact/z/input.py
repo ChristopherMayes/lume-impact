@@ -4,7 +4,7 @@ from abc import abstractmethod
 import logging
 import pathlib
 import shlex
-from typing import ClassVar, Literal, cast
+from typing import ClassVar, Literal, NamedTuple, cast
 from collections.abc import Sequence
 
 import numpy as np
@@ -1436,6 +1436,51 @@ class HaltExecution(InputElement, element_id=-99):
     type_id: Literal[-99] = -99
 
 
+AnyInputElement = (
+    Drift
+    | Quadrupole
+    | ConstantFocusing
+    | Solenoid
+    | Dipole
+    | Multipole
+    | DTL
+    | CCDTL
+    | CCL
+    | SuperconductingCavity
+    | SolenoidWithRFCavity
+    | TravelingWaveRFCavity
+    | UserDefinedRFCavity
+    | ShiftCentroid
+    | WriteFull
+    | DensityProfileInput
+    | DensityProfile
+    | Projection2D
+    | Density3D
+    | WritePhaseSpaceInfo
+    | WriteSliceInfo
+    | ScaleMismatchParticle6DCoordinates
+    | CollimateBeamWithRectangularAperture
+    | RotateBeamWithRespectToLongitudinalAxis
+    | BeamShift
+    | BeamEnergySpread
+    | ShiftBeamCentroid
+    | IntegratorTypeSwitch
+    | BeamKickerByRFNonlinearity
+    | RfcavityStructureWakefield
+    | EnergyModulation
+    | KickBeamUsingMultipole
+    | HaltExecution
+)
+
+
+class ZElement(NamedTuple):
+    """A tuple of a Z position and its corresponding beamline element."""
+
+    z_start: float
+    z_end: float
+    ele: AnyInputElement
+
+
 class ImpactZInput(BaseModel):
     """Input settings for an IMPACT-Z run."""
 
@@ -1506,7 +1551,7 @@ class ImpactZInput(BaseModel):
     reference_frequency: float = 0.0
     initial_phase_ref: float = 0.0
 
-    lattice: list[InputElement] = []
+    lattice: list[AnyInputElement] = []
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
 
     file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
@@ -1754,3 +1799,28 @@ class ImpactZInput(BaseModel):
     @property
     def by_name(self) -> dict[str, InputElement]:
         return {ele.name: ele for ele in self.lattice if ele.name}
+
+    @property
+    def by_z(self) -> list[ZElement]:
+        """
+        Get all (flattened) beamline elements by Z location.
+
+        Returns
+        -------
+        list of (zend, element)
+            Each list item is a ZElement, a namedtuple which has `.zend` and
+            `.element` that is also usable as a normal tuple.
+        """
+        z = 0.0
+        by_z = []
+        for ele in self.lattice:
+            by_z.append(
+                ZElement(
+                    z_start=z,
+                    z_end=z + ele.length,
+                    ele=ele,
+                )
+            )
+            z += ele.length
+
+        return by_z
