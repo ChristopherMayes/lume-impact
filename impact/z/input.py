@@ -12,8 +12,6 @@ import pydantic
 from lume import tools as lume_tools
 from typing_extensions import Protocol, runtime_checkable
 
-from impact.z.particles import ImpactZParticles
-
 from . import parsers
 from .constants import (
     BoundaryType,
@@ -26,9 +24,10 @@ from .constants import (
     RFCavityCoordinateType,
     RFCavityDataMode,
 )
+from .particles import ImpactZParticles
 from .types import AnyPath, BaseModel, NDArray, PydanticParticleGroup
 
-input_element_by_id = {}
+input_element_by_id: dict[int, type[InputElement]] = {}
 logger = logging.getLogger(__name__)
 
 
@@ -54,6 +53,8 @@ class HasOutputFile(Protocol):
 
 class InputElement(BaseModel):
     _impactz_metadata_: ClassVar[InputElementMetadata]
+    _impactz_fields_: ClassVar[tuple[str, ...]]
+    name: str = ""
 
     def __init_subclass__(
         cls,
@@ -74,33 +75,40 @@ class InputElement(BaseModel):
             has_input_file=has_input_file,
             has_output_file=has_output_file,
         )
+        cls._impactz_fields_ = tuple(cls.__annotations__)
 
     @classmethod
     def class_information(cls):
         return cls._impactz_metadata_
 
     @staticmethod
-    def from_line(line: str | parsers.InputLine):
+    def from_line(
+        line: str | parsers.InputLine,
+        *,
+        name: str | None = None,
+        line_index: int | None = 0,
+    ):
         if isinstance(line, str):
-            parts = parsers.parse_input_line(line)
-        else:
-            parts = line
+            line = parsers.parse_input_line(line)
 
-        type_idx = parts[3]
+        type_idx = int(line.data[3])
         ele_cls = input_element_by_id[type_idx]
 
         # if ele_cls is Drift and len(parts) == 7:
         #     # TODO: a known bit of 'extra' data in the examples
         #     # patching in a hotfix here, but we may adjust later...
         #     parts = parts[:5]
-        if len(parts) > len(ele_cls.model_fields):
+        if len(line.data) > len(ele_cls._impactz_fields_):
             raise ValueError(
                 f"Too many input elements for {ele_cls.__name__}: "
-                f"expected {len(ele_cls.model_fields)} at most, got {len(parts)}"
+                f"expected {len(ele_cls._impactz_fields_)} at most, got {len(line.data)}"
             )
 
-        kwargs = dict(zip(ele_cls.model_fields, parts))
-        return ele_cls(**kwargs)
+        kwargs = dict(zip(ele_cls._impactz_fields_, line.data))
+        return ele_cls(
+            **kwargs,
+            name=name or line.inline_comment or f"{ele_cls.__name__}_{line_index}",
+        )
 
     def to_line(self, *, with_description: bool = True) -> str:
         def as_string(v: float | int):
@@ -109,15 +117,17 @@ class InputElement(BaseModel):
             return str(v)
 
         attr_to_value = {
-            attr: as_string(getattr(self, attr)) for attr in self.model_fields
+            attr: as_string(getattr(self, attr)) for attr in self._impactz_fields_
         }
 
         line = " ".join(attr_to_value.values())
         if not with_description:
             return f"{line} /"
 
+        name = f" {self.name}" if self.name else ""
+
         desc = f"! {type(self).__name__}: " + " ".join(attr_to_value)
-        return f"{desc}\n{line} /"
+        return f"{desc}\n{line} /{name}"
 
     @property
     def input_filename(self) -> str | None:
@@ -413,7 +423,7 @@ class Multipole(InputElement, element_id=5, has_input_file=True):
     rotation_error_z: float = 0.0
 
 
-class DTL(InputElement, element_id=101):
+class DTL(InputElement, element_id=101, has_input_file=True):
     """
     Discrete-Transmission-Line element with specified parameters.
 
@@ -500,7 +510,7 @@ class DTL(InputElement, element_id=101):
     rf_rotation_error_z: float = 0.0
 
 
-class CCDTL(InputElement, element_id=102):
+class CCDTL(InputElement, element_id=102, has_input_file=True):
     """
     A CCDTL (Cell-Coupled Drift Tube Linac) input element represented by its parameters.
 
@@ -557,7 +567,7 @@ class CCDTL(InputElement, element_id=102):
     rotation_error_z: float = 0.0
 
 
-class CCL(InputElement, element_id=103):
+class CCL(InputElement, element_id=103, has_input_file=True):
     """
     CCL input element with specific parameters.
 
@@ -651,7 +661,7 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
     rotation_error_z: float = 0.0
 
 
-class SolenoidWithRFCavity(InputElement, element_id=105):
+class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     """
     A solenoid with an RF cavity.
 
@@ -784,7 +794,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
     length_for_wakefield: float = 0.0
 
 
-class UserDefinedRFCavity(InputElement, element_id=110):
+class UserDefinedRFCavity(InputElement, element_id=110, has_input_file=True):
     """
     A user-defined RF cavity element in the simulation.
 
@@ -1503,41 +1513,42 @@ class ImpactZInput(BaseModel):
 
     @classmethod
     def from_file(cls, filename: pathlib.Path | str) -> ImpactZInput:
-        sections = parsers.read_input_file(filename)
-        return cls._from_input_sections(sections, filename=filename)
+        lines = parsers.read_input_file(filename)
+        return cls._from_parsed_lines(lines, filename=filename)
 
     @classmethod
     def from_contents(
         cls, contents: str, filename: AnyPath | None = None
     ) -> ImpactZInput:
-        sections = parsers.parse_input_lines(contents)
-        return cls._from_input_sections(sections, filename=filename)
+        lines = parsers.parse_input_lines(contents)
+        return cls._from_parsed_lines(lines, filename=filename)
 
     @classmethod
-    def _from_input_sections(
+    def _from_parsed_lines(
         cls,
-        sections: list[parsers.InputFileSection],
+        indexed_lines: list[parsers.InputLine],
         filename: AnyPath | None,
     ) -> ImpactZInput:
-        data = sum((sect.data for sect in sections), [])
         res = cls(filename=pathlib.Path(filename) if filename else None)
 
         # Casts here are to satisfy the linter. Actual validation will be handled by pydantic.
-        if len(data[0]) >= 3:
+        if len(indexed_lines[0].data) >= 3:
             # GPU flag is written by the Python GUI but not actually read out
             # by IMPACT-Z.
             res.ncpu_y, res.ncpu_z, res.gpu = cast(
-                tuple[int, int, GPUFlag], data[0][:3]
+                tuple[int, int, GPUFlag], indexed_lines[0].data[:3]
             )
         else:
-            res.ncpu_y, res.ncpu_z = cast(tuple[int, int], data[0][:2])
+            res.ncpu_y, res.ncpu_z = cast(tuple[int, int], indexed_lines[0].data[:2])
         (
             res.seed,
             res.n_particle,
             res.integrator_type,
             res.err,
             res.output_z,
-        ) = cast(tuple[int, int, IntegratorType, int, OutputZType], data[1][:5])
+        ) = cast(
+            tuple[int, int, IntegratorType, int, OutputZType], indexed_lines[1].data[:5]
+        )
         (
             res.nx,
             res.ny,
@@ -1546,17 +1557,20 @@ class ImpactZInput(BaseModel):
             res.radius_x,
             res.radius_y,
             res.z_period_size,
-        ) = cast(tuple[int, int, int, BoundaryType, float, float, float], data[2][:8])
+        ) = cast(
+            tuple[int, int, int, BoundaryType, float, float, float],
+            indexed_lines[2].data[:8],
+        )
         (
             res.distribution,
             res.restart,
             res.subcycle,
             res.nbunch,
-        ) = cast(tuple[DistributionZType, int, int, int], data[3][:4])
+        ) = cast(tuple[DistributionZType, int, int, int], indexed_lines[3].data[:4])
 
-        res.particle_list = [int(v) for v in data[4]]
-        res.current_list = [float(v) for v in data[5]]
-        res.charge_over_mass_list = [float(v) for v in data[6]]
+        res.particle_list = [int(v) for v in indexed_lines[4].data]
+        res.current_list = [float(v) for v in indexed_lines[5].data]
+        res.charge_over_mass_list = [float(v) for v in indexed_lines[6].data]
 
         (
             res.twiss_alpha_x,
@@ -1566,7 +1580,7 @@ class ImpactZInput(BaseModel):
             res.twiss_mismatch_px,
             res.twiss_offset_x,
             res.twiss_offset_px,
-        ) = data[7]
+        ) = indexed_lines[7].data
         (
             res.twiss_alpha_y,
             res.twiss_beta_y,
@@ -1575,7 +1589,7 @@ class ImpactZInput(BaseModel):
             res.twiss_mismatch_py,
             res.twiss_offset_y,
             res.twiss_offset_py,
-        ) = data[8]
+        ) = indexed_lines[8].data
         (
             res.twiss_alpha_z,
             res.twiss_beta_z,
@@ -1584,7 +1598,7 @@ class ImpactZInput(BaseModel):
             res.twiss_mismatch_e_z,
             res.twiss_offset_phase_z,
             res.twiss_offset_energy_z,
-        ) = data[9]
+        ) = indexed_lines[9].data
 
         (
             res.average_current,
@@ -1593,7 +1607,7 @@ class ImpactZInput(BaseModel):
             res.reference_particle_charge,
             res.reference_frequency,
             res.initial_phase_ref,
-        ) = data[10]
+        ) = indexed_lines[10].data
 
         if filename is not None:
             work_dir = pathlib.Path(filename).parent
@@ -1601,8 +1615,11 @@ class ImpactZInput(BaseModel):
             work_dir = None
 
         res.lattice = []
-        for idx, lattice_line in enumerate(data[11:], start=1):
-            ele = InputElement.from_line(lattice_line)
+        for idx, lattice_line in enumerate(indexed_lines[11:], start=1):
+            # the element name comes from:
+            #  1. the inline comment
+            #  2. the class name with _{idx} appended
+            ele = InputElement.from_line(lattice_line, line_index=idx)
             res.lattice.append(ele)
 
             if ele.input_filename and work_dir is not None:
@@ -1614,7 +1631,7 @@ class ImpactZInput(BaseModel):
                 ele_file_id = int(ele.file_id)
                 ext_data_fn = work_dir / ele.input_filename
                 try:
-                    res.file_data[str(ele_file_id)] = parsers.sections_to_ndarray(
+                    res.file_data[str(ele_file_id)] = parsers.lines_to_ndarray(
                         parsers.read_input_file(ext_data_fn)
                     )
                 except FileNotFoundError:
@@ -1707,13 +1724,18 @@ class ImpactZInput(BaseModel):
 
             fn = ele.input_filename
             if fn is not None:
-                file_id = ele.file_id
+                file_id = int(ele.file_id)
+                logger.info(
+                    f"Writing file for element {type(ele).__name__}: {fn} (file id={file_id})"
+                )
                 try:
-                    data = self.file_data[file_id]
+                    data = self.file_data[str(file_id)]
                 except KeyError:
                     if error_if_missing:
                         raise FileNotFoundError(f"Missing input file: {fn}")
-                    logger.warning(f"File unavailable: {file_id}")
+                    logger.warning(
+                        f"Expected input file not found: {fn} (file id={file_id})"
+                    )
                 else:
                     np.savetxt(workdir / fn, data)
 
@@ -1728,3 +1750,7 @@ class ImpactZInput(BaseModel):
         with open(path, mode="w") as fp:
             print(shlex.join(shlex.split(command_prefix)), file=fp)
         lume_tools.make_executable(str(path))
+
+    @property
+    def by_name(self) -> dict[str, InputElement]:
+        return {ele.name: ele for ele in self.lattice if ele.name}

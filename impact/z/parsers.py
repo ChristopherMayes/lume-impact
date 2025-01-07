@@ -10,14 +10,11 @@ import numpy as np
 from .types import BaseModel
 
 
-class InputFileSection(BaseModel):
-    # A file loading helper - as I originally intended to retain comments somehow;
-    # consider using this?
-    comments: list[str] = []
-    data: list[InputLine] = []
+class InputLine(BaseModel):
+    header_comments: list[str] = []
+    inline_comment: str | None = None
+    data: Sequence[float | int]
 
-
-InputLine = Sequence[float | int]
 
 re_missing_exponent = re.compile(r"([+-]?\d*\.\d+)([+-]\d+)")
 
@@ -27,20 +24,24 @@ def fix_line(contents: str) -> str:
     return re_missing_exponent.sub(r"\1E\2", contents)
 
 
-def parse_input_line(line: str) -> list[float | int]:
+def parse_input_line(line: str) -> InputLine:
     line = line.replace("D", "E").replace("d", "e")  # fortran float style
     line = re_missing_exponent.sub(r"\1E\2", line)
 
-    parts = line.split()
-    if "/" in parts:
-        parts = parts[: parts.index("/")]
+    if "/" in line:
+        line, comment = line.split("/", 1)
+        comment = comment.strip()
+    else:
+        comment = None
+
+    parts = line.strip().split()
 
     def literal_eval(value: str):
         if value == "NaN":
             return math.nan
         if value == "-Infinity":
             return -math.inf
-        if value == "-nfinity":
+        if value == "Infinity":
             return math.inf
         try:
             return ast.literal_eval(value)
@@ -50,29 +51,30 @@ def parse_input_line(line: str) -> list[float | int]:
                 f"as it does not correspond to a valid Python constant."
             ) from None
 
-    return [literal_eval(value) for value in parts]
+    return InputLine(
+        data=[literal_eval(value) for value in parts],
+        inline_comment=comment,
+        header_comments=[],
+    )
 
 
-def parse_input_lines(lines: str | Sequence[str]) -> list[InputFileSection]:
+def parse_input_lines(lines: str | Sequence[str]) -> list[InputLine]:
     if isinstance(lines, str):
         lines = lines.splitlines()
 
-    section = InputFileSection()
-    sections = [section]
-    last_comment = True
+    input_lines = []
+    comments = []
     for line in lines:
         if line.startswith("!"):
-            if not last_comment and section is not None:
-                section = InputFileSection()
-                sections.append(section)
-
-            section.comments.append(line.lstrip("! "))
+            comments.append(line.lstrip("! "))
         else:
-            parts = parse_input_line(line)
-            if parts:
-                section.data.append(parts)
+            input_line = parse_input_line(line)
+            if input_line.data:
+                input_lines.append(input_line)
+                input_line.header_comments = comments
+                comments = []
 
-    return sections
+    return input_lines
 
 
 def read_input_file(filename):
@@ -80,10 +82,5 @@ def read_input_file(filename):
         return parse_input_lines(fp.read().splitlines())
 
 
-def sections_to_data(sections: list[InputFileSection]) -> list[InputLine]:
-    return sum((section.data for section in sections), [])
-
-
-def sections_to_ndarray(sections: list[InputFileSection]) -> np.ndarray:
-    data = sections_to_data(sections)
-    return np.asarray(data)
+def lines_to_ndarray(lines: Sequence[InputLine]) -> np.ndarray:
+    return np.asarray([line.data for line in lines])

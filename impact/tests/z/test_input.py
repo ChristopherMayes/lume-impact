@@ -29,7 +29,7 @@ def normalize_source(source: str) -> str:
 
         line = line.split("/", 1)[0]
 
-        # Any whitespace becomes a single string:
+        # Any whitespace becomes a single space:
         return re.sub(r"\s+", " ", line).strip()
 
     return "\n".join(
@@ -49,8 +49,8 @@ def compare_inputs(expected: str, generated: str):
         zip(expected_lines, generated_lines),
         start=1,
     ):
-        expected_parts = parse_input_line(line_expected)
-        generated_parts = parse_input_line(line_generated)
+        expected_parts = parse_input_line(line_expected).data
+        generated_parts = parse_input_line(line_generated).data
 
         if lineno == 1 and len(expected_parts) != len(generated_parts):
             # NOTE: a bit of first line handling for GPU settings

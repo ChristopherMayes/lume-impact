@@ -477,7 +477,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         return fig, axs
 
 
-file_number_to_cls: dict[str, FortranOutputFileData] = {}
+file_number_to_cls: dict[int, type[FortranOutputFileData]] = {}
 T = TypeVar("T", bound="FortranOutputFileData")
 
 
@@ -494,7 +494,8 @@ class FortranOutputFileData(SequenceBaseModel):
         data = {attr: [] for attr in cls.model_fields}
         with open(filename) as fp:
             for line in fp.read().splitlines():
-                for attr, value in zip(data, parsers.parse_input_line(line)):
+                parsed = parsers.parse_input_line(line)
+                for attr, value in zip(data, parsed.data):
                     data[attr].append(value)
 
         return {key: np.asarray(items) for key, items in data.items()}
