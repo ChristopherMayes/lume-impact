@@ -145,7 +145,7 @@ class Drift(InputElement, element_id=0):
     Parameters
     ----------
     length : float
-        Length of the drift element in meters.
+        Length of the element in meters.
     steps : int
         Number of space-charge kicks through the beamline element. Each
         "step" consists of a half-step, a space-charge kick, and another half-step.
@@ -176,14 +176,16 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
     Parameters
     ----------
     length : float
-        The length of the quadrupole, given in meters.
+        Length of the element in meters.
     steps : int
-        Number of kicks. Usually indicated as "steps" for the quadrupole.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        Number of map steps. Typically, `map_steps` is set to 1 for a quadrupole.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     B1 : float
         The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-    file_id : int
+    file_id : float
         An ID for the input gradient file. Determines profile behavior:
         if greater than 0, a fringe field profile is read; if less than -10,
         a linear transfer map of an undulator is used; if between -10 and 0,
@@ -208,7 +210,7 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
     map_steps: int = 0
     type_id: Literal[1] = 1
     B1: float = 0.0
-    file_id: int = 0
+    file_id: float = 0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -237,11 +239,13 @@ class ConstantFocusing(InputElement, element_id=2):
     Parameters
     ----------
     length : float
-        The length of the focusing element in meters.
+        Length of the element in meters.
     steps : int
-        Number of steps.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        Number of map steps.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     kx0_squared : float
         The square of the kx0 parameter.
     ky0_squared : float
@@ -273,12 +277,14 @@ class Solenoid(InputElement, element_id=3, has_input_file=True):
     Parameters
     ----------
     length : float
-        The effective length of the solenoid in meters, including
-        two linear fringe regions and a flat top region.
+        The effective length of the solenoid in meters, including two linear
+        fringe regions and a flat top region (solenoid integrator).
     steps : int
-        The number of simulation steps in the solenoid.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        The number of map steps.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     Bz0 : float
         The axial magnetic field at the center of the solenoid in Tesla.
     file_id : float
@@ -303,7 +309,7 @@ class Solenoid(InputElement, element_id=3, has_input_file=True):
     type_id: Literal[3] = 3
 
     Bz0: float = 0.0
-    file_id: int = 0
+    file_id: float = 0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -318,6 +324,14 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
 
     Parameters
     ----------
+    length : float
+        Length of the element in meters.
+    steps : int
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     x_field_strength : float, optional
         Field strength in the x direction.
     y_field_strength : float, optional
@@ -386,6 +400,14 @@ class Multipole(InputElement, element_id=5, has_input_file=True):
 
     Parameters
     ----------
+    length : float
+        Length of the element in meters.
+    steps : int
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     multipole_type : MultipoleType
         The type of multipole element, sextupole, octupole, or decapole.
     field_strength : float, optional
@@ -430,11 +452,13 @@ class DTL(InputElement, element_id=101, has_input_file=True):
     Parameters
     ----------
     length : float
-        The physical length of the DTL in meters.
+        Length of the element in meters.
     steps : int
-        Number of steps used in the simulation.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        Number of map steps used in the simulation.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     field_scaling : float
         Scaling factor for the electrical/magnetic field.
     rf_frequency : float
@@ -517,11 +541,13 @@ class CCDTL(InputElement, element_id=102, has_input_file=True):
     Attributes
     ----------
     length : float
-        Length of the CCDTL in meters.
+        Length of the element in meters.
     steps : int
-        Number of computational steps.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        Number of map steps.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     field_scaling : float
         Field scaling factor.
     rf_frequency : float
@@ -576,9 +602,11 @@ class CCL(InputElement, element_id=103, has_input_file=True):
     length : float
         Length of the element in meters.
     steps : int
-        Number of steps.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        Number of map steps.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     field_scaling : float
         Field scaling factor.
     rf_frequency : float
@@ -625,18 +653,20 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
     Attributes
     ----------
     length : float
-        Length of the superconducting cavity in meters.
+        Length of the element in meters.
     steps : int
-        Number of steps for the superconducting kick.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        Number of map steps.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     scale : float
         Field scaling factor.
     frequency : float
         RF frequency in Hz.
     phase : float
         Driven phase in degrees (design phase with 0 for maximum energy gain).
-    file_id : int
+    file_id : float
         Input field ID (if ID < 0, only works for the map integrator).
     radius : float
         Radius in meters.
@@ -650,7 +680,7 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
     scale: float = 0.0
     frequency: float = 0.0
     phase: float = 0.0  # theta0
-    file_id: int = 0
+    file_id: float = 0
     radius: float = 0.0
 
     # TODO not in the docs:
@@ -668,11 +698,13 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     Parameters
     ----------
     length : float
-        The length of the solenoid in meters.
+        Length of the element in meters.
     steps : int
-        The number of steps.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        The number of map steps.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     field_scaling : float
         The field scaling factor.
     rf_frequency : float
@@ -734,11 +766,13 @@ class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
     Attributes
     ----------
     length : float
-        The length of the cavity in meters.
+        Length of the element in meters.
     steps : int
-        The number of steps through the cavity.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        The number of map steps through the cavity.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     field_scaling : float
         Scaling factor for the field.
     rf_frequency : float
@@ -803,11 +837,13 @@ class UserDefinedRFCavity(InputElement, element_id=110, has_input_file=True):
     Parameters
     ----------
     length : float
-        Length of the RF cavity in meters.
+        Length of the element in meters.
     steps : int
-        Number of steps.
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
     map_steps : int
-        Number of map steps.
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     field_scaling : float
         Scaling factor for the field.
     rf_frequency : float
@@ -862,6 +898,21 @@ class UserDefinedRFCavity(InputElement, element_id=110, has_input_file=True):
 
 
 class ShiftCentroid(InputElement, element_id=-1):
+    """
+    Shift the centroid.
+
+    Attributes
+    ----------
+    length : float
+        Length of the element in meters.
+    steps : int
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
+    """
+
     length: float = 0.0
     steps: int = 0
     map_steps: int = 0
@@ -925,6 +976,13 @@ class DensityProfileInput(InputElement, element_id=-3):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         Radius in meters.
     xmax : float
@@ -961,6 +1019,13 @@ class DensityProfile(InputElement, element_id=-4):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         Radius in meters.
     xmax : float
@@ -997,6 +1062,13 @@ class Projection2D(InputElement, element_id=-5):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         The radius of the projection.
     xmax : float
@@ -1033,6 +1105,13 @@ class Density3D(InputElement, element_id=-6):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         Radius in meters.
     xmax : float
@@ -1071,6 +1150,7 @@ class WritePhaseSpaceInfo(InputElement, element_id=-7):
     fort.(1000+Nprocessor-1). This function is used for restart purposes.
     """
 
+    # TODO unsupported
     length: float = 0.0
     steps: int = 0
     map_steps: int = 0
@@ -1083,7 +1163,14 @@ class WriteSliceInfo(InputElement, element_id=-8, has_output_file=True):
 
     Attributes
     ----------
-    file_id : int
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
+    file_id : float
         Element file id.
     slices : float
         Number of slices.
@@ -1123,6 +1210,13 @@ class ScaleMismatchParticle6DCoordinates(InputElement, element_id=-10):
 
     Parameters
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         The radius, not used in computations.
     xmis : float
@@ -1159,6 +1253,13 @@ class CollimateBeamWithRectangularAperture(InputElement, element_id=-13):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         Radius in meters (not used).
     xmin : float
@@ -1189,6 +1290,13 @@ class RotateBeamWithRespectToLongitudinalAxis(InputElement, element_id=-18):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     x : float
         The x-coordinate.
     y : float
@@ -1222,6 +1330,13 @@ class BeamShift(InputElement, element_id=-19):
 
     Parameters
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     shift : float
         The amount to shift the beam longitudinally so that <dt>=<dE>=0.
     """
@@ -1239,6 +1354,13 @@ class BeamEnergySpread(InputElement, element_id=-20):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         The radius (not used).
     energy_spread : float
@@ -1259,6 +1381,13 @@ class ShiftBeamCentroid(InputElement, element_id=-21):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     radius : float
         Radius in meters (not used).
     xshift : float
@@ -1295,6 +1424,13 @@ class IntegratorTypeSwitch(InputElement, element_id=-25):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     beam_centroid_6D : float
         Shift the beam centroid in 6D phase space.
     radius : float
@@ -1322,6 +1458,13 @@ class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     vmax : float
         Maximum voltage in volts (V).
     phi0 : float
@@ -1349,6 +1492,16 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
 
     Parameters
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
+    file_id : float
+        -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
+    enable_wakefield : float
     """
 
     length: float = 0.0
@@ -1368,6 +1521,13 @@ class EnergyModulation(InputElement, element_id=-52):
 
     Attributes
     ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
     beam_size : float
         The matched beam size in meters.
     laser_wavelength : float
@@ -1392,21 +1552,27 @@ class KickBeamUsingMultipole(InputElement, element_id=-55):
 
     Parameters
     ----------
-    param1 : float
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
+    unused : float
         First parameter, "1.0" not used.
-    param2 : float
-        Second parameter, 0.0 - dipole (k0), 1.0 - quad. (k1), 2.0 - sext. (k2),
-        3.0 - oct. (k3), 4.0 - dec. (k4), 5.0 - dodec. (k5).
-    param3 : float
-        Third parameter.
-    param4 : float
-        Fourth parameter.
-    param5 : float
-        Fifth parameter.
-    param6 : float
-        Sixth parameter.
-    param7 : float
-        Seventh parameter.
+    k0 : float
+        Dipole strength.
+    k1 : float
+        Quadrupole strength.
+    k2 : float
+        Sextupole strength.
+    k3 : float
+        Octupole strength.
+    k4 : float
+        Decapole strength.
+    k5 : float
+        Dodecapole strength.
     """
 
     length: float = 0.0
@@ -1414,20 +1580,30 @@ class KickBeamUsingMultipole(InputElement, element_id=-55):
     map_steps: int = 0
     type_id: Literal[-55] = -55
 
-    param1: float = 0.0
-    param2: float = 0.0
-    param3: float = 0.0
-    param4: float = 0.0
-    param5: float = 0.0
-    param6: float = 0.0
-    param7: float = 0.0
+    unused: float = 0.0
+    k0: float = 0.0
+    k1: float = 0.0
+    k2: float = 0.0
+    k3: float = 0.0
+    k4: float = 0.0
+    k5: float = 0.0
 
 
 class HaltExecution(InputElement, element_id=-99):
     """
     Halt execution at this point in the input file.
 
-    This is useful if you have a big file and want to run part-way through it without deleting a lot of lines.
+    This is useful if you have a big file and want to run part-way through it
+    without deleting a lot of lines.
+
+    Parameters
+    ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Unused.
     """
 
     length: float = 0.0
