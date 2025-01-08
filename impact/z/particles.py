@@ -218,11 +218,8 @@ class ImpactZParticles(BaseModel):
         y = particle_group.y * omega / c_light
         py = particle_group.py / species_mass
 
-        E = (
-            np.sqrt(particle_group.pz**2 + particle_group.px**2 + particle_group.py**2)
-            - reference_kinetic_energy
-        )
-        impactz_pz = 1.0 - (E / species_mass)
+        E = particle_group.energy
+        pz = 1.0 - (E - reference_kinetic_energy) / species_mass
 
         t = particle_group.t * omega
         weight = np.abs(particle_group.weight)
@@ -234,7 +231,7 @@ class ImpactZParticles(BaseModel):
             impactz_px=px,
             impactz_y=y,
             impactz_py=py,
-            impactz_pz=impactz_pz,
+            impactz_pz=pz,
             impactz_phase=t,
             impactz_weight=weight,
             impactz_charge_to_mass_ratio=impactz_charge_to_mass_ratio,
