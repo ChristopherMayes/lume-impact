@@ -4,11 +4,12 @@ from abc import abstractmethod
 import logging
 import pathlib
 import shlex
-from typing import ClassVar, Literal, NamedTuple, cast
+from typing import ClassVar, Literal, NamedTuple, TypeVar, cast
 from collections.abc import Sequence
 
 import numpy as np
 import pydantic
+import pydantic.alias_generators
 from lume import tools as lume_tools
 from typing_extensions import Protocol, runtime_checkable
 
@@ -24,6 +25,7 @@ from .constants import (
     RFCavityCoordinateType,
     RFCavityDataMode,
 )
+from .errors import MultipleElementError, NoSuchElementError
 from .particles import ImpactZParticles
 from .types import AnyPath, BaseModel, NDArray, PydanticParticleGroup
 
@@ -1647,6 +1649,7 @@ AnyInputElement = (
     | KickBeamUsingMultipole
     | HaltExecution
 )
+T_InputElement = TypeVar("T_InputElement", bound=InputElement)
 
 
 class ZElement(NamedTuple):
@@ -2000,3 +2003,379 @@ class ImpactZInput(BaseModel):
             z += ele.length
 
         return by_z
+
+    @property
+    def by_element(self) -> dict[type[T_InputElement], list[T_InputElement]]:
+        """Get beamline elements organized by their class."""
+        by_element = {}
+        for element in self.lattice:
+            by_element.setdefault(type(element), [])
+            by_element[type(element)].append(element)
+        return by_element
+
+    def _get_only_one(self, cls: type[T_InputElement]) -> T_InputElement:
+        items = self.by_element.get(cls, [])
+        if len(items) == 0:
+            raise NoSuchElementError(f"{cls.__name__} is not defined in the input.")
+        if len(items) > 1:
+            plural_fix = {}
+            plural = pydantic.alias_generators.to_snake(cls.__name__)
+            plural = plural_fix.get(plural, f"{plural}s")
+            raise MultipleElementError(
+                f"Multiple {cls.__name__} namelists were defined in the input. "
+                f"Please use .{plural}"
+            )
+        return items[0]
+
+    # @property
+    # def LOWERs(self) -> list[ELEMENT]:
+    #     """List of all ELEMENT instances."""
+    #     return self.by_element.get(ELEMENT, [])
+    #
+    # @property
+    # def LOWER(self) -> ELEMENT:
+    #     """Get the sole ELEMENT if it is defined."""
+    #     return self._get_only_one(ELEMENT)
+    #
+
+    @property
+    def drifts(self) -> list[Drift]:
+        """List of all Drift instances."""
+        return self.by_element.get(Drift, [])
+
+    @property
+    def drift(self) -> Drift:
+        """Get the sole Drift if it is defined."""
+        return self._get_only_one(Drift)
+
+    @property
+    def quadrupoles(self) -> list[Quadrupole]:
+        """List of all Quadrupole instances."""
+        return self.by_element.get(Quadrupole, [])
+
+    @property
+    def quadrupole(self) -> Quadrupole:
+        """Get the sole Quadrupole if it is defined."""
+        return self._get_only_one(Quadrupole)
+
+    @property
+    def constant_focusings(self) -> list[ConstantFocusing]:
+        """List of all ConstantFocusing instances."""
+        return self.by_element.get(ConstantFocusing, [])
+
+    @property
+    def constant_focusing(self) -> ConstantFocusing:
+        """Get the sole ConstantFocusing if it is defined."""
+        return self._get_only_one(ConstantFocusing)
+
+    @property
+    def solenoids(self) -> list[Solenoid]:
+        """List of all Solenoid instances."""
+        return self.by_element.get(Solenoid, [])
+
+    @property
+    def solenoid(self) -> Solenoid:
+        """Get the sole Solenoid if it is defined."""
+        return self._get_only_one(Solenoid)
+
+    @property
+    def dipoles(self) -> list[Dipole]:
+        """List of all Dipole instances."""
+        return self.by_element.get(Dipole, [])
+
+    @property
+    def dipole(self) -> Dipole:
+        """Get the sole Dipole if it is defined."""
+        return self._get_only_one(Dipole)
+
+    @property
+    def multipoles(self) -> list[Multipole]:
+        """List of all Multipole instances."""
+        return self.by_element.get(Multipole, [])
+
+    @property
+    def multipole(self) -> Multipole:
+        """Get the sole Multipole if it is defined."""
+        return self._get_only_one(Multipole)
+
+    @property
+    def dtls(self) -> list[DTL]:
+        """List of all DTL instances."""
+        return self.by_element.get(DTL, [])
+
+    @property
+    def dtl(self) -> DTL:
+        """Get the sole DTL if it is defined."""
+        return self._get_only_one(DTL)
+
+    @property
+    def ccdtls(self) -> list[CCDTL]:
+        """List of all CCDTL instances."""
+        return self.by_element.get(CCDTL, [])
+
+    @property
+    def ccdtl(self) -> CCDTL:
+        """Get the sole CCDTL if it is defined."""
+        return self._get_only_one(CCDTL)
+
+    @property
+    def ccls(self) -> list[CCL]:
+        """List of all CCL instances."""
+        return self.by_element.get(CCL, [])
+
+    @property
+    def ccl(self) -> CCL:
+        """Get the sole CCL if it is defined."""
+        return self._get_only_one(CCL)
+
+    @property
+    def superconducting_cavitys(self) -> list[SuperconductingCavity]:
+        """List of all SuperconductingCavity instances."""
+        return self.by_element.get(SuperconductingCavity, [])
+
+    @property
+    def superconducting_cavity(self) -> SuperconductingCavity:
+        """Get the sole SuperconductingCavity if it is defined."""
+        return self._get_only_one(SuperconductingCavity)
+
+    @property
+    def solenoid_with_rf_cavitys(self) -> list[SolenoidWithRFCavity]:
+        """List of all SolenoidWithRFCavity instances."""
+        return self.by_element.get(SolenoidWithRFCavity, [])
+
+    @property
+    def solenoid_with_rf_cavity(self) -> SolenoidWithRFCavity:
+        """Get the sole SolenoidWithRFCavity if it is defined."""
+        return self._get_only_one(SolenoidWithRFCavity)
+
+    @property
+    def traveling_wave_rf_cavitys(self) -> list[TravelingWaveRFCavity]:
+        """List of all TravelingWaveRFCavity instances."""
+        return self.by_element.get(TravelingWaveRFCavity, [])
+
+    @property
+    def traveling_wave_rf_cavity(self) -> TravelingWaveRFCavity:
+        """Get the sole TravelingWaveRFCavity if it is defined."""
+        return self._get_only_one(TravelingWaveRFCavity)
+
+    @property
+    def user_defined_rf_cavitys(self) -> list[UserDefinedRFCavity]:
+        """List of all UserDefinedRFCavity instances."""
+        return self.by_element.get(UserDefinedRFCavity, [])
+
+    @property
+    def user_defined_rf_cavity(self) -> UserDefinedRFCavity:
+        """Get the sole UserDefinedRFCavity if it is defined."""
+        return self._get_only_one(UserDefinedRFCavity)
+
+    @property
+    def shift_centroids(self) -> list[ShiftCentroid]:
+        """List of all ShiftCentroid instances."""
+        return self.by_element.get(ShiftCentroid, [])
+
+    @property
+    def shift_centroid(self) -> ShiftCentroid:
+        """Get the sole ShiftCentroid if it is defined."""
+        return self._get_only_one(ShiftCentroid)
+
+    @property
+    def write_fulls(self) -> list[WriteFull]:
+        """List of all WriteFull instances."""
+        return self.by_element.get(WriteFull, [])
+
+    @property
+    def write_full(self) -> WriteFull:
+        """Get the sole WriteFull if it is defined."""
+        return self._get_only_one(WriteFull)
+
+    @property
+    def density_profile_inputs(self) -> list[DensityProfileInput]:
+        """List of all DensityProfileInput instances."""
+        return self.by_element.get(DensityProfileInput, [])
+
+    @property
+    def density_profile_input(self) -> DensityProfileInput:
+        """Get the sole DensityProfileInput if it is defined."""
+        return self._get_only_one(DensityProfileInput)
+
+    @property
+    def density_profiles(self) -> list[DensityProfile]:
+        """List of all DensityProfile instances."""
+        return self.by_element.get(DensityProfile, [])
+
+    @property
+    def density_profile(self) -> DensityProfile:
+        """Get the sole DensityProfile if it is defined."""
+        return self._get_only_one(DensityProfile)
+
+    @property
+    def projection_2ds(self) -> list[Projection2D]:
+        """List of all Projection2D instances."""
+        return self.by_element.get(Projection2D, [])
+
+    @property
+    def projection_2d(self) -> Projection2D:
+        """Get the sole Projection2D if it is defined."""
+        return self._get_only_one(Projection2D)
+
+    @property
+    def density_3ds(self) -> list[Density3D]:
+        """List of all Density3D instances."""
+        return self.by_element.get(Density3D, [])
+
+    @property
+    def density_3d(self) -> Density3D:
+        """Get the sole Density3D if it is defined."""
+        return self._get_only_one(Density3D)
+
+    @property
+    def write_phase_space_infos(self) -> list[WritePhaseSpaceInfo]:
+        """List of all WritePhaseSpaceInfo instances."""
+        return self.by_element.get(WritePhaseSpaceInfo, [])
+
+    @property
+    def write_phase_space_info(self) -> WritePhaseSpaceInfo:
+        """Get the sole WritePhaseSpaceInfo if it is defined."""
+        return self._get_only_one(WritePhaseSpaceInfo)
+
+    @property
+    def write_slice_infos(self) -> list[WriteSliceInfo]:
+        """List of all WriteSliceInfo instances."""
+        return self.by_element.get(WriteSliceInfo, [])
+
+    @property
+    def write_slice_info(self) -> WriteSliceInfo:
+        """Get the sole WriteSliceInfo if it is defined."""
+        return self._get_only_one(WriteSliceInfo)
+
+    @property
+    def scale_mismatch_particle_6d_coordinatess(
+        self,
+    ) -> list[ScaleMismatchParticle6DCoordinates]:
+        """List of all ScaleMismatchParticle6DCoordinates instances."""
+        return self.by_element.get(ScaleMismatchParticle6DCoordinates, [])
+
+    @property
+    def scale_mismatch_particle_6d_coordinates(
+        self,
+    ) -> ScaleMismatchParticle6DCoordinates:
+        """Get the sole ScaleMismatchParticle6DCoordinates if it is defined."""
+        return self._get_only_one(ScaleMismatchParticle6DCoordinates)
+
+    @property
+    def collimate_beam_with_rectangular_apertures(
+        self,
+    ) -> list[CollimateBeamWithRectangularAperture]:
+        """List of all CollimateBeamWithRectangularAperture instances."""
+        return self.by_element.get(CollimateBeamWithRectangularAperture, [])
+
+    @property
+    def collimate_beam_with_rectangular_aperture(
+        self,
+    ) -> CollimateBeamWithRectangularAperture:
+        """Get the sole CollimateBeamWithRectangularAperture if it is defined."""
+        return self._get_only_one(CollimateBeamWithRectangularAperture)
+
+    @property
+    def rotate_beam_with_respect_to_longitudinal_axiss(
+        self,
+    ) -> list[RotateBeamWithRespectToLongitudinalAxis]:
+        """List of all RotateBeamWithRespectToLongitudinalAxis instances."""
+        return self.by_element.get(RotateBeamWithRespectToLongitudinalAxis, [])
+
+    @property
+    def rotate_beam_with_respect_to_longitudinal_axis(
+        self,
+    ) -> RotateBeamWithRespectToLongitudinalAxis:
+        """Get the sole RotateBeamWithRespectToLongitudinalAxis if it is defined."""
+        return self._get_only_one(RotateBeamWithRespectToLongitudinalAxis)
+
+    @property
+    def beam_shifts(self) -> list[BeamShift]:
+        """List of all BeamShift instances."""
+        return self.by_element.get(BeamShift, [])
+
+    @property
+    def beam_shift(self) -> BeamShift:
+        """Get the sole BeamShift if it is defined."""
+        return self._get_only_one(BeamShift)
+
+    @property
+    def beam_energy_spreads(self) -> list[BeamEnergySpread]:
+        """List of all BeamEnergySpread instances."""
+        return self.by_element.get(BeamEnergySpread, [])
+
+    @property
+    def beam_energy_spread(self) -> BeamEnergySpread:
+        """Get the sole BeamEnergySpread if it is defined."""
+        return self._get_only_one(BeamEnergySpread)
+
+    @property
+    def shift_beam_centroids(self) -> list[ShiftBeamCentroid]:
+        """List of all ShiftBeamCentroid instances."""
+        return self.by_element.get(ShiftBeamCentroid, [])
+
+    @property
+    def shift_beam_centroid(self) -> ShiftBeamCentroid:
+        """Get the sole ShiftBeamCentroid if it is defined."""
+        return self._get_only_one(ShiftBeamCentroid)
+
+    @property
+    def integrator_type_switchs(self) -> list[IntegratorTypeSwitch]:
+        """List of all IntegratorTypeSwitch instances."""
+        return self.by_element.get(IntegratorTypeSwitch, [])
+
+    @property
+    def integrator_type_switch(self) -> IntegratorTypeSwitch:
+        """Get the sole IntegratorTypeSwitch if it is defined."""
+        return self._get_only_one(IntegratorTypeSwitch)
+
+    @property
+    def beam_kicker_by_rf_nonlinearitys(self) -> list[BeamKickerByRFNonlinearity]:
+        """List of all BeamKickerByRFNonlinearity instances."""
+        return self.by_element.get(BeamKickerByRFNonlinearity, [])
+
+    @property
+    def beam_kicker_by_rf_nonlinearity(self) -> BeamKickerByRFNonlinearity:
+        """Get the sole BeamKickerByRFNonlinearity if it is defined."""
+        return self._get_only_one(BeamKickerByRFNonlinearity)
+
+    @property
+    def rfcavity_structure_wakefields(self) -> list[RfcavityStructureWakefield]:
+        """List of all RfcavityStructureWakefield instances."""
+        return self.by_element.get(RfcavityStructureWakefield, [])
+
+    @property
+    def rfcavity_structure_wakefield(self) -> RfcavityStructureWakefield:
+        """Get the sole RfcavityStructureWakefield if it is defined."""
+        return self._get_only_one(RfcavityStructureWakefield)
+
+    @property
+    def energy_modulations(self) -> list[EnergyModulation]:
+        """List of all EnergyModulation instances."""
+        return self.by_element.get(EnergyModulation, [])
+
+    @property
+    def energy_modulation(self) -> EnergyModulation:
+        """Get the sole EnergyModulation if it is defined."""
+        return self._get_only_one(EnergyModulation)
+
+    @property
+    def kick_beam_using_multipoles(self) -> list[KickBeamUsingMultipole]:
+        """List of all KickBeamUsingMultipole instances."""
+        return self.by_element.get(KickBeamUsingMultipole, [])
+
+    @property
+    def kick_beam_using_multipole(self) -> KickBeamUsingMultipole:
+        """Get the sole KickBeamUsingMultipole if it is defined."""
+        return self._get_only_one(KickBeamUsingMultipole)
+
+    @property
+    def halt_executions(self) -> list[HaltExecution]:
+        """List of all HaltExecution instances."""
+        return self.by_element.get(HaltExecution, [])
+
+    @property
+    def halt_execution(self) -> HaltExecution:
+        """Get the sole HaltExecution if it is defined."""
+        return self._get_only_one(HaltExecution)
