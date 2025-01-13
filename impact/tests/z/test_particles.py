@@ -3,6 +3,8 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.units import c_light
+
 from ...z.particles import ImpactZParticles
 
 
@@ -12,6 +14,7 @@ def gaussian_data(
     p0: float = 1e9,
     mean: np.ndarray | None = None,
     sigma_mat: np.ndarray | None = None,
+    t_ref: float = 0.0,
 ):
     """
     Makes Gaussian particle data from a Bmad-style sigma matrix.
@@ -48,7 +51,12 @@ def gaussian_data(
     px = dat[:, 1]
     y = dat[:, 2]
     py = dat[:, 3]
+
+    # z = -beta * c * (t - t_ref)
+    # avoid calculating beta => lazy mode -- high energy, z = -c * (t - t_ref)
+    # users will need to call drift_to_z() if they have an alternative representation
     z = dat[:, 4]
+    t = -z / c_light + t_ref
     pz = dat[:, 5]
 
     data = {
@@ -56,9 +64,9 @@ def gaussian_data(
         "px": px * p0,
         "y": y,
         "py": py,
-        "z": z,
+        "z": np.zeros(n_particle),
         "pz": (1 + pz) * p0,
-        "t": np.zeros(n_particle),
+        "t": t,
         "weight": charge / n_particle,
         "status": np.ones(n_particle),
         "species": "electron",
@@ -83,18 +91,25 @@ def test_round_trip():
         reference_kinetic_energy=ref_kinetic,
     )
 
-    P2.z = P1["z"]
     for key in [
         "x",
         "px",
         "y",
         "py",
-        # "z",
-        "pz",
+        "z",
         "t",
         "status",
         "weight",
         "id",
+    ]:
+        assert_allclose(
+            np.asarray(P1[key]),
+            np.asarray(P2[key]),
+            err_msg=f"Round-tripped key {key!r} not allclose",
+        )
+
+    for key in [
+        "pz",
     ]:
         assert_allclose(
             np.asarray(P1[key]),

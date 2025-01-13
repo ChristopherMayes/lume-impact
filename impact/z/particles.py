@@ -161,14 +161,14 @@ class ImpactZParticles(BaseModel):
         Convert ImpactZ particles to ParticleGroup.
         """
 
-        mc2 = SPECIES_MASS[species]
+        species_mass = SPECIES_MASS[species]
 
         if check_species:
             if species == "electron":
                 specified = -1.0 / self.impactz_charge_to_mass_ratio
-                if not np.allclose(specified, mc2):
+                if not np.allclose(specified, species_mass):
                     raise ValueError(
-                        f"Charge to mass ratio not as expected for electrons: specified={specified} actual={mc2}"
+                        f"Charge to mass ratio not as expected for electrons: specified={specified} actual={species_mass}"
                     )
             else:
                 raise NotImplementedError(species)
@@ -176,13 +176,13 @@ class ImpactZParticles(BaseModel):
         omega = 2 * np.pi * reference_frequency
 
         x = self.impactz_x * c_light / omega
-        px = self.impactz_px * mc2
+        px = self.impactz_px * species_mass
 
         y = self.impactz_y * c_light / omega
-        py = self.impactz_py * mc2
+        py = self.impactz_py * species_mass
 
-        E = reference_kinetic_energy + (1.0 - self.impactz_pz) * mc2
-        pz = np.sqrt(E**2 - self.impactz_px**2 - self.impactz_py**2 * mc2**2)
+        E = reference_kinetic_energy + (1.0 - self.impactz_pz) * species_mass
+        pz = np.sqrt(E**2 - self.impactz_px**2 - self.impactz_py**2 * species_mass**2)
         t = self.impactz_phase / omega  # TODO maybe minus sign as well?
         weight = np.abs(self.impactz_weight)
         weight[np.where(weight == 0.0)] = 1e-20
@@ -208,7 +208,11 @@ class ImpactZParticles(BaseModel):
         reference_frequency: float,
         reference_kinetic_energy: float,
     ) -> ImpactZParticles:
-        # TODO this needs a physicist
+        if not particle_group.in_z_coordinates:
+            raise ValueError(
+                "ParticleGroup must have the same Z coordinate. Use `.drift_to_z()`."
+            )
+
         omega = 2 * np.pi * reference_frequency
         species_mass = particle_group.mass
 
@@ -223,7 +227,6 @@ class ImpactZParticles(BaseModel):
 
         t = particle_group.t * omega
         weight = np.abs(particle_group.weight)
-        # weight[np.where(weight == 0.0)] = 1e-20
 
         impactz_charge_to_mass_ratio = np.ones_like(x) * (-1.0 / species_mass)
         return cls(
