@@ -182,7 +182,9 @@ class ImpactZParticles(BaseModel):
         py = self.impactz_py * species_mass
 
         E = reference_kinetic_energy + (1.0 - self.impactz_pz) * species_mass
-        pz = np.sqrt(E**2 - self.impactz_px**2 - self.impactz_py**2 * species_mass**2)
+
+        # E^2 = px^2 + py^2 + pz^2 + (mc^2)^2
+        pz = np.sqrt(E**2 - px**2 - py**2 + species_mass**2)
         t = self.impactz_phase / omega  # TODO maybe minus sign as well?
         weight = np.abs(self.impactz_weight)
         weight[np.where(weight == 0.0)] = 1e-20
@@ -216,29 +218,35 @@ class ImpactZParticles(BaseModel):
         omega = 2 * np.pi * reference_frequency
         species_mass = particle_group.mass
 
-        x = particle_group.x * omega / c_light
-        px = particle_group.px / species_mass
+        impactz_x = particle_group.x * omega / c_light
+        impactz_px = particle_group.px / species_mass
 
-        y = particle_group.y * omega / c_light
-        py = particle_group.py / species_mass
+        impactz_y = particle_group.y * omega / c_light
+        impactz_py = particle_group.py / species_mass
 
-        E = particle_group.energy
-        pz = 1.0 - (E - reference_kinetic_energy) / species_mass
+        # E = particle_group.energy
+        E = np.sqrt(
+            particle_group.px**2
+            + particle_group.py**2
+            + particle_group.pz**2
+            + species_mass**2
+        )
+        impactz_pz = 1.0 - (E - reference_kinetic_energy) / species_mass
 
-        t = particle_group.t * omega
-        weight = np.abs(particle_group.weight)
+        impactz_t = particle_group.t * omega
+        impactz_weight = np.abs(particle_group.weight)
 
-        impactz_charge_to_mass_ratio = np.ones_like(x) * (-1.0 / species_mass)
+        impactz_charge_to_mass_ratio = np.ones_like(impactz_x) * (-1.0 / species_mass)
         return cls(
-            impactz_x=x,
-            impactz_px=px,
-            impactz_y=y,
-            impactz_py=py,
-            impactz_pz=pz,
-            impactz_phase=t,
-            impactz_weight=weight,
+            impactz_x=impactz_x,
+            impactz_px=impactz_px,
+            impactz_y=impactz_y,
+            impactz_py=impactz_py,
+            impactz_pz=impactz_pz,
+            impactz_phase=impactz_t,
+            impactz_weight=impactz_weight,
             impactz_charge_to_mass_ratio=impactz_charge_to_mass_ratio,
-            impactz_id=np.arange(len(x)),
+            impactz_id=np.arange(len(impactz_x)),
         )
 
     @property

@@ -63,7 +63,7 @@ def gaussian_data(
         "x": x,
         "px": px * p0,
         "y": y,
-        "py": py,
+        "py": py * p0,
         "z": np.zeros(n_particle),
         "pz": (1 + pz) * p0,
         "t": t,
@@ -96,6 +96,7 @@ def test_round_trip():
         "px",
         "y",
         "py",
+        "pz",
         "z",
         "t",
         "status",
@@ -108,15 +109,4 @@ def test_round_trip():
             err_msg=f"Round-tripped key {key!r} not allclose",
         )
 
-    for key in [
-        "pz",
-    ]:
-        assert_allclose(
-            np.asarray(P1[key]),
-            np.asarray(P2[key]),
-            err_msg=f"Round-tripped key {key!r} not allclose",
-            rtol=1e-2,
-        )
-
-    # TODO - pz is still not good enough
-    # assert P1 == P2
+    assert P1 == P2
