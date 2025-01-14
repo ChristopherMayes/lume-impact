@@ -118,6 +118,7 @@ class ImpactZParticles(BaseModel):
             unpack=True,
             dtype=dtype,
             usecols=range(num_cols),
+            ndmin=1,
         )
         return ImpactZParticles(
             impactz_x=x,

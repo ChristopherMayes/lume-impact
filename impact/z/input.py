@@ -369,31 +369,36 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     map_steps: int = 0
     type_id: Literal[4] = 4
 
-    x_field_strength: float = 0.0
-    y_field_strength: float = 0.0
-    file_id: float = 0.0
-    radius: float = 0.0
-    dx: float = 0.0  # unused
-    dy: float = 0.0  # unused
-    angle_x: float = 0.0  # unused
-    angle_y: float = 0.0  # unused
-    angle_z: float = 0.0  # unused
+    # Docs indicate the following parameters, but the code is different:
+    angle: float = 0.0
+    k1: float = 0.0
+    input_switch: float = 0.0
+    hgap: float = 0.0  # half gap
+    e1: float = 0.0
+    e2: float = 0.0
+    entrance_curvature: float = 0.0
+    exit_curvature: float = 0.0
+    fint: float = 0.0  # field integral?
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
 
-    # Docs indicate the following parameters, but the code is different:
-    # angle: float = 0.0
-    # k1: float = 0.0
-    # input_switch: int = 0
-    # half_gap: float = 0.0
-    # entrance_angle: float = 0.0
-    # exit_angle: float = 0.0
-    # entrance_curvature: float = 0.0
-    # exit_curvature: float = 0.0
-    # fringe_field: float = 0.0
+    # x_field_strength: float = 0.0
+    # y_field_strength: float = 0.0
+    # file_id: float = 0.0
+    # radius: float = 0.0
+    # dx: float = 0.0  # unused
+    # dy: float = 0.0  # unused
+    # angle_x: float = 0.0  # unused
+    # angle_y: float = 0.0  # unused
+    # angle_z: float = 0.0  # unused
+    # misalignment_error_x: float = 0.0
+    # misalignment_error_y: float = 0.0
+    # rotation_error_x: float = 0.0
+    # rotation_error_y: float = 0.0
+    # rotation_error_z: float = 0.0
 
 
 class Multipole(InputElement, element_id=5, has_input_file=True):
