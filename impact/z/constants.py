@@ -93,7 +93,7 @@ class DistributionTType(enum.IntEnum):
     5 KV3d - transverse KV distribution and longitudinal uniform distribution
     10 ParobGauss - transverse parabolic and longitudinal Gaussian distribution
     15 SemicirGauss - transverse semi-circle and longitudinal Gaussian distribution
-    16 Read - read in an initial particle distribution from file Partcl.data
+    16 Read - read in an initial particle distribution from file `particle.in`
     24 readParmela - read in Parmela particle format
     25 readElegant - read in Elegant particle format
     27 CylcoldZSob

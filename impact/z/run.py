@@ -470,7 +470,7 @@ class ImpactZ(CommandWrapper):
             raise ValueError("Path has not yet been set; cannot write input.")
 
         path = pathlib.Path(path)
-        self.input.write(workdir=path)
+        self.input.write(workdir=path, check=True)
 
         if write_run_script:
             self.input.write_run_script(
