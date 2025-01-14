@@ -334,24 +334,26 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     map_steps : int
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
-    x_field_strength : float, optional
+    angle : float, optional
         Field strength in the x direction.
-    y_field_strength : float, optional
-        Field strength in the y direction.
-    file_id : float, optional
-        File ID: < 100 uses t integration; > 100 but < 200 uses z map + csr wake.
-    radius : float, optional
-        Radius of the dipole.
-    dx : float, optional
-        Displacement in the x direction (unused).
-    dy : float, optional
-        Displacement in the y direction (unused).
-    angle_x : float, optional
-        Angle in the x direction (unused).
-    angle_y : float, optional
-        Angle in the y direction (unused).
-    angle_z : float, optional
-        Angle in the z direction (unused).
+    k1 : float, optional
+        Field strength.
+    input_switch : float, optional
+        Enable CSR if > 200.
+        Ref: https://github.com/impact-lbl/IMPACT-Z/blob/96ae896517bcb83fa741cd203892cb42a88f0e4f/src/Contrl/AccSimulator.f90#L999-L1004
+    hgap : float, optional
+        Half gap [m].
+    e1 : float, optional
+        Entrance pole face angle [rad].
+    e2 : float, optional
+        Exit pole face angle [rad].
+    entrance_curvature : float, optional
+        Curvature of entrance face [rad].
+    exit_curvature : float, optional
+        Curvature of exit face [rad].
+    fint : float, optional
+        Integrated fringe field K of entrance (Kf). Fringe field K of exit
+        assumed to be equal (Kb = Kf).
     misalignment_error_x : float, optional
         Misalignment error in the x direction.
     misalignment_error_y : float, optional
@@ -362,6 +364,21 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
         Rotation error around the y axis.
     rotation_error_z : float, optional
         Rotation error around the z axis.
+
+    Notes
+    -----
+
+    ```fortran
+    hd0 = angle/blength !k0
+    tanphiF = tan(e1)
+    psi1 = hd0*2*hgap*fint*(1.0+sin(e1)*sin(e1))/cos(e1)
+    tanphiFb = tan(e1-psi1)
+    tanphiB = tan(e2)
+    psi2 = hd0*2*hgap*fint*(1.0+sin(e2)*sin(e2))/cos(e2)
+    tanphiBb = tan(e2-psi2)
+    qm0 = Bpts%Charge/Bpts%Mass
+    r0  = abs(1.0d0/hd0)
+    ```
     """
 
     length: float = 0.0
@@ -370,35 +387,20 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     type_id: Literal[4] = 4
 
     # Docs indicate the following parameters, but the code is different:
-    angle: float = 0.0
-    k1: float = 0.0
-    input_switch: float = 0.0
-    hgap: float = 0.0  # half gap
-    e1: float = 0.0
-    e2: float = 0.0
-    entrance_curvature: float = 0.0
-    exit_curvature: float = 0.0
-    fint: float = 0.0  # field integral?
+    angle: float = 0.0  # dparam(2)
+    k1: float = 0.0  # dparam(3)
+    input_switch: float = 0.0  # dparam(4)
+    hgap: float = 0.0  # dparam(5)
+    e1: float = 0.0  # dparam(6)
+    e2: float = 0.0  # dparam(7)
+    entrance_curvature: float = 0.0  # dparam(8)
+    exit_curvature: float = 0.0  # dparam(9)
+    fint: float = 0.0  # dparam(10)
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
-
-    # x_field_strength: float = 0.0
-    # y_field_strength: float = 0.0
-    # file_id: float = 0.0
-    # radius: float = 0.0
-    # dx: float = 0.0  # unused
-    # dy: float = 0.0  # unused
-    # angle_x: float = 0.0  # unused
-    # angle_y: float = 0.0  # unused
-    # angle_z: float = 0.0  # unused
-    # misalignment_error_x: float = 0.0
-    # misalignment_error_y: float = 0.0
-    # rotation_error_x: float = 0.0
-    # rotation_error_y: float = 0.0
-    # rotation_error_z: float = 0.0
 
 
 class Multipole(InputElement, element_id=5, has_input_file=True):
