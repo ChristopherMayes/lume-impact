@@ -27,7 +27,7 @@ from .constants import (
 )
 from .errors import MultipleElementError, NoSuchElementError
 from .particles import ImpactZParticles
-from .types import AnyPath, BaseModel, NDArray, PydanticParticleGroup
+from .types import AnyPath, BaseModel, NonzeroFloat, NDArray, PydanticParticleGroup
 
 input_element_by_id: dict[int, type[InputElement]] = {}
 logger = logging.getLogger(__name__)
@@ -335,7 +335,7 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
     angle : float, optional
-        Field strength in the x direction.
+        Bending angle [rad]. Must be non-zero.
     k1 : float, optional
         Field strength.
     input_switch : float, optional
@@ -387,7 +387,7 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     type_id: Literal[4] = 4
 
     # Docs indicate the following parameters, but the code is different:
-    angle: float = 0.0  # dparam(2)
+    angle: NonzeroFloat = pydantic.Field(default=1e-6)  # dparam(2)
     k1: float = 0.0  # dparam(3)
     input_switch: float = 0.0  # dparam(4)
     hgap: float = 0.0  # dparam(5)
@@ -2048,6 +2048,15 @@ class ImpactZInput(BaseModel):
                 f"Please use .{plural}"
             )
         return items[0]
+
+    def space_charge_off(self) -> None:
+        self.average_current = 0.0
+        self.current_list = [0.0] * len(self.particle_list)
+
+    def space_charge_on(self, current: float) -> None:
+        assert np.abs(current) > 0.0
+        self.average_current = current
+        self.current_list = [current] * len(self.particle_list)
 
     # @property
     # def LOWERs(self) -> list[ELEMENT]:

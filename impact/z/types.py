@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Any, Union
+from typing import Any, TypeAlias, Union
 from collections.abc import Iterable, Sequence
 
+import annotated_types
 import numpy as np
 import pydantic
 import pydantic_core
@@ -15,6 +16,11 @@ from typing import Annotated
 
 from ..repr import detailed_html_repr
 from . import tools
+
+
+NegativeFloat: TypeAlias = Annotated[float, annotated_types.Lt(0.0)]
+PositiveFloat: TypeAlias = Annotated[float, annotated_types.Gt(0.0)]
+NonzeroFloat: TypeAlias = Union[NegativeFloat, PositiveFloat]
 
 
 class ReprTableData(TypedDict):
