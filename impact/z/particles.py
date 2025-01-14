@@ -185,7 +185,7 @@ class ImpactZParticles(BaseModel):
         E = reference_kinetic_energy + (1.0 - self.impactz_pz) * species_mass
 
         # E^2 = px^2 + py^2 + pz^2 + (mc^2)^2
-        pz = np.sqrt(E**2 - px**2 - py**2 + species_mass**2)
+        pz = np.sqrt(E**2 - px**2 - py**2 - species_mass**2)
         t = self.impactz_phase / omega  # TODO maybe minus sign as well?
         weight = np.abs(self.impactz_weight)
         weight[np.where(weight == 0.0)] = 1e-20
