@@ -5,8 +5,9 @@ import pathlib
 import tempfile
 
 # import pprint
-from typing import Dict, cast
+from typing import Any, Dict, cast
 
+from impact.particles import SPECIES_MASS
 from pmd_beamphysics import ParticleGroup
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
@@ -133,8 +134,16 @@ def input_from_tao(
     ny: int = 64,
     nz: int = 64,
     which: Which = "model",
+    ix_uni: int = 1,
+    ix_branch: int = 0,
+    reference_frequency: float = 1300000000.0,
 ) -> ImpactZInput:
-    idx_to_name = get_index_to_name(tao, track_start=track_start, track_end=track_end)
+    idx_to_name = get_index_to_name(
+        tao,
+        track_start=track_start,
+        track_end=track_end,
+        # ix_uni=ix_uni, ix_branch=ix_branch
+    )
 
     ix_beginning = list(idx_to_name)[0]
     # ix_end = list(idx_to_name)[-1]
@@ -155,6 +164,23 @@ def input_from_tao(
             lattice.append(z_elem)
 
     bunch_params_start = cast(Dict[str, float], tao.bunch_params(ix_beginning))
+    branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
+    branch_particle: str = branch1["param_particle"]
+
+    reference_particle_charge = {
+        "electron": -1.0,
+        "positron": 1.0,
+    }.get(branch_particle.lower(), 0.0)
+
+    if initial_particles is not None:
+        species_mass = initial_particles.mass
+    else:
+        try:
+            species_mass = SPECIES_MASS[branch_particle.lower()]
+        except KeyError:
+            species_mass = 0.0
+            logger.warning(f"Unsupported branch particle type: {branch_particle}")
+
     return ImpactZInput(
         # Line 1
         ncpu_y=ncpu_y,
@@ -208,11 +234,11 @@ def input_from_tao(
         twiss_offset_y=0.0,
         twiss_offset_px=0.0,
         twiss_offset_py=0.0,
-        average_current=1.0,
-        initial_kinetic_energy=0.0,
-        reference_particle_mass=0.0,
-        reference_particle_charge=0.0,
-        reference_frequency=0.0,
+        average_current=1.0,  # TODO
+        initial_kinetic_energy=1.0,  # TODO
+        reference_particle_mass=species_mass,
+        reference_particle_charge=reference_particle_charge,
+        reference_frequency=reference_frequency,
         initial_phase_ref=0.0,
         lattice=lattice,
         initial_particles=initial_particles,
