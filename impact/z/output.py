@@ -273,11 +273,11 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             "mean_z": "z",
         },
     )
-    particles_raw: dict[int, ImpactZParticles] = pydantic.Field(
+    particles_raw: dict[str | int, ImpactZParticles] = pydantic.Field(
         default={},
         repr=False,
     )
-    particles: dict[int, PydanticParticleGroup] = pydantic.Field(
+    particles: dict[str | int, PydanticParticleGroup] = pydantic.Field(
         default={},
         repr=False,
     )
@@ -387,8 +387,18 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
                 ele, HasOutputFile
             ):
                 raw = ImpactZParticles.from_file(workdir / f"fort.{ele.file_id}")
-                particles_raw[ele.file_id] = raw
-                particles[ele.file_id] = raw.to_particle_group(
+
+                if ele.name:
+                    key = ele.name
+                    idx = 1
+                    while key in particles_raw:
+                        key = f"{ele.name}_{idx}"
+                        idx += 1
+                else:
+                    key = ele.file_id
+
+                particles_raw[key] = raw
+                particles[key] = raw.to_particle_group(
                     reference_kinetic_energy=input.initial_kinetic_energy,
                     reference_frequency=input.reference_frequency,
                     # species=...
