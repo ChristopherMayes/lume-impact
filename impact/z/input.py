@@ -4,6 +4,7 @@ from abc import abstractmethod
 import logging
 import pathlib
 import shlex
+import typing
 from typing import ClassVar, Literal, NamedTuple, TypeVar, cast
 from collections.abc import Sequence
 
@@ -28,6 +29,10 @@ from .constants import (
 from .errors import MultipleElementError, NoSuchElementError
 from .particles import ImpactZParticles
 from .types import AnyPath, BaseModel, NonzeroFloat, NDArray, PydanticParticleGroup
+
+if typing.TYPE_CHECKING:
+    from pytao import Tao
+
 
 input_element_by_id: dict[int, type[InputElement]] = {}
 logger = logging.getLogger(__name__)
@@ -1700,12 +1705,16 @@ class ImpactZInput(BaseModel):
     subcycle: int = 0
     nbunch: int = 0
 
-    particle_list: list[int] = []
+    # Line 5 (NOTE: I think this is unused based on the source code)
+    particle_list: list[int] = [0]
 
-    current_list: list[float] = []
+    # Line 6 (NOTE: I think this is unused based on the source code)
+    current_list: list[float] = [0.0]
 
-    charge_over_mass_list: list[float] = []
+    # Line 7 (NOTE: I think this is unused based on the source code)
+    charge_over_mass_list: list[float] = [0.0]
 
+    # Line 8
     twiss_alpha_x: float = 0.0
     twiss_beta_x: float = 1.0
     twiss_norm_emit_x: float = 1e-6
@@ -1714,6 +1723,7 @@ class ImpactZInput(BaseModel):
     twiss_offset_x: float = 0.0
     twiss_offset_px: float = 0.0
 
+    # Line 9
     twiss_alpha_y: float = 0.0
     twiss_beta_y: float = 1.0
     twiss_norm_emit_y: float = 1e-6
@@ -1722,6 +1732,7 @@ class ImpactZInput(BaseModel):
     twiss_offset_y: float = 0.0
     twiss_offset_py: float = 0.0
 
+    # Line 10
     twiss_alpha_z: float = 0.0
     twiss_beta_z: float = 1.0
     twiss_norm_emit_z: float = 1e-6
@@ -1730,6 +1741,7 @@ class ImpactZInput(BaseModel):
     twiss_offset_phase_z: float = 0.0
     twiss_offset_energy_z: float = 0.0
 
+    # Line 11
     average_current: float = 1.0
     initial_kinetic_energy: float = 0.0
     reference_particle_mass: float = 0.0
@@ -1737,9 +1749,13 @@ class ImpactZInput(BaseModel):
     reference_frequency: float = 0.0
     initial_phase_ref: float = 0.0
 
+    # Line 12+
     lattice: list[AnyInputElement] = []
+
+    # Internal
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
 
+    # User-provided external file data, indexed by number
     file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
 
     @classmethod
@@ -1753,6 +1769,17 @@ class ImpactZInput(BaseModel):
     ) -> ImpactZInput:
         lines = parsers.parse_input_lines(contents)
         return cls._from_parsed_lines(lines, filename=filename)
+
+    @classmethod
+    def from_tao(
+        cls,
+        tao: Tao,
+        track_start: str | None = None,
+        track_end: str | None = None,
+    ) -> ImpactZInput:
+        from .interfaces.bmad import input_from_tao
+
+        return input_from_tao(tao, track_start=track_start, track_end=track_end)
 
     @classmethod
     def _from_parsed_lines(
