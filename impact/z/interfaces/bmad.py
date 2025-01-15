@@ -7,7 +7,8 @@ import tempfile
 # import pprint
 from typing import Any, Dict, cast
 
-from impact.particles import SPECIES_MASS
+from ...particles import SPECIES_MASS
+from ..input import AnyInputElement, WriteFull
 from pmd_beamphysics import ParticleGroup
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
@@ -75,7 +76,7 @@ def get_index_to_name(
     }
 
 
-def export_particles(tao: Tao, ele_id: str):
+def export_particles(tao: Tao, ele_id: str | int):
     """
     Export particles for a given element to an HDF5 file.
 
@@ -147,12 +148,16 @@ def input_from_tao(
 
     ix_beginning = list(idx_to_name)[0]
     # ix_end = list(idx_to_name)[-1]
+    print(idx_to_name)
     try:
         initial_particles = export_particles(tao, ix_beginning)
-    except TaoCommandError:
+    except TaoCommandError as ex:
+        logger.warning(f"Not using initial particles ({ex.errors[-1].message})")
         initial_particles = None
 
-    lattice = []
+    lattice: list[AnyInputElement] = [
+        WriteFull(name="initial_particles", file_id=2000),
+    ]
     for ele_id, name in idx_to_name.items():
         try:
             z_elem = element_from_tao(tao, ele_id, which=which, name=name)
@@ -162,6 +167,8 @@ def input_from_tao(
             logger.warning("Skipping element: %s (%s)", ele_id, ex)
         else:
             lattice.append(z_elem)
+
+    lattice.append(WriteFull(name="final_particles", file_id=2001))
 
     bunch_params_start = cast(Dict[str, float], tao.bunch_params(ix_beginning))
     branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
@@ -202,7 +209,9 @@ def input_from_tao(
         radius_y=0.0,
         z_period_size=0.0,
         # Line 4
-        distribution=DistributionZType.uniform,
+        distribution=(
+            DistributionZType.read if initial_particles else DistributionZType.gauss
+        ),
         restart=0,
         subcycle=0,
         nbunch=0,

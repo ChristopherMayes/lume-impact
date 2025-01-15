@@ -108,3 +108,6 @@ venv.bak/
 .DS_Store
 
 /impact/_version.py
+
+# Bmad
+*.digested*
