@@ -9,6 +9,10 @@ import rich.terminal_theme
 from rich.repr import RichReprResult
 
 logger = logging.getLogger(__name__)
+style_hotfix = (
+    '''style="font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"''',
+    '''style="font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace;margin-left: 0px;margin-top: 0.5em;"''',
+)
 
 
 def is_default(value, default):
@@ -131,7 +135,9 @@ def rich_html_model_repr(
             pydantic.BaseModel.__rich_repr__ = _pydantic_rich_repr_without_defaults
             # pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_without_defaults
         console.print(obj)
-        return console.export_html(theme=_rich_terminal_themes[theme])
+        return console.export_html(theme=_rich_terminal_themes[theme]).replace(
+            *style_hotfix
+        )
     finally:
         pydantic.BaseModel.__rich_repr__ = _orig_rich_repr
         # pytao.TaoStartup.__rich_repr__ = _dataclass_rich_repr_with_defaults

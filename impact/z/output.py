@@ -113,6 +113,29 @@ def load_stat_files_from_path(
     return stats, units
 
 
+def _get_dict_key(
+    dct: dict[str | int, Any],
+    file_id: int | float,
+    name: str,
+) -> str | int:
+    """Get an unused dictionary key for a file_id/element name."""
+    if not name:
+        return int(file_id)
+
+    if name not in dct:
+        return name
+
+    key = f"{name}.{file_id}"
+    if key not in dct:
+        return key
+
+    idx = 1
+    while key in dct:
+        key = f"{name}_{idx}"
+        idx += 1
+    return key
+
+
 class ImpactZSlices(BaseModel):
     """
     A class to represent the impact Z slices.
@@ -380,6 +403,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         slices = {}
         for ele in input.lattice:
             if isinstance(ele, WriteSliceInfo):
+                key = _get_dict_key(slices, ele.file_id, ele.name)
                 slices[ele.file_id] = ImpactZSlices.from_file(
                     workdir / f"fort.{ele.file_id}"
                 )
@@ -388,15 +412,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             ):
                 raw = ImpactZParticles.from_file(workdir / f"fort.{ele.file_id}")
 
-                if ele.name:
-                    key = ele.name
-                    idx = 1
-                    while key in particles_raw:
-                        key = f"{ele.name}_{idx}"
-                        idx += 1
-                else:
-                    key = ele.file_id
-
+                key = _get_dict_key(particles_raw, ele.file_id, ele.name)
                 particles_raw[key] = raw
                 particles[key] = raw.to_particle_group(
                     reference_kinetic_energy=input.initial_kinetic_energy,

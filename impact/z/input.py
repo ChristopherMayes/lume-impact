@@ -93,7 +93,6 @@ class InputElement(BaseModel):
         line: str | parsers.InputLine,
         *,
         name: str | None = None,
-        line_index: int | None = 0,
     ):
         if isinstance(line, str):
             line = parsers.parse_input_line(line)
@@ -114,7 +113,7 @@ class InputElement(BaseModel):
         kwargs = dict(zip(ele_cls._impactz_fields_, line.data))
         return ele_cls(
             **kwargs,
-            name=name or line.inline_comment or f"{ele_cls.__name__}_{line_index}",
+            name=name or line.inline_comment,
         )
 
     def to_line(self, *, with_description: bool = True) -> str:
@@ -1664,6 +1663,54 @@ AnyInputElement = (
 T_InputElement = TypeVar("T_InputElement", bound=InputElement)
 
 
+def load_file_data_from_lattice(
+    lattice: list[AnyInputElement],
+    work_dir: pathlib.Path | None = None,
+) -> dict[str, NDArray]:
+    file_data = {}
+    for idx, ele in enumerate(lattice):
+        if ele.input_filename and work_dir is not None:
+            if not ele.class_information().has_input_file or not isinstance(
+                ele, HasInputFile
+            ):
+                continue
+
+            ele_file_id = int(ele.file_id)
+            ext_data_fn = work_dir / ele.input_filename
+            try:
+                file_data[str(ele_file_id)] = parsers.lines_to_ndarray(
+                    parsers.read_input_file(ext_data_fn)
+                )
+            except FileNotFoundError:
+                logger.warning(
+                    f"Referenced file in lattice element {idx} (of type {type(ele).__name__}) "
+                    f"does not exist in: {ext_data_fn}"
+                )
+    return file_data
+
+
+def lattice_from_input_lines(
+    lines: list[parsers.InputLine],
+) -> list[AnyInputElement]:
+    lattice = []
+    seen = {}
+    for line in lines:
+        # the element name comes from:
+        #  1. the inline comment
+        #  2. the class name with _{idx} appended
+        ele = InputElement.from_line(line)
+        lattice.append(ele)
+
+        cls = type(ele)
+        seen.setdefault(cls, 0)
+        seen[cls] += 1
+
+        if not ele.name:
+            ele.name = f"{cls.__name__}_{seen[cls]}"
+
+    return lattice
+
+
 class ZElement(NamedTuple):
     """A tuple of a Z position and its corresponding beamline element."""
 
@@ -1872,32 +1919,8 @@ class ImpactZInput(BaseModel):
         else:
             work_dir = None
 
-        res.lattice = []
-        for idx, lattice_line in enumerate(indexed_lines[11:], start=1):
-            # the element name comes from:
-            #  1. the inline comment
-            #  2. the class name with _{idx} appended
-            ele = InputElement.from_line(lattice_line, line_index=idx)
-            res.lattice.append(ele)
-
-            if ele.input_filename and work_dir is not None:
-                if not ele.class_information().has_input_file or not isinstance(
-                    ele, HasInputFile
-                ):
-                    continue
-
-                ele_file_id = int(ele.file_id)
-                ext_data_fn = work_dir / ele.input_filename
-                try:
-                    res.file_data[str(ele_file_id)] = parsers.lines_to_ndarray(
-                        parsers.read_input_file(ext_data_fn)
-                    )
-                except FileNotFoundError:
-                    logger.warning(
-                        f"Referenced file in lattice element {idx} (of type {type(ele).__name__}) "
-                        f"does not exist in: {ext_data_fn}"
-                    )
-
+        res.lattice = lattice_from_input_lines(indexed_lines[11:])
+        res.file_data = load_file_data_from_lattice(res.lattice, work_dir=work_dir)
         return res
 
     def to_contents(
