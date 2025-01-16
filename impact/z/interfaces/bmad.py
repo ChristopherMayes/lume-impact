@@ -4,7 +4,6 @@ import logging
 import pathlib
 import tempfile
 
-# import pprint
 from typing import Any, Dict, cast
 
 from ...particles import SPECIES_MASS
@@ -112,7 +111,6 @@ def element_from_tao(
 
     key = einfo["key"].lower()
     if key == "drift":
-        # pprint.pprint(einfo)
         return Drift(
             length=einfo["L"],
             name=name,
@@ -148,7 +146,6 @@ def input_from_tao(
 
     ix_beginning = list(idx_to_name)[0]
     # ix_end = list(idx_to_name)[-1]
-    print(idx_to_name)
     try:
         initial_particles = export_particles(tao, ix_beginning)
     except TaoCommandError as ex:
@@ -198,6 +195,7 @@ def input_from_tao(
         n_particle=0,
         integrator_type=IntegratorType.linear,
         err=1,
+        # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
         diagnostic_type=DiagnosticType.at_given_time,
         output_z=OutputZType.extended,
         # Line 3

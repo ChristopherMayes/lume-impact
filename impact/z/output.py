@@ -94,6 +94,7 @@ class RunInfo(BaseModel):
 
 def load_stat_files_from_path(
     workdir: pathlib.Path,
+    reference_frequency: float | None = None,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
     units = {}
@@ -109,6 +110,15 @@ def load_stat_files_from_path(
                     stats[key] *= 1e6
 
                 units[key] = field_units
+
+    if reference_frequency is not None:
+        try:
+            abs_phase = stats["absolute_phase"]
+        except KeyError:
+            pass
+        else:
+            omega = 2 * np.pi * reference_frequency
+            stats["time"] = abs_phase / omega
 
     return stats, units
 
@@ -396,7 +406,10 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         ImpactZOutput
             The output data.
         """
-        stats, units = load_stat_files_from_path(workdir)
+
+        stats, units = load_stat_files_from_path(
+            workdir, reference_frequency=input.reference_frequency
+        )
 
         particles_raw = {}
         particles = {}

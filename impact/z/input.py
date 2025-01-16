@@ -1927,6 +1927,7 @@ class ImpactZInput(BaseModel):
         self,
         header="Written by LUME-ImpactZ",
         include_gpu: bool = False,
+        include_repr: bool = True,
     ) -> str:
         def stringify_list(lst: Sequence[float | int]):
             return " ".join(str(v) for v in lst)
@@ -1936,16 +1937,21 @@ class ImpactZInput(BaseModel):
         else:
             gpu = ""
 
+        header_lines = [header]
+        if include_repr:
+            header_lines.extend(repr(self).splitlines())
+        full_header = "\n".join(f"! {line}" for line in header_lines)
+
         lattice = "\n".join(ele.to_line() for ele in self.lattice)
         return f"""
-! {header}
+{full_header}
 ! ncpu_y ncpu_z
 {self.ncpu_y} {self.ncpu_z}{gpu}
-! seed n_particle integrator_type err output_z
+! seed n_particle integrator_type={self.integrator_type.name} err output_z={self.output_z.name}
 {self.seed} {self.n_particle} {int(self.integrator_type)} {self.err} {int(self.output_z)}
-! nx ny nz boundary_type radius_x radius_y z_period_size
+! nx ny nz boundary_type={self.boundary_type.name} radius_x radius_y z_period_size
 {self.nx} {self.ny} {self.nz} {self.boundary_type} {self.radius_x} {self.radius_y} {self.z_period_size}
-! distribution restart subcycle nbunch
+! distribution={self.distribution.name} restart subcycle nbunch
 {self.distribution} {self.restart} {self.subcycle} {self.nbunch}
 ! particle_list
 {stringify_list(self.particle_list)}
