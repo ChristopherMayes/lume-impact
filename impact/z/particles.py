@@ -155,6 +155,7 @@ class ImpactZParticles(BaseModel):
         self,
         reference_frequency: float,
         reference_kinetic_energy: float,
+        phase_reference: float,
         species: str = "electron",
         check_species: bool = False,
     ) -> ParticleGroup:
@@ -186,7 +187,7 @@ class ImpactZParticles(BaseModel):
 
         # E^2 = px^2 + py^2 + pz^2 + (mc^2)^2
         pz = np.sqrt(E**2 - px**2 - py**2 - species_mass**2)
-        t = self.impactz_phase / omega  # TODO maybe minus sign as well?
+        t = (phase_reference + self.impactz_phase) / omega
         weight = np.abs(self.impactz_weight)
         weight[np.where(weight == 0.0)] = 1e-20
 

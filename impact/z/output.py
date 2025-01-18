@@ -94,7 +94,6 @@ class RunInfo(BaseModel):
 
 def load_stat_files_from_path(
     workdir: pathlib.Path,
-    reference_frequency: float | None = None,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
     units = {}
@@ -110,15 +109,6 @@ def load_stat_files_from_path(
                     stats[key] *= 1e6
 
                 units[key] = field_units
-
-    if reference_frequency is not None:
-        try:
-            abs_phase = stats["absolute_phase"]
-        except KeyError:
-            pass
-        else:
-            omega = 2 * np.pi * reference_frequency
-            stats["time"] = abs_phase / omega
 
     return stats, units
 
@@ -407,14 +397,20 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             The output data.
         """
 
-        stats, units = load_stat_files_from_path(
-            workdir, reference_frequency=input.reference_frequency
-        )
+        stats, units = load_stat_files_from_path(workdir)
 
         particles_raw = {}
         particles = {}
         slices = {}
+
+        z_start = 0.0
+        z_end = 0.0
+
         for ele in input.lattice:
+            z_start = z_end
+            z_end += ele.length
+            z_end_idx = np.argmin(np.abs(stats["z"] - z_start))
+
             if isinstance(ele, WriteSliceInfo):
                 key = _get_dict_key(slices, ele.file_id, ele.name)
                 slices[ele.file_id] = ImpactZSlices.from_file(
@@ -427,10 +423,11 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
 
                 key = _get_dict_key(particles_raw, ele.file_id, ele.name)
                 particles_raw[key] = raw
+                phase_ref = stats["absolute_phase"][z_end_idx]
                 particles[key] = raw.to_particle_group(
                     reference_kinetic_energy=input.initial_kinetic_energy,
                     reference_frequency=input.reference_frequency,
-                    # species=...
+                    phase_reference=phase_ref,
                 )
 
         return ImpactZOutput(
