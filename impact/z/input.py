@@ -113,7 +113,7 @@ class InputElement(BaseModel):
         kwargs = dict(zip(ele_cls._impactz_fields_, line.data))
         return ele_cls(
             **kwargs,
-            name=name or line.inline_comment,
+            name=name or line.inline_comment or "",
         )
 
     def to_line(self, *, with_description: bool = True) -> str:
