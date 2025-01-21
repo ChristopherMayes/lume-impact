@@ -89,6 +89,7 @@ def test_round_trip():
     P2 = izp.to_particle_group(
         reference_frequency=reference_freq,
         reference_kinetic_energy=ref_kinetic,
+        phase_reference=0.0,
     )
 
     for key in [

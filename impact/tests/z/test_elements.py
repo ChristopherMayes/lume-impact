@@ -226,7 +226,7 @@ doc_test_cases = {
     ],
     -19: [
         # shift the beam longitudinally to the bunch centroid so that <dt>=<dE>=0. 8
-        "0. 0 0 -19",
+        "0. 0 0 -19 /",
     ],
     -20: [
         # increased energy spread = 1000.0 eV. radius=0.014m (not used),
