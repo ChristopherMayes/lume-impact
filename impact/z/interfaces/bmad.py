@@ -8,7 +8,7 @@ from typing import Any, Dict, cast
 
 import numpy as np
 from ...particles import SPECIES_MASS
-from ..input import AnyInputElement, Dipole, Quadrupole, WriteFull
+from ..input import AnyInputElement, Dipole, Quadrupole, Solenoid, WriteFull
 from pmd_beamphysics import ParticleGroup
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
@@ -138,6 +138,7 @@ def element_from_tao(
             map_steps=default_map_steps,
             radius=1.0,  # no such thing in bmad, right?
         )
+
     if key == "sbend":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for SBend")
@@ -159,11 +160,11 @@ def element_from_tao(
             misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
             rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH
             rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH
-            rotation_error_z=info["TILT_TOT"],
+            rotation_error_z=info["REF_TILT_TOT"],
         )
     if key == "quadrupole":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
-            raise NotImplementedError("Z offset not supported for SBend")
+            raise NotImplementedError("Z offset not supported for Quadrupole")
 
         return Quadrupole(
             length=info["L"],
@@ -179,6 +180,24 @@ def element_from_tao(
             #     transfer map with the gradient.
             file_id=0,
             # The radius of the quadrupole, measured in meters.
+            radius=info["L"] * 20.0,  # TODO arbitrary
+            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            rotation_error_z=info["TILT_TOT"],
+        )
+    if key == "solenoid":
+        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
+            raise NotImplementedError("Z offset not supported for Solenoid")
+
+        return Solenoid(
+            length=info["L"],
+            steps=info["NUM_STEPS"],
+            map_steps=default_map_steps,
+            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
+            Bz0=info["BS_FIELD"],
+            file_id=0,  # TODO?
             radius=info["L"] * 20.0,  # TODO arbitrary
             misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
             misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
