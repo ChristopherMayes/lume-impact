@@ -390,7 +390,6 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     map_steps: int = 0
     type_id: Literal[4] = 4
 
-    # Docs indicate the following parameters, but the code is different:
     angle: NonzeroFloat = pydantic.Field(default=1e-6)  # dparam(2)
     k1: float = 0.0  # dparam(3)
     input_switch: float = 0.0  # dparam(4)
@@ -2094,7 +2093,9 @@ class ImpactZInput(BaseModel):
     def _get_only_one(self, cls: type[T_InputElement]) -> T_InputElement:
         items = self.by_element.get(cls, [])
         if len(items) == 0:
-            raise NoSuchElementError(f"{cls.__name__} is not defined in the input.")
+            raise NoSuchElementError(
+                f"No '{cls.__name__}' instances are defined in the input lattice"
+            )
         if len(items) > 1:
             plural_fix = {}
             plural = pydantic.alias_generators.to_snake(cls.__name__)

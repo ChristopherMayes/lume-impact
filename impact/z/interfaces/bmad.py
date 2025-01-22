@@ -6,8 +6,9 @@ import tempfile
 
 from typing import Any, Dict, cast
 
+import numpy as np
 from ...particles import SPECIES_MASS
-from ..input import AnyInputElement, WriteFull
+from ..input import AnyInputElement, Dipole, Quadrupole, WriteFull
 from pmd_beamphysics import ParticleGroup
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
@@ -96,29 +97,96 @@ def export_particles(tao: Tao, ele_id: str | int):
         return ParticleGroup(h5=str(fn))
 
 
+def print_ele_info(ele_id: str | int, ele_info: dict[str, Any]) -> None:
+    print()
+    print(f"Element: {ele_id}")
+    print("-----------------")
+    for key, value in sorted(ele_info.items()):
+        if key.startswith("units#") or key.startswith("has#"):
+            continue
+        units = ele_info.get(
+            f"units#{key}",
+            "(units?)" if isinstance(value, float) else "",
+        )
+        print(f"{key}: {value} {units}")
+
+
 def element_from_tao(
     tao: Tao,
     ele_id: str | int,
     which: Which = "model",
     name: str = "",
-    steps: int = 10,
-    map_steps: int = 10,
+    default_steps: int = 10,
+    default_map_steps: int = 10,
+    enable_csr: bool = False,
+    verbose: bool = True,
 ):
     try:
-        einfo = ele_info(tao, ele_id=ele_id, which=which)
+        info = ele_info(tao, ele_id=ele_id, which=which)
     except KeyError:
         raise UnusableElementError(str(ele_id))
 
-    key = einfo["key"].lower()
+    if verbose:
+        print_ele_info(ele_id, info)
+    key = info["key"].lower()
+
     if key == "drift":
         return Drift(
-            length=einfo["L"],
+            length=info["L"],
             name=name,
-            steps=steps,
-            map_steps=map_steps,
+            steps=info["NUM_STEPS"],
+            map_steps=default_map_steps,
             radius=1.0,  # no such thing in bmad, right?
         )
-    # elif key == "sbend":
+    if key == "sbend":
+        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
+            raise NotImplementedError("Z offset not supported for SBend")
+
+        return Dipole(
+            length=info["L"],
+            steps=info["NUM_STEPS"],
+            map_steps=default_map_steps,
+            angle=info["REF_TILT"],  # rad
+            k1=info["K1"],
+            input_switch=201.0 if enable_csr else 0.0,  # TODO
+            hgap=info["HGAP"],
+            e1=info["E1"],
+            e2=info["E2"],
+            entrance_curvature=0.0,
+            exit_curvature=0.0,
+            fint=info["FINT"],
+            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH
+            rotation_error_z=info["TILT_TOT"],
+        )
+    if key == "quadrupole":
+        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
+            raise NotImplementedError("Z offset not supported for SBend")
+
+        return Quadrupole(
+            length=info["L"],
+            steps=info["NUM_STEPS"],
+            map_steps=default_map_steps,
+            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
+            B1=info["B1_GRADIENT"],  # T/m
+            # file_id : float
+            #     An ID for the input gradient file. Determines profile behavior:
+            #     if greater than 0, a fringe field profile is read; if less than -10,
+            #     a linear transfer map of an undulator is used; if between -10 and 0,
+            #     it's the k-value linear transfer map; if equal to 0, it uses the linear
+            #     transfer map with the gradient.
+            file_id=0,
+            # The radius of the quadrupole, measured in meters.
+            radius=info["L"] * 20.0,  # TODO arbitrary
+            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            rotation_error_z=info["TILT_TOT"],
+        )
+
     raise UnsupportedElementError(key)
 
 
