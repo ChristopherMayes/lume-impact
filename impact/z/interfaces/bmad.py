@@ -8,7 +8,7 @@ from typing import Any, Dict, cast
 
 import numpy as np
 from ...particles import SPECIES_MASS
-from ..input import AnyInputElement, Dipole, Quadrupole, Solenoid, WriteFull
+from ..input import AnyInputElement, Dipole, Multipole, Quadrupole, Solenoid, WriteFull
 from pmd_beamphysics import ParticleGroup
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
@@ -19,6 +19,7 @@ from impact.z.constants import (
     DistributionZType,
     GPUFlag,
     IntegratorType,
+    MultipoleType,
     OutputZType,
 )
 
@@ -178,7 +179,7 @@ def element_from_tao(
             #     a linear transfer map of an undulator is used; if between -10 and 0,
             #     it's the k-value linear transfer map; if equal to 0, it uses the linear
             #     transfer map with the gradient.
-            file_id=0,
+            file_id=-1,
             # The radius of the quadrupole, measured in meters.
             radius=info["L"] * 20.0,  # TODO arbitrary
             misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
@@ -197,7 +198,34 @@ def element_from_tao(
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             Bz0=info["BS_FIELD"],
-            file_id=0,  # TODO?
+            file_id=-1,  # TODO?
+            radius=info["L"] * 20.0,  # TODO arbitrary
+            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            rotation_error_z=info["TILT_TOT"],
+        )
+
+    if key in {"sextupole", "octupole"}:  # , "decapole"}:
+        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
+            raise NotImplementedError("Z offset not supported for Solenoid")
+
+        field_strength_key = {
+            "sextupole": "K2",
+            "octupole": "K3",
+            # "decapole": "k4",
+            # "dodecapole": "k5",
+        }[key]
+
+        return Multipole(
+            length=info["L"],
+            steps=info["NUM_STEPS"],
+            map_steps=default_map_steps,
+            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
+            multipole_type=MultipoleType[key],
+            field_strength=info[field_strength_key],
+            file_id=-1,  # TODO?
             radius=info["L"] * 20.0,  # TODO arbitrary
             misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
             misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
