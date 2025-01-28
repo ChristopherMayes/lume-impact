@@ -213,11 +213,11 @@ def element_from_tao(
             file_id=-1,
             # The radius of the quadrupole, measured in meters.
             radius=radius,  # TODO is this the aperture radius?
-            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            # rotation_error_z=info["TILT_TOT"],
+            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            rotation_error_z=info["TILT_TOT"],
         )
     if key == "solenoid":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -239,11 +239,11 @@ def element_from_tao(
             Bz0=info["BS_FIELD"],
             file_id=-1,  # TODO?
             radius=radius,  # TODO arbitrary
-            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            # rotation_error_z=info["TILT_TOT"],
+            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            rotation_error_z=info["TILT_TOT"],
         )
 
     if key in {"sextupole", "octupole"}:  # , "decapole"}:
@@ -273,12 +273,12 @@ def element_from_tao(
             multipole_type=MultipoleType[key],
             field_strength=info[field_strength_key],
             file_id=-1,  # TODO?
-            # radius=info["L"] * 20.0,  # TODO arbitrary
-            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            # rotation_error_z=info["TILT_TOT"],
+            radius=radius,
+            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            rotation_error_z=info["TILT_TOT"],
         )
 
     raise UnsupportedElementError(key)
