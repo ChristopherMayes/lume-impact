@@ -112,6 +112,30 @@ def print_ele_info(ele_id: str | int, ele_info: dict[str, Any]) -> None:
         print(f"{key}: {value} {units}")
 
 
+def get_element_radius(*limits: float, default=1.0) -> float:
+    """
+    Calculate the maximum quadrupole radius from the given limits.
+
+    Parameters
+    ----------
+    *limits : float
+        Variable-length argument list of floats representing possible
+        limits for the radius limits. At least one limit must be
+        provided unless relying on the default value.
+    default : float, optional
+        The default radius to return if none of the provided limits
+        are greater than this value. The default is 1.0.
+
+    Returns
+    -------
+    float
+        The maximum value from the provided limits or the default value
+        if no valid maximum is found.
+    """
+    value = max(limits)
+    return value or default
+
+
 def element_from_tao(
     tao: Tao,
     ele_id: str | int,
@@ -167,6 +191,13 @@ def element_from_tao(
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Quadrupole")
 
+        radius = get_element_radius(
+            info["X1_LIMIT"],
+            info["X2_LIMIT"],
+            info["Y1_LIMIT"],
+            info["Y2_LIMIT"],
+            default=1,
+        )
         return Quadrupole(
             length=info["L"],
             steps=info["NUM_STEPS"],
@@ -181,7 +212,7 @@ def element_from_tao(
             #     transfer map with the gradient.
             file_id=-1,
             # The radius of the quadrupole, measured in meters.
-            radius=info["L"] * 20.0,  # TODO arbitrary
+            radius=radius,  # TODO is this the aperture radius?
             # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
             # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
             # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
@@ -192,6 +223,14 @@ def element_from_tao(
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Solenoid")
 
+        radius = get_element_radius(
+            info["X1_LIMIT"],
+            info["X2_LIMIT"],
+            info["Y1_LIMIT"],
+            info["Y2_LIMIT"],
+            default=1,
+        )
+
         return Solenoid(
             length=info["L"],
             steps=info["NUM_STEPS"],
@@ -199,7 +238,7 @@ def element_from_tao(
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             Bz0=info["BS_FIELD"],
             file_id=-1,  # TODO?
-            radius=info["L"] * 20.0,  # TODO arbitrary
+            radius=radius,  # TODO arbitrary
             # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
             # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
             # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
@@ -218,6 +257,14 @@ def element_from_tao(
             # "dodecapole": "k5",
         }[key]
 
+        radius = get_element_radius(
+            info["X1_LIMIT"],
+            info["X2_LIMIT"],
+            info["Y1_LIMIT"],
+            info["Y2_LIMIT"],
+            default=1,
+        )
+
         return Multipole(
             length=info["L"],
             steps=info["NUM_STEPS"],
@@ -226,12 +273,12 @@ def element_from_tao(
             multipole_type=MultipoleType[key],
             field_strength=info[field_strength_key],
             file_id=-1,  # TODO?
-            radius=info["L"] * 20.0,  # TODO arbitrary
-            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=info["TILT_TOT"],
+            # radius=info["L"] * 20.0,  # TODO arbitrary
+            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            # rotation_error_z=info["TILT_TOT"],
         )
 
     raise UnsupportedElementError(key)
