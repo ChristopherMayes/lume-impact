@@ -331,7 +331,7 @@ def input_from_tao(
 
     lattice.append(WriteFull(name="final_particles", file_id=2001))
 
-    start_head = ele_head(str(ix_beginning), which=which)
+    start_head = ele_head(tao, str(ix_beginning), which=which)
     start_twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning), which=which))
     start_gen_attr = cast(
         dict[str, float],
