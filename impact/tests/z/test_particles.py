@@ -1,4 +1,5 @@
 from __future__ import annotations
+import pathlib
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -110,4 +111,30 @@ def test_round_trip():
             err_msg=f"Round-tripped key {key!r} not allclose",
         )
 
+    assert P1 == P2
+
+
+def test_round_trip_to_file(tmp_path: pathlib.Path):
+    P1 = ParticleGroup(data=gaussian_data())
+
+    reference_freq = 1300000000.0
+    ref_kinetic = 1.0
+
+    izp = ImpactZParticles.from_particle_group(
+        P1,
+        reference_frequency=reference_freq,
+        reference_kinetic_energy=ref_kinetic,
+    )
+
+    fn = tmp_path / "part.in"
+    izp.write_impact(fn)
+
+    izp1 = ImpactZParticles.from_file(fn)
+    assert izp == izp1
+
+    P2 = izp1.to_particle_group(
+        reference_frequency=reference_freq,
+        reference_kinetic_energy=ref_kinetic,
+        phase_reference=0.0,
+    )
     assert P1 == P2
