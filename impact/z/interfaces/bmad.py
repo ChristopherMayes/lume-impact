@@ -203,7 +203,7 @@ def element_from_tao(
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-            B1=info["B1_GRADIENT"],  # T/m
+            k1=info["K1"],  # NOTE: 1/m^2 (this is not actually )
             # file_id : float
             #     An ID for the input gradient file. Determines profile behavior:
             #     if greater than 0, a fringe field profile is read; if less than -10,

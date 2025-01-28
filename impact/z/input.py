@@ -189,8 +189,9 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
     map_steps : int
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
-    B1 : float
-        The gradient of the quadrupole magnetic field, measured in Tesla per meter.
+    k1 : float
+        The quadrupole strength, 1/m^2. (NOTE: the manual is actually wrong here, this
+        is not B1 in units of T/m)
     file_id : float
         An ID for the input gradient file. Determines profile behavior:
         if greater than 0, a fringe field profile is read; if less than -10,
@@ -215,7 +216,7 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
     steps: int = 0
     map_steps: int = 0
     type_id: Literal[1] = 1
-    B1: float = 0.0
+    k1: float = 0.0
     file_id: float = 0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
