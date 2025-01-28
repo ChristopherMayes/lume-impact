@@ -331,7 +331,12 @@ def input_from_tao(
 
     lattice.append(WriteFull(name="final_particles", file_id=2001))
 
-    twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning)))
+    start_twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning), which=which))
+    start_gen_attr = cast(
+        dict[str, float],
+        tao.ele_gen_attribs(str(ix_beginning), which=which),
+    )
+
     branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
     branch_particle: str = branch1["param_particle"]
 
@@ -349,6 +354,7 @@ def input_from_tao(
             species_mass = 0.0
             logger.warning(f"Unsupported branch particle type: {branch_particle}")
 
+    initial_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
     tao_global = cast(dict, tao.tao_global())
 
     return ImpactZInput(
@@ -384,12 +390,12 @@ def input_from_tao(
         # current_list=[],
         # charge_over_mass_list=[],
         # Twiss
-        twiss_alpha_x=twiss["alpha_a"],
-        twiss_alpha_y=twiss["alpha_b"],
-        twiss_alpha_z=0.0,  # twiss["alpha_z"],
-        twiss_beta_x=twiss["beta_a"],
-        twiss_beta_y=twiss["beta_b"],
-        twiss_beta_z=1.0,  # twiss["beta_z"],
+        twiss_alpha_x=start_twiss["alpha_a"],
+        twiss_alpha_y=start_twiss["alpha_b"],
+        twiss_alpha_z=0.0,  # start_twiss["alpha_z"],
+        twiss_beta_x=start_twiss["beta_a"],
+        twiss_beta_y=start_twiss["beta_b"],
+        twiss_beta_z=1.0,  # start_twiss["beta_z"],
         twiss_norm_emit_x=1e-6,
         twiss_norm_emit_y=1e-6,
         twiss_norm_emit_z=1e-6,
@@ -407,8 +413,8 @@ def input_from_tao(
         twiss_offset_y=0.0,
         twiss_offset_px=0.0,
         twiss_offset_py=0.0,
-        average_current=1.0,  # TODO
-        initial_kinetic_energy=1.0,  # TODO
+        average_current=0.0,  # TODO users must set this if they want space charge calcs
+        initial_kinetic_energy=initial_kinetic_energy,
         reference_particle_mass=species_mass,
         reference_particle_charge=reference_particle_charge,
         reference_frequency=reference_frequency,
