@@ -119,7 +119,7 @@ class InputElement(BaseModel):
     def to_line(self, *, with_description: bool = True) -> str:
         def as_string(v: float | int):
             if isinstance(v, float):
-                return f"{v:g}"
+                return f"{v:.20g}"
             return str(v)
 
         attr_to_value = {
@@ -1950,7 +1950,7 @@ class ImpactZInput(BaseModel):
 ! seed n_particle integrator_type={self.integrator_type.name} err output_z={self.output_z.name}
 {self.seed} {self.n_particle} {int(self.integrator_type)} {self.err} {int(self.output_z)}
 ! nx ny nz boundary_type={self.boundary_type.name} radius_x radius_y z_period_size
-{self.nx} {self.ny} {self.nz} {self.boundary_type} {self.radius_x} {self.radius_y} {self.z_period_size}
+{self.nx} {self.ny} {self.nz} {self.boundary_type} {self.radius_x:.20g} {self.radius_y:.20g} {self.z_period_size:.20g}
 ! distribution={self.distribution.name} restart subcycle nbunch
 {self.distribution} {self.restart} {self.subcycle} {self.nbunch}
 ! particle_list
@@ -1960,13 +1960,13 @@ class ImpactZInput(BaseModel):
 ! charge_over_mass_list
 {stringify_list(self.charge_over_mass_list)}
 ! twiss_alpha_x twiss_beta_x twiss_norm_emit_x twiss_mismatch_x twiss_mismatch_px twiss_offset_x twiss_offset_px
-{self.twiss_alpha_x} {self.twiss_beta_x} {self.twiss_norm_emit_x} {self.twiss_mismatch_x} {self.twiss_mismatch_px} {self.twiss_offset_x} {self.twiss_offset_px}
+{self.twiss_alpha_x:.20g} {self.twiss_beta_x:.20g} {self.twiss_norm_emit_x:.20g} {self.twiss_mismatch_x:.20g} {self.twiss_mismatch_px:.20g} {self.twiss_offset_x:.20g} {self.twiss_offset_px:.20g}
 ! twiss_alpha_y twiss_beta_y twiss_norm_emit_y twiss_mismatch_y twiss_mismatch_py twiss_offset_y twiss_offset_py
-{self.twiss_alpha_y} {self.twiss_beta_y} {self.twiss_norm_emit_y} {self.twiss_mismatch_y} {self.twiss_mismatch_py} {self.twiss_offset_y} {self.twiss_offset_py}
+{self.twiss_alpha_y:.20g} {self.twiss_beta_y:.20g} {self.twiss_norm_emit_y:.20g} {self.twiss_mismatch_y:.20g} {self.twiss_mismatch_py:.20g} {self.twiss_offset_y:.20g} {self.twiss_offset_py:.20g}
 ! twiss_alpha_z twiss_beta_z twiss_norm_emit_z twiss_mismatch_z twiss_mismatch_e_z twiss_offset_phase_z twiss_offset_energy_z
-{self.twiss_alpha_z} {self.twiss_beta_z} {self.twiss_norm_emit_z} {self.twiss_mismatch_z} {self.twiss_mismatch_e_z} {self.twiss_offset_phase_z} {self.twiss_offset_energy_z}
+{self.twiss_alpha_z:.20g} {self.twiss_beta_z:.20g} {self.twiss_norm_emit_z:.20g} {self.twiss_mismatch_z:.20g} {self.twiss_mismatch_e_z:.20g} {self.twiss_offset_phase_z:.20g} {self.twiss_offset_energy_z:.20g}
 ! average_current initial_kinetic_energy reference_particle_mass reference_particle_charge reference_frequency initial_phase_ref
-{self.average_current} {self.initial_kinetic_energy} {self.reference_particle_mass} {self.reference_particle_charge} {self.reference_frequency} {self.initial_phase_ref}
+{self.average_current:.20g} {self.initial_kinetic_energy:.20g} {self.reference_particle_mass:.20g} {self.reference_particle_charge:.20g} {self.reference_frequency:.20g} {self.initial_phase_ref:.20g}
 ! ** lattice **
 {lattice}
         """.strip()
