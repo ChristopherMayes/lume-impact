@@ -155,15 +155,13 @@ def element_from_tao(
         print_ele_info(ele_id, info)
     key = info["key"].lower()
 
-    if "Y_PITCH_TOT" in info and "Y_OFFSET" in info:
-        # TODO: refactor to calculate y_offset separately
+    if all(key in info for key in ("L", "Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
         length = info["L"]
-        info["X_OFFSET_TOT"] = (
-            info["X_OFFSET_TOT"] + np.sin(info["X_PITCH_TOT"]) * length / 2.0
-        )
-        info["Y_OFFSET_TOT"] = (
-            info["Y_OFFSET_TOT"] - np.sin(info["Y_PITCH_TOT"]) * length / 2.0
-        )
+        offset_x = info["X_OFFSET_TOT"] + np.sin(info["X_PITCH_TOT"]) * length / 2.0
+        offset_y = info["Y_OFFSET_TOT"] - np.sin(info["Y_PITCH_TOT"]) * length / 2.0
+    else:
+        offset_x = 0.0
+        offset_y = 0.0
 
     if key == "drift":
         return Drift(
@@ -223,8 +221,8 @@ def element_from_tao(
             file_id=-1,
             # The radius of the quadrupole, measured in meters.
             radius=radius,  # TODO is this the aperture radius?
-            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            misalignment_error_x=offset_x,
+            misalignment_error_y=offset_y,
             rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
             rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
             rotation_error_z=info["TILT_TOT"],
@@ -249,8 +247,8 @@ def element_from_tao(
             Bz0=info["BS_FIELD"],
             file_id=-1,  # TODO?
             radius=radius,  # TODO arbitrary
-            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            misalignment_error_x=offset_x,
+            misalignment_error_y=offset_y,
             rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
             rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
             rotation_error_z=info["TILT_TOT"],
@@ -284,8 +282,8 @@ def element_from_tao(
             field_strength=info[field_strength_key],
             file_id=-1,  # TODO?
             radius=radius,
-            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            misalignment_error_x=offset_x,
+            misalignment_error_y=offset_y,
             rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
             rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
             rotation_error_z=info["TILT_TOT"],
