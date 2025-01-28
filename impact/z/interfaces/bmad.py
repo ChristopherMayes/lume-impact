@@ -155,6 +155,12 @@ def element_from_tao(
         print_ele_info(ele_id, info)
     key = info["key"].lower()
 
+    if "Y_PITCH_TOT" in info and "Y_OFFSET" in info:
+        # TODO: refactor to calculate y_offset separately
+        length = info["L"]
+        info["X_OFFSET"] = info["X_OFFSET"] + np.sin(info["X_PITCH_TOT"]) * length / 2.0
+        info["Y_OFFSET"] = info["Y_OFFSET"] - np.sin(info["Y_PITCH_TOT"]) * length / 2.0
+
     if key == "drift":
         return Drift(
             length=info["L"],
