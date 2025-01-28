@@ -157,11 +157,11 @@ def element_from_tao(
             entrance_curvature=0.0,
             exit_curvature=0.0,
             fint=info["FINT"],
-            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH
-            rotation_error_z=info["REF_TILT_TOT"],
+            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            # rotation_error_z=info["REF_TILT_TOT"],
         )
     if key == "quadrupole":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -182,11 +182,11 @@ def element_from_tao(
             file_id=-1,
             # The radius of the quadrupole, measured in meters.
             radius=info["L"] * 20.0,  # TODO arbitrary
-            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=info["TILT_TOT"],
+            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            # rotation_error_z=info["TILT_TOT"],
         )
     if key == "solenoid":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -200,11 +200,11 @@ def element_from_tao(
             Bz0=info["BS_FIELD"],
             file_id=-1,  # TODO?
             radius=info["L"] * 20.0,  # TODO arbitrary
-            misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=info["TILT_TOT"],
+            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
+            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
+            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            # rotation_error_z=info["TILT_TOT"],
         )
 
     if key in {"sextupole", "octupole"}:  # , "decapole"}:
