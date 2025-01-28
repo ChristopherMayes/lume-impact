@@ -289,6 +289,8 @@ def input_from_tao(
     track_start: str | None = None,
     track_end: str | None = None,
     *,
+    radius_x: float = 0.0,
+    radius_y: float = 0.0,
     ncpu_y: int = 1,
     ncpu_z: int = 1,
     nx: int = 64,
@@ -329,7 +331,7 @@ def input_from_tao(
 
     lattice.append(WriteFull(name="final_particles", file_id=2001))
 
-    bunch_params_start = cast(Dict[str, float], tao.bunch_params(ix_beginning))
+    twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning)))
     branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
     branch_particle: str = branch1["param_particle"]
 
@@ -347,13 +349,15 @@ def input_from_tao(
             species_mass = 0.0
             logger.warning(f"Unsupported branch particle type: {branch_particle}")
 
+    tao_global = cast(dict, tao.tao_global())
+
     return ImpactZInput(
         # Line 1
         ncpu_y=ncpu_y,
         ncpu_z=ncpu_z,
         gpu=GPUFlag.disabled,
         # Line 2
-        seed=0,
+        seed=tao_global["random_seed"],
         n_particle=0,
         integrator_type=IntegratorType.linear,
         err=1,
@@ -365,8 +369,8 @@ def input_from_tao(
         ny=ny,
         nz=nz,
         boundary_type=BoundaryType.trans_open_longi_open,
-        radius_x=0.0,
-        radius_y=0.0,
+        radius_x=radius_x,
+        radius_y=radius_y,
         z_period_size=0.0,
         # Line 4
         distribution=(
@@ -380,15 +384,15 @@ def input_from_tao(
         # current_list=[],
         # charge_over_mass_list=[],
         # Twiss
-        twiss_alpha_x=bunch_params_start["twiss_alpha_x"],
-        twiss_alpha_y=bunch_params_start["twiss_alpha_y"],
-        twiss_alpha_z=bunch_params_start["twiss_alpha_z"],
-        twiss_beta_x=bunch_params_start["twiss_beta_x"],
-        twiss_beta_y=bunch_params_start["twiss_beta_y"],
-        twiss_beta_z=bunch_params_start["twiss_beta_z"],
-        twiss_norm_emit_x=bunch_params_start["twiss_norm_emit_x"],
-        twiss_norm_emit_y=bunch_params_start["twiss_norm_emit_y"],
-        twiss_norm_emit_z=bunch_params_start["twiss_norm_emit_z"],
+        twiss_alpha_x=twiss["alpha_a"],
+        twiss_alpha_y=twiss["alpha_b"],
+        twiss_alpha_z=0.0,  # twiss["alpha_z"],
+        twiss_beta_x=twiss["beta_a"],
+        twiss_beta_y=twiss["beta_b"],
+        twiss_beta_z=1.0,  # twiss["beta_z"],
+        twiss_norm_emit_x=1e-6,
+        twiss_norm_emit_y=1e-6,
+        twiss_norm_emit_z=1e-6,
         # Twiss mismatch
         twiss_mismatch_e_z=1.0,
         twiss_mismatch_x=1.0,
