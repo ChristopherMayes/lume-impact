@@ -299,7 +299,7 @@ def input_from_tao(
     which: Which = "model",
     ix_uni: int = 1,
     ix_branch: int = 0,
-    reference_frequency: float = 1300000000.0,
+    reference_frequency: float = 1300000000.0,  # TODO: consider calculating this? it's somewhat arbitrary
 ) -> ImpactZInput:
     idx_to_name = get_index_to_name(
         tao,
@@ -331,6 +331,7 @@ def input_from_tao(
 
     lattice.append(WriteFull(name="final_particles", file_id=2001))
 
+    start_head = ele_head(str(ix_beginning), which=which)
     start_twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning), which=which))
     start_gen_attr = cast(
         dict[str, float],
@@ -355,6 +356,9 @@ def input_from_tao(
             logger.warning(f"Unsupported branch particle type: {branch_particle}")
 
     initial_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
+
+    omega = 2 * np.pi * reference_frequency
+    initial_phase_ref = start_head["ref_time"] * omega
     tao_global = cast(dict, tao.tao_global())
 
     return ImpactZInput(
@@ -418,7 +422,7 @@ def input_from_tao(
         reference_particle_mass=species_mass,
         reference_particle_charge=reference_particle_charge,
         reference_frequency=reference_frequency,
-        initial_phase_ref=0.0,
+        initial_phase_ref=initial_phase_ref,
         lattice=lattice,
         initial_particles=initial_particles,
     )
