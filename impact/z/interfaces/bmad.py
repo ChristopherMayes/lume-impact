@@ -148,7 +148,7 @@ def element_from_tao(
             length=info["L"],
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
-            angle=info["REF_TILT"],  # rad
+            angle=info["ANGLE"],  # rad
             k1=info["K1"],
             input_switch=201.0 if enable_csr else 0.0,  # TODO
             hgap=info["HGAP"],
