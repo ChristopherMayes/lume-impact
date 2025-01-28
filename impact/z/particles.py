@@ -266,10 +266,11 @@ class ImpactZParticles(BaseModel):
         ):
             yield Particle(*row)
 
-    def write_impact(self, fn: AnyPath) -> None:
+    def write_impact(self, fn: AnyPath, precision: int = 20) -> None:
         with open(fn, "w") as fp:
             logger.info(f"Writing particles to {fn}")
             print(len(self.impactz_x), file=fp)
 
+            fmt = "{:.%dg}" % precision
             for row in self.rows:
-                print(" ".join(f"{v:g}" for v in row), file=fp)
+                print(" ".join(fmt.format(v) for v in row), file=fp)
