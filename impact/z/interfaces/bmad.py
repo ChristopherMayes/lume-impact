@@ -141,11 +141,10 @@ def element_from_tao(
     ele_id: str | int,
     which: Which = "model",
     name: str = "",
-    default_steps: int = 10,
     default_map_steps: int = 10,
     enable_csr: bool = False,
     verbose: bool = True,
-):
+) -> AnyInputElement | None:
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
     except KeyError:
@@ -153,19 +152,20 @@ def element_from_tao(
 
     if verbose:
         print_ele_info(ele_id, info)
-    key = info["key"].lower()
 
-    if all(key in info for key in ("L", "Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
-        length = info["L"]
+    key = info["key"].lower()
+    length = info["L"]
+
+    if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
         offset_x = info["X_OFFSET_TOT"] + np.sin(info["X_PITCH_TOT"]) * length / 2.0
         offset_y = info["Y_OFFSET_TOT"] - np.sin(info["Y_PITCH_TOT"]) * length / 2.0
     else:
         offset_x = 0.0
         offset_y = 0.0
 
-    if key == "drift":
+    if key in {"drift", "pipe", "monitor"}:
         return Drift(
-            length=info["L"],
+            length=length,
             name=name,
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
@@ -185,7 +185,7 @@ def element_from_tao(
 
         return Dipole(
             name=name,
-            length=info["L"],
+            length=length,
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
             angle=info["ANGLE"],  # rad
@@ -220,7 +220,7 @@ def element_from_tao(
         )
         return Quadrupole(
             name=name,
-            length=info["L"],
+            length=length,
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
@@ -254,7 +254,7 @@ def element_from_tao(
 
         return Solenoid(
             name=name,
-            length=info["L"],
+            length=length,
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
@@ -289,7 +289,7 @@ def element_from_tao(
 
         return Multipole(
             name=name,
-            length=info["L"],
+            length=length,
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
@@ -304,7 +304,8 @@ def element_from_tao(
             rotation_error_z=info["TILT_TOT"],
         )
 
-    raise UnsupportedElementError(key)
+    if length > 0.0:
+        raise UnsupportedElementError(key)
 
 
 def input_from_tao(
@@ -347,10 +348,9 @@ def input_from_tao(
             z_elem = element_from_tao(tao, ele_id, which=which, name=name)
         except UnusableElementError as ex:
             logger.debug("Skipping element: %s (%s)", ele_id, ex)
-        except UnsupportedElementError as ex:
-            logger.warning("Skipping element: %s (%s)", ele_id, ex)
         else:
-            lattice.append(z_elem)
+            if z_elem is not None:
+                lattice.append(z_elem)
 
     lattice.append(WriteFull(name="final_particles", file_id=2001))
 
