@@ -17,10 +17,10 @@ p5: pipe, L = 1
 
 chicange_angle = 10*pi/180
 
-b1: sbend, L = 0.2, angle = chicange_angle
-b2: sbend, L = 0.2, angle = -chicange_angle
-b3: sbend, L = 0.2, angle = -chicange_angle
-b4: sbend, L = 0.2, angle = chicange_angle
+b1: sbend, L = 0.2, angle = chicange_angle, fringe_type=full
+b2: sbend, L = 0.2, angle = -chicange_angle, fringe_type=full
+b3: sbend, L = 0.2, angle = -chicange_angle, fringe_type=full
+b4: sbend, L = 0.2, angle = chicange_angle, fringe_type=full
 
 b1[e2] = chicange_angle
 b2[e1] = -chicange_angle

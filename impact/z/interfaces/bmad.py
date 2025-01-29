@@ -382,14 +382,10 @@ def input_from_tao(
         "positron": 1.0,
     }.get(branch_particle.lower(), 0.0)
 
-    if initial_particles is not None:
-        species_mass = initial_particles.mass
-    else:
-        try:
-            species_mass = SPECIES_MASS[branch_particle.lower()]
-        except KeyError:
-            species_mass = 0.0
-            logger.warning(f"Unsupported branch particle type: {branch_particle}")
+    try:
+        species_mass = SPECIES_MASS[branch_particle.lower()]
+    except KeyError:
+        raise RuntimeError(f"Unsupported branch particle type: {branch_particle}")
 
     initial_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
 

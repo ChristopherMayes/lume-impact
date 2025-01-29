@@ -77,9 +77,9 @@ def test_compare_sxy(
         set_initial_particles(tao, P0, path=tmp_path)
         input = ImpactZInput.from_tao(tao)
 
-        x_tao = np.asarray(tao.bunch_comb("x"))
-        y_tao = np.asarray(tao.bunch_comb("y"))
-        s_tao = np.asarray(tao.bunch_comb("s"))
+        x_tao = np.array(tao.bunch_comb("x"))
+        y_tao = np.array(tao.bunch_comb("y"))
+        s_tao = np.array(tao.bunch_comb("s"))
 
     input.space_charge_off()
 
@@ -101,6 +101,7 @@ def test_compare_sxy(
     y_tao_interp = np.interp(z, s_tao, y_tao)
 
     fig, (ax0, ax1) = plt.subplots(2, figsize=(12, 8))
+
     fig.suptitle(request.node.name)
     ax0.plot(z, x, label="Impact-Z")
     ax0.plot(s_tao, x_tao, "--", label="Tao")
