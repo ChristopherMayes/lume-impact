@@ -176,6 +176,13 @@ def element_from_tao(
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for SBend")
 
+        fringe_type = info["FRINGE_TYPE"]
+        if fringe_type != "Full":
+            logger.warning(
+                f"Element #{ele_id} has a fringe type of {fringe_type!r}; to match with "
+                f"Impact-Z, this should be 'Full'"
+            )
+
         return Dipole(
             length=info["L"],
             steps=info["NUM_STEPS"],
