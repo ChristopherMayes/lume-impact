@@ -360,6 +360,7 @@ def input_from_tao(
         dict[str, float],
         tao.ele_gen_attribs(str(ix_beginning), which=which),
     )
+    start_ele_orbit = cast(dict[str, float], tao.ele_orbit(ix_beginning, which=which))
 
     branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
     branch_particle: str = branch1["param_particle"]
@@ -436,10 +437,10 @@ def input_from_tao(
         # Twiss offset
         twiss_offset_energy_z=0.0,
         twiss_offset_phase_z=0.0,
-        twiss_offset_x=0.0,
-        twiss_offset_y=0.0,
-        twiss_offset_px=0.0,
-        twiss_offset_py=0.0,
+        twiss_offset_x=start_ele_orbit["x"],
+        twiss_offset_y=start_ele_orbit["y"],
+        twiss_offset_px=start_ele_orbit["px"],
+        twiss_offset_py=start_ele_orbit["py"],
         average_current=0.0,  # TODO users must set this if they want space charge calcs
         initial_kinetic_energy=initial_kinetic_energy,
         reference_particle_mass=species_mass,
