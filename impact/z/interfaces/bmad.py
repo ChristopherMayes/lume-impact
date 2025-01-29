@@ -225,7 +225,7 @@ def element_from_tao(
             misalignment_error_y=offset_y,
             rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
             rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=info["TILT_TOT"],
+            rotation_error_z=-info["TILT_TOT"],
         )
     if key == "solenoid":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:

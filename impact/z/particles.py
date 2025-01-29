@@ -274,3 +274,19 @@ class ImpactZParticles(BaseModel):
             fmt = "{:.%dg}" % precision
             for row in self.rows:
                 print(" ".join(fmt.format(v) for v in row), file=fp)
+
+
+def particle_diff(P1: ParticleGroup, P2: ParticleGroup) -> dict[str, np.ndarray]:
+    if len(P1) != len(P2):
+        raise ValueError(
+            "Particle groups must have the same number of particles to be diffed"
+        )
+
+    if not len(P1):
+        return {}
+
+    return {
+        key: np.asarray([p1v - p2v for p1v, p2v in zip(P1.data[key], P2.data[key])])
+        for key in P1.data
+        if isinstance(P1.data[key][0], float)
+    }
