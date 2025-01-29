@@ -184,6 +184,7 @@ def element_from_tao(
             )
 
         return Dipole(
+            name=name,
             length=info["L"],
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
@@ -218,6 +219,7 @@ def element_from_tao(
             default=1,
         )
         return Quadrupole(
+            name=name,
             length=info["L"],
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
@@ -251,6 +253,7 @@ def element_from_tao(
         )
 
         return Solenoid(
+            name=name,
             length=info["L"],
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
@@ -285,6 +288,7 @@ def element_from_tao(
         )
 
         return Multipole(
+            name=name,
             length=info["L"],
             steps=info["NUM_STEPS"],
             map_steps=default_map_steps,
