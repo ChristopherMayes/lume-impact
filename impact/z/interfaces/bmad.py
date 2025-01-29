@@ -325,6 +325,8 @@ def input_from_tao(
     ix_branch: int = 0,
     reference_frequency: float = 1300000000.0,  # TODO: consider calculating this? it's somewhat arbitrary
     verbose: bool = False,
+    initial_particles_file_id: int = 2000,
+    final_particles_file_id: int = 2001,
 ) -> ImpactZInput:
     idx_to_name = get_index_to_name(
         tao,
@@ -340,9 +342,12 @@ def input_from_tao(
     except TaoCommandError as ex:
         logger.warning(f"Not using initial particles ({ex.errors[-1].message})")
         initial_particles = None
+        n_particle = 0
+    else:
+        n_particle = len(initial_particles)
 
     lattice: list[AnyInputElement] = [
-        WriteFull(name="initial_particles", file_id=2000),
+        WriteFull(name="initial_particles", file_id=initial_particles_file_id),
     ]
     for ele_id, name in idx_to_name.items():
         try:
@@ -359,7 +364,7 @@ def input_from_tao(
             if z_elem is not None:
                 lattice.append(z_elem)
 
-    lattice.append(WriteFull(name="final_particles", file_id=2001))
+    lattice.append(WriteFull(name="final_particles", file_id=final_particles_file_id))
 
     start_head = ele_head(tao, str(ix_beginning), which=which)
     start_twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning), which=which))
@@ -399,7 +404,7 @@ def input_from_tao(
         gpu=GPUFlag.disabled,
         # Line 2
         seed=tao_global["random_seed"],
-        n_particle=0,
+        n_particle=n_particle,
         integrator_type=IntegratorType.linear_map,
         err=1,
         # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,

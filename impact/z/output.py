@@ -423,7 +423,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
 
                 key = _get_dict_key(particles_raw, ele.file_id, ele.name)
                 particles_raw[key] = raw
-                phase_ref = stats["absolute_phase"][z_end_idx]
+                phase_ref = stats["phase_ref"][z_end_idx]
                 particles[key] = raw.to_particle_group(
                     reference_kinetic_energy=input.initial_kinetic_energy,
                     reference_frequency=input.reference_frequency,
@@ -545,14 +545,14 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
     ----------
     z : float
         Distance in meters (1st column).
-    absolute_phase : float
+    phase_ref : float
         Absolute phase in radians (2nd column).
-    mean_gamma : float
-        Mean gamma (3rd column).
-    mean_kinetic_energy : float
-        Mean kinetic energy in MeV (4th column).
+    gamma_ref : float
+        Reference particle gamma (3rd column).
+    kinetic_energy_ref : float
+        Reference particle kinetic energy in MeV (4th column).
         LUME-ImpactZ converts this automatically to eV.
-    mean_beta : float
+    beta_ref : float
         Beta (5th column).
     max_r : float
         Rmax in meters, measured from the axis of pipe (6th column).
@@ -564,10 +564,10 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
     """
 
     z: Meters
-    absolute_phase: Radians
-    mean_gamma: Unitless
-    mean_kinetic_energy: MeV
-    mean_beta: Unitless
+    phase_ref: Radians
+    gamma_ref: Unitless
+    kinetic_energy_ref: MeV
+    beta_ref: Unitless
     max_r: Meters
 
 

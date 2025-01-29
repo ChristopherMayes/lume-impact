@@ -85,7 +85,7 @@ class ImpactZParticles(BaseModel):
                     "impactz_weight",
                     "impactz_id",
                 ),
-                "formats": [np.float64] * 8 + [np.int64],
+                "formats": [np.float64] * 9,
             }
         )
 
@@ -129,7 +129,7 @@ class ImpactZParticles(BaseModel):
             impactz_pz=pz,
             impactz_charge_to_mass_ratio=charge_to_mass_ratio,
             impactz_weight=weight,
-            impactz_id=id,
+            impactz_id=np.asarray(id, dtype=int),  # may be stored as float?
             filename=pathlib.Path(filename) if filename else None,
         )
 
