@@ -198,6 +198,10 @@ def element_from_tao(
     if key == "quadrupole":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Quadrupole")
+        if np.abs(info["X_PITCH_TOT"]) > 0.0:
+            raise NotImplementedError("X pitch not currently supported for Quadrupole")
+        if np.abs(info["Y_PITCH_TOT"]) > 0.0:
+            raise NotImplementedError("Y pitch not currently supported for Quadrupole")
 
         radius = get_element_radius(
             info["X1_LIMIT"],
