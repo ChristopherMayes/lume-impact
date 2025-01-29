@@ -7,8 +7,8 @@ beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
 parameter[geometry] = open          ! Or closed
 parameter[particle] = electron      ! Reference particle.
 
-octupole1:         octupole, l = 4.5, k3 = 1e3, tilt, num_steps = 10
-! , x_offset = 0.01, y_pitch = 0.001
+octupole1:         octupole, l = 4.5, k3 = 1e3, num_steps = 10
+! tilt, x_offset = 0.01, y_pitch = 0.001
 
 lat: line = (octupole1)
 use, lat

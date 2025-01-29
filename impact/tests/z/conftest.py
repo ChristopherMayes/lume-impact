@@ -20,6 +20,7 @@ z_examples = [z_example1, z_example2, z_example3]
 bmad_files = z_tests / "bmad"
 
 logging.getLogger("pytao.subproc").setLevel("WARNING")
+logging.getLogger("matplotlib.font_manager").setLevel("WARNING")
 
 
 @pytest.fixture(autouse=True, scope="function")

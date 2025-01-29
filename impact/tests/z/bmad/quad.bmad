@@ -7,7 +7,7 @@ beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
 parameter[geometry] = open          ! Or closed
 parameter[particle] = electron      ! Reference particle.
 
-quadrupole1:       quadrupole, l = 0.6, k1 = 1, tilt, num_steps = 10
+quadrupole1:       quadrupole, l = 0.6, k1 = 1, num_steps = 10
 
 lat: line = (quadrupole1)
 use, lat
