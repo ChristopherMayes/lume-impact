@@ -152,8 +152,8 @@ class BoundaryType(enum.IntEnum):
 
 @_pydantic_enum
 class IntegratorType(enum.IntEnum):
-    linear = 1
-    non_linear = 2
+    linear_map = 1
+    runge_kutta = 2
 
 
 @_pydantic_enum

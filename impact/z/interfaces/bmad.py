@@ -324,6 +324,7 @@ def input_from_tao(
     ix_uni: int = 1,
     ix_branch: int = 0,
     reference_frequency: float = 1300000000.0,  # TODO: consider calculating this? it's somewhat arbitrary
+    verbose: bool = False,
 ) -> ImpactZInput:
     idx_to_name = get_index_to_name(
         tao,
@@ -345,7 +346,13 @@ def input_from_tao(
     ]
     for ele_id, name in idx_to_name.items():
         try:
-            z_elem = element_from_tao(tao, ele_id, which=which, name=name)
+            z_elem = element_from_tao(
+                tao,
+                ele_id,
+                which=which,
+                name=name,
+                verbose=verbose,
+            )
         except UnusableElementError as ex:
             logger.debug("Skipping element: %s (%s)", ele_id, ex)
         else:
@@ -385,7 +392,7 @@ def input_from_tao(
     initial_phase_ref = start_head["ref_time"] * omega
     tao_global = cast(dict, tao.tao_global())
 
-    return ImpactZInput(
+    input = ImpactZInput(
         # Line 1
         ncpu_y=ncpu_y,
         ncpu_z=ncpu_z,
@@ -393,7 +400,7 @@ def input_from_tao(
         # Line 2
         seed=tao_global["random_seed"],
         n_particle=0,
-        integrator_type=IntegratorType.linear,
+        integrator_type=IntegratorType.linear_map,
         err=1,
         # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
         diagnostic_type=DiagnosticType.at_given_time,
@@ -450,3 +457,12 @@ def input_from_tao(
         lattice=lattice,
         initial_particles=initial_particles,
     )
+
+    if input.multipoles:
+        logger.warning(
+            "Slower integrator type Runge-Kutta selected as "
+            "Multipoles in Impact-Z require it to function."
+        )
+        input.integrator_type = IntegratorType.runge_kutta
+
+    return input

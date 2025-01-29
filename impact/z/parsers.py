@@ -65,6 +65,7 @@ def parse_input_lines(lines: str | Sequence[str]) -> list[InputLine]:
     input_lines = []
     comments = []
     for line in lines:
+        line = line.lstrip()
         if line.startswith("!"):
             comments.append(line.lstrip("! "))
         else:

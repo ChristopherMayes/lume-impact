@@ -1732,7 +1732,7 @@ class ImpactZInput(BaseModel):
     # Line 2
     seed: int = 0
     n_particle: int = 0
-    integrator_type: IntegratorType = IntegratorType.linear
+    integrator_type: IntegratorType = IntegratorType.linear_map
     err: int = 1
     diagnostic_type: DiagnosticType = DiagnosticType.at_given_time
     output_z: OutputZType = OutputZType.extended

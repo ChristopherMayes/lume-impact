@@ -9,5 +9,5 @@ parameter[particle] = electron      ! Reference particle.
 
 octupole1:         octupole, l = 4.5, k3 = 1e3, tilt, num_steps = 10, x_offset = 0.01, y_pitch = 0.001
 
-lat: line = (sextupole1, octupole1)
+lat: line = (octupole1)
 use, lat
