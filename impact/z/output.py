@@ -420,6 +420,10 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
         default_factory=_empty_ndarray,
         description="Total number of particles in the bunch.",
     )
+    neg_delta_mean_energy: MeVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Negative delta mean energy (eV).",
+    )
     neg_cov_x__gammabeta_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Twiss parameter alpha for x-direction.",
@@ -485,15 +489,26 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
     )
 
     @classmethod
-    def from_stats_files(cls, workdir: pathlib.Path) -> OutputStats:
+    def from_stats_files(
+        cls,
+        workdir: pathlib.Path,
+        reference_kinetic_energy: float,
+        reference_particle_mass: float,
+    ) -> OutputStats:
         stats, units = load_stat_files_from_path(workdir)
 
         extra = _split_extra(cls, stats)
-        return OutputStats(
+        res = OutputStats(
             units=units,
             extra=extra,
             **stats,
         )
+        res.mean_energy = (
+            reference_kinetic_energy
+            + reference_particle_mass
+            - res.neg_delta_mean_energy
+        )
+        return res
 
 
 class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
@@ -617,7 +632,11 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             The output data.
         """
 
-        stats = OutputStats.from_stats_files(workdir)
+        stats = OutputStats.from_stats_files(
+            workdir,
+            reference_kinetic_energy=input.reference_kinetic_energy,
+            reference_particle_mass=input.reference_particle_mass,
+        )
 
         units = stats.units.copy()
         particles_raw = {}
@@ -876,8 +895,9 @@ class RmsZ(FortranOutputFileData, file_id=26):
         centroid location (m)
     sigma_z : float
         RMS size (m)
-    mean_energy : float
-        Centroid momentum [eV]
+    neg_delta_mean_energy : float
+        Negative delta mean energy, used to convert to mean energy [eV]
+        where `mean_energy = reference_kinetic_energy + reference_particle_mass - neg_delta_mean_energy`
         In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
     sigma_gammabeta_z : float
         RMS momentum [eV]
@@ -896,7 +916,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     z: Meters
     mean_z: Meters
     sigma_z: Meters
-    mean_energy: MeV
+    neg_delta_mean_energy: MeV
     sigma_gammabeta_z: MeV
     twiss_alpha: Unitless
     norm_emit_z: Meters
