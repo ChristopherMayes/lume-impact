@@ -279,7 +279,8 @@ def element_from_tao(
 
             multipole_type = MultipoleType.decapole
             b4_gradient = (
-                charge_state(species)
+                (4.0 * 3.0 * 2.0)  # 4!
+                * charge_state(species)
                 * multipole_info.Bn
                 * info["P0C"]
                 / c_light
