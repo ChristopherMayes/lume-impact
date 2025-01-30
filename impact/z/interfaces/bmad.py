@@ -7,6 +7,7 @@ import tempfile
 
 from typing import Any, Dict, NamedTuple, TypedDict, cast
 
+from pmd_beamphysics.particles import c_light
 import numpy as np
 from ..input import (
     AnyInputElement,
@@ -190,6 +191,7 @@ def element_from_tao(
     name: str = "",
     default_map_steps: int = 10,
     enable_csr: bool = False,
+    species: str = "electron",
     verbose: bool = True,
 ) -> AnyInputElement | None:
     try:
@@ -274,7 +276,14 @@ def element_from_tao(
                 raise ValueError("Decapoles only supported")
 
             multipole_type = MultipoleType.decapole
-            field_strength = multipole_info.Bn
+            b4_gradient = (
+                charge_state(species)
+                * multipole_info.Bn
+                * info["P0C"]
+                / c_light
+                / length
+            )
+            field_strength = b4_gradient
 
         radius = get_element_radius(
             info["X1_LIMIT"],
@@ -409,26 +418,6 @@ def input_from_tao(
     else:
         n_particle = len(initial_particles)
 
-    lattice: list[AnyInputElement] = [
-        WriteFull(name="initial_particles", file_id=initial_particles_file_id),
-    ]
-    for ele_id, name in idx_to_name.items():
-        try:
-            z_elem = element_from_tao(
-                tao,
-                ele_id,
-                which=which,
-                name=name,
-                verbose=verbose,
-            )
-        except UnusableElementError as ex:
-            logger.debug("Skipping element: %s (%s)", ele_id, ex)
-        else:
-            if z_elem is not None:
-                lattice.append(z_elem)
-
-    lattice.append(WriteFull(name="final_particles", file_id=final_particles_file_id))
-
     start_head = ele_head(tao, str(ix_beginning), which=which)
     start_twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning), which=which))
     start_gen_attr = cast(
@@ -448,6 +437,27 @@ def input_from_tao(
     omega = 2 * np.pi * reference_frequency
     initial_phase_ref = start_head["ref_time"] * omega
     tao_global = cast(dict, tao.tao_global())
+
+    lattice: list[AnyInputElement] = [
+        WriteFull(name="initial_particles", file_id=initial_particles_file_id),
+    ]
+    for ele_id, name in idx_to_name.items():
+        try:
+            z_elem = element_from_tao(
+                tao,
+                ele_id,
+                which=which,
+                name=name,
+                verbose=verbose,
+                species=branch_particle.lower(),
+            )
+        except UnusableElementError as ex:
+            logger.debug("Skipping element: %s (%s)", ele_id, ex)
+        else:
+            if z_elem is not None:
+                lattice.append(z_elem)
+
+    lattice.append(WriteFull(name="final_particles", file_id=final_particles_file_id))
 
     input = ImpactZInput(
         # Line 1

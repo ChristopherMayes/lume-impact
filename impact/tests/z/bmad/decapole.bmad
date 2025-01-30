@@ -7,7 +7,7 @@ beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
 parameter[geometry] = open          ! Or closed
 parameter[particle] = electron      ! Reference particle.
 
-dec1: quad, L = 0.25, field_master = F, scale_multipoles = F, b4=800
+dec1: quad, L = 0.25, num_steps=10, field_master = F, scale_multipoles = F, b4=800
 
 lat: line = (dec1)
 use, lat
