@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+from enum import IntEnum
 import logging
 import pathlib
 import tempfile
 
-from typing import Any, Dict, cast
+from typing import Any, Dict, NamedTuple, TypedDict, cast
 
 import numpy as np
 from ...particles import SPECIES_MASS
-from ..input import AnyInputElement, Dipole, Multipole, Quadrupole, Solenoid, WriteFull
+from ..input import (
+    AnyInputElement,
+    Dipole,
+    Multipole,
+    Quadrupole,
+    Solenoid,
+    WriteFull,
+)
 from pmd_beamphysics import ParticleGroup
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
@@ -136,6 +144,44 @@ def get_element_radius(*limits: float, default=1.0) -> float:
     return value or default
 
 
+class EleMultipoles(TypedDict):
+    multipoles_on: bool
+    scale_multipoles: bool
+    data: list[dict[str, float | int]]
+
+
+class MultipoleOrder(IntEnum):
+    dipole = 1
+    quadrupole = 2
+    octupole = 3
+    decapole = 4
+
+
+class MultipoleInfo(NamedTuple):
+    order: MultipoleOrder
+    Bn: float
+
+
+def get_multipole_info(tao: Tao, ele_id: str | int) -> MultipoleInfo | None:
+    info = cast(EleMultipoles, tao.ele_multipoles(ele_id))
+    data = info["data"]
+    if not data or not info["multipoles_on"]:
+        return None
+
+    if len(data) > 1:
+        raise ValueError("Only one multipole allowed")
+
+    if info["scale_multipoles"]:
+        raise ValueError("scale_multipoles not supported")
+
+    d0 = data[0]
+    if d0["An"] != 0.0:
+        raise ValueError("An of 0 only supported for multipoles for now")
+
+    order = MultipoleOrder(d0["index"])
+    return MultipoleInfo(order=order, Bn=d0["Bn"])  # May need another factor
+
+
 def element_from_tao(
     tao: Tao,
     ele_id: str | int,
@@ -203,6 +249,57 @@ def element_from_tao(
             # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
             # rotation_error_z=info["REF_TILT_TOT"],
         )
+
+    multipole_info = get_multipole_info(tao, ele_id=ele_id)
+    if key in {"sextupole", "octupole"} or multipole_info is not None:
+        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
+            raise NotImplementedError("Z offset not supported for Solenoid")
+
+        if key in {"sextupole", "octupole"}:
+            multipole_type = MultipoleType[key]
+            # confirmed by Ji as T/m^n (1/30/2025)
+            field_strength_key = {
+                "sextupole": "B2_GRADIENT",
+                "octupole": "B3_GRADIENT",
+                # "decapole": "k4",
+                # "dodecapole": "k5",
+            }[key]
+            field_strength = info[field_strength_key]
+        else:
+            assert multipole_info is not None
+            # Bmad doesn't have decapole elements, Quads are overloaded with a
+            # B2 moment.
+            if multipole_info.order != MultipoleOrder.decapole:
+                raise ValueError("Decapoles only supported")
+
+            multipole_type = MultipoleType.decapole
+            field_strength = multipole_info.Bn
+
+        radius = get_element_radius(
+            info["X1_LIMIT"],
+            info["X2_LIMIT"],
+            info["Y1_LIMIT"],
+            info["Y2_LIMIT"],
+            default=1,
+        )
+
+        return Multipole(
+            name=name,
+            length=length,
+            steps=info["NUM_STEPS"],
+            map_steps=default_map_steps,
+            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
+            multipole_type=multipole_type,
+            field_strength=field_strength,
+            file_id=-1,  # TODO?
+            radius=radius,
+            misalignment_error_x=offset_x,
+            misalignment_error_y=offset_y,
+            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
+            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            rotation_error_z=info["TILT_TOT"],
+        )
+
     if key == "quadrupole":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Quadrupole")
@@ -218,6 +315,7 @@ def element_from_tao(
             info["Y2_LIMIT"],
             default=1,
         )
+
         return Quadrupole(
             name=name,
             length=length,
@@ -261,43 +359,6 @@ def element_from_tao(
             Bz0=info["BS_FIELD"],
             file_id=-1,  # TODO?
             radius=radius,  # TODO arbitrary
-            misalignment_error_x=offset_x,
-            misalignment_error_y=offset_y,
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=info["TILT_TOT"],
-        )
-
-    if key in {"sextupole", "octupole"}:  # , "decapole"}:
-        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
-            raise NotImplementedError("Z offset not supported for Solenoid")
-
-        # confirmed by Ji as T/m^n (1/30/2025)
-        field_strength_key = {
-            "sextupole": "B2_GRADIENT",
-            "octupole": "B3_GRADIENT",
-            # "decapole": "k4",
-            # "dodecapole": "k5",
-        }[key]
-
-        radius = get_element_radius(
-            info["X1_LIMIT"],
-            info["X2_LIMIT"],
-            info["Y1_LIMIT"],
-            info["Y2_LIMIT"],
-            default=1,
-        )
-
-        return Multipole(
-            name=name,
-            length=length,
-            steps=info["NUM_STEPS"],
-            map_steps=default_map_steps,
-            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-            multipole_type=MultipoleType[key],
-            field_strength=info[field_strength_key],
-            file_id=-1,  # TODO?
-            radius=radius,
             misalignment_error_x=offset_x,
             misalignment_error_y=offset_y,
             rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?

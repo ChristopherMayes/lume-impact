@@ -51,6 +51,7 @@ comparison_lattices = [
     "quad.bmad",
     "sextupole.bmad",
     "solenoid.bmad",
+    "decapole.bmad",
     "optics_matching.bmad",
 ]
 
@@ -115,5 +116,17 @@ def test_compare_sxy(
     plt.legend()
     plt.show()
 
+    fig.suptitle(f"{request.node.name} (interp)")
+    ax0.plot(z, x, label="Impact-Z")
+    ax0.plot(z, x_tao_interp, "--", label="Tao (interpolated)")
+    ax0.set_ylabel(r"$x$ (m)")
+
+    ax1.plot(z, y, label="Impact-Z")
+    ax1.plot(z, y_tao_interp, "--", label="Tao (interpolated)")
+    ax1.set_ylabel(r"$y$ (m)")
+    ax1.set_xlabel(r"$s$ (m)")
+
+    plt.legend()
+    plt.show()
     np.testing.assert_allclose(actual=x, desired=x_tao_interp, atol=1e-4)
     np.testing.assert_allclose(actual=y, desired=y_tao_interp)
