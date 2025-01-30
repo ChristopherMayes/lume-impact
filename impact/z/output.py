@@ -25,8 +25,10 @@ from .types import (
     NDArray,
 )
 from .units import (
+    AmperesArray,
     Degrees,
     DegreesArray,
+    eVArray,
     MeVArray,
     Meters,
     MeV,
@@ -178,13 +180,13 @@ class ImpactZSlices(BaseModel):
         Y mismatch factor.
     """
 
-    bunch_length: NDArray = np.zeros(0)
+    bunch_length: MetersArray = np.zeros(0)
     particles_per_slice: NDArray = np.zeros(0)
-    current_per_slice: NDArray = np.zeros(0)
+    current_per_slice: AmperesArray = np.zeros(0)
     normalized_emittance_x: NDArray = np.zeros(0)
     normalized_emittance_y: NDArray = np.zeros(0)
     dE_E: NDArray = np.zeros(0)
-    uncorrelated_energy_spread: NDArray = np.zeros(0)
+    uncorrelated_energy_spread: eVArray = np.zeros(0)
     mean_x: NDArray = np.zeros(0)
     mean_y: NDArray = np.zeros(0)
     mismatch_factor_x: NDArray = np.zeros(0)
@@ -350,7 +352,7 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
         default_factory=_empty_ndarray,
         description="Centroid momentum in the y-direction (rad).",
     )
-    mean_gammabeta_z: MeVArray = pydantic.Field(
+    mean_energy: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Centroid momentum in the z-direction (eV).",
     )
@@ -426,7 +428,7 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
         default_factory=_empty_ndarray,
         description="Twiss parameter alpha for y-direction.",
     )
-    neg_cov_z__gammabeta_z: UnitlessArray = pydantic.Field(
+    twiss_alpha: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Twiss parameter alpha for z-direction.",
     )
@@ -576,10 +578,6 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         if key in ("Ez", "Bz"):
             raise NotImplementedError()
             # return self.centroid_field(component=key[0:2])
-
-        if key == "mean_energy":
-            raise NotImplementedError()
-            # return self.stat("mean_kinetic_energy") + self.mc2
 
         # Allow flipping covariance keys
         if key.startswith("cov_") and key not in self.stats:
@@ -878,11 +876,13 @@ class RmsZ(FortranOutputFileData, file_id=26):
         centroid location (m)
     sigma_z : float
         RMS size (m)
-    mean_gammabeta_z : float
-        Centroid momentum [MeV]
+    mean_energy : float
+        Centroid momentum [eV]
+        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
     sigma_gammabeta_z : float
-        RMS momentum [MeV]
-    neg_cov_z__gammabeta_z : float
+        RMS momentum [eV]
+        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
+    twiss_alpha : float
         Twiss parameter, alpha
     norm_emit_z : float
         normalized RMS emittance [degree-MeV]
@@ -896,9 +896,9 @@ class RmsZ(FortranOutputFileData, file_id=26):
     z: Meters
     mean_z: Meters
     sigma_z: Meters
-    mean_gammabeta_z: MeV
+    mean_energy: MeV
     sigma_gammabeta_z: MeV
-    neg_cov_z__gammabeta_z: Unitless
+    twiss_alpha: Unitless
     norm_emit_z: Meters
 
 
@@ -921,7 +921,8 @@ class MaxAmplitude(FortranOutputFileData, file_id=27):
     max_amplitude_phase : float
         Maximum Phase (degree)
     max_amplitude_energy_dev : float
-        Maximum Energy deviation (MeV)
+        Maximum Energy deviation [eV]
+        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
 
     Notes
     -----
@@ -985,7 +986,8 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
     moment3_phase : float
         phase (degree)
     moment3_energy_deviation : float
-        Energy deviation (MeV)
+        Energy deviation [eV]
+        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
 
     Notes
     -----
@@ -1022,7 +1024,8 @@ class BeamDistribution4th(FortranOutputFileData, file_id=30):
     moment4_phase : float
         Phase (degree)
     moment4_energy_deviation : float
-        Energy deviation (MeV)
+        Energy deviation [eV]
+        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
 
     Notes
     -----
