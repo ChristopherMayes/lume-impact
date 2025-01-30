@@ -212,6 +212,12 @@ def element_from_tao(
         offset_x = 0.0
         offset_y = 0.0
 
+    multipole_info = get_multipole_info(tao, ele_id=ele_id)
+    if multipole_info is not None and key != "thick_multipole":
+        raise NotImplementedError(
+            f"Multipoles not supported for element type key {key!r}"
+        )
+
     if key in {"drift", "pipe", "monitor"}:
         return Drift(
             length=length,
@@ -253,8 +259,7 @@ def element_from_tao(
             # rotation_error_z=info["REF_TILT_TOT"],
         )
 
-    multipole_info = get_multipole_info(tao, ele_id=ele_id)
-    if key in {"sextupole", "octupole"} or multipole_info is not None:
+    if key in {"sextupole", "octupole", "thick_multipole"}:
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Solenoid")
 
@@ -269,11 +274,8 @@ def element_from_tao(
             }[key]
             field_strength = info[field_strength_key]
         else:
-            assert multipole_info is not None
-            # Bmad doesn't have decapole elements, Quads are overloaded with a
-            # B2 moment.
-            if multipole_info.order != MultipoleOrder.decapole:
-                raise ValueError("Decapoles only supported")
+            if multipole_info is None:
+                raise RuntimeError("thick_multipole has no ele:multipoles information")
 
             multipole_type = MultipoleType.decapole
             b4_gradient = (
