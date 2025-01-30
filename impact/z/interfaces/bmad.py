@@ -272,9 +272,10 @@ def element_from_tao(
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Solenoid")
 
+        # confirmed by Ji as T/m^n (1/30/2025)
         field_strength_key = {
-            "sextupole": "K2",
-            "octupole": "K3",
+            "sextupole": "B2_GRADIENT",
+            "octupole": "B3_GRADIENT",
             # "decapole": "k4",
             # "dodecapole": "k5",
         }[key]

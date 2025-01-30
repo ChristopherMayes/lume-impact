@@ -424,7 +424,7 @@ class Multipole(InputElement, element_id=5, has_input_file=True):
     multipole_type : MultipoleType
         The type of multipole element, sextupole, octupole, or decapole.
     field_strength : float, optional
-        The strength of the magnetic field.
+        The strength of the magnetic field.  Units of T/m^n.
     file_id : float, optional
         Identifier for related input data file.
     radius : float, optional
