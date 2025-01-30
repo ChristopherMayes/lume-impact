@@ -9,8 +9,8 @@ from pmd_beamphysics import ParticleGroup
 from pydantic import Field
 
 from pmd_beamphysics.particles import c_light
+from pmd_beamphysics.species import mass_of
 
-from ..particles import SPECIES_MASS
 from .parsers import fix_line
 from .types import AnyPath, BaseModel, NDArray
 
@@ -163,7 +163,7 @@ class ImpactZParticles(BaseModel):
         Convert ImpactZ particles to ParticleGroup.
         """
 
-        species_mass = SPECIES_MASS[species]
+        species_mass = mass_of(species)
 
         if check_species:
             if species == "electron":

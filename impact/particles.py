@@ -8,13 +8,6 @@ c_light = 299792458
 e_charge = scipy.constants.e
 
 
-SPECIES_MASS = {
-    "electron": m_e,
-    "positron": m_e,
-    "proton": m_p,
-}
-
-
 def identify_species(mass_eV, charge_sign):
     """
     Simple function to identify a species based on its mass in eV and charge sign.

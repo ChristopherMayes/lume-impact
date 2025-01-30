@@ -8,7 +8,6 @@ import tempfile
 from typing import Any, Dict, NamedTuple, TypedDict, cast
 
 import numpy as np
-from ...particles import SPECIES_MASS
 from ..input import (
     AnyInputElement,
     Dipole,
@@ -17,6 +16,8 @@ from ..input import (
     Solenoid,
     WriteFull,
 )
+
+from pmd_beamphysics.species import charge_state, mass_of
 from pmd_beamphysics import ParticleGroup
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
@@ -439,15 +440,8 @@ def input_from_tao(
     branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
     branch_particle: str = branch1["param_particle"]
 
-    reference_particle_charge = {
-        "electron": -1.0,
-        "positron": 1.0,
-    }.get(branch_particle.lower(), 0.0)
-
-    try:
-        species_mass = SPECIES_MASS[branch_particle.lower()]
-    except KeyError:
-        raise RuntimeError(f"Unsupported branch particle type: {branch_particle}")
+    reference_particle_charge = charge_state(branch_particle.lower())
+    species_mass = mass_of(branch_particle.lower())
 
     initial_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
 

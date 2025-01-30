@@ -1,5 +1,6 @@
+from pmd_beamphysics.species import mass_of
 from . import tools, fieldmaps
-from .particles import SPECIES_MASS, identify_species
+from .particles import identify_species
 from impact.tools import parse_float
 from pmd_beamphysics.units import unit, multiply_units
 
@@ -224,16 +225,16 @@ def header_str(H):
     dist_type = distrubution_type(H["Flagdist"])
 
     summary = f"""================ Impact-T Summary ================
-{H['Np']} particles
+{H["Np"]} particles
 {Nbunch} bunch of {species}s
 total charge: {qb_pC} pC
 Distribution type: {dist_type}
 {start_condition}
-Processor domain: {H['Nprow']} x {H['Npcol']} = {H['Nprow']*H['Npcol']} CPUs
-Space charge grid: {H['Nx']} x {H['Ny']} x {H['Nz']}
-Maximum time steps: {H['Ntstep']}
-Reference Frequency: {H['Bfreq']} Hz
-Initial reference time: {H['Tini']} s
+Processor domain: {H["Nprow"]} x {H["Npcol"]} = {H["Nprow"] * H["Npcol"]} CPUs
+Space charge grid: {H["Nx"]} x {H["Ny"]} x {H["Nz"]}
+Maximum time steps: {H["Ntstep"]}
+Reference Frequency: {H["Bfreq"]} Hz
+Initial reference time: {H["Tini"]} s
 {restart_condition}
 =================================================
 """
@@ -2333,7 +2334,7 @@ def load_stats(path, species="electron", types=FORT_STAT_TYPES, verbose=False):
     data = load_many_fort(path, types=types, verbose=verbose)
     units = {}
 
-    mc2 = SPECIES_MASS[species]
+    mc2 = mass_of(species)
 
     for k in list(data):
         unit_string = UNITS[k]
