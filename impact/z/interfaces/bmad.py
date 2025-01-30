@@ -5,7 +5,7 @@ import logging
 import pathlib
 import tempfile
 
-from typing import Any, Dict, NamedTuple, TypedDict, cast
+from typing import Any, Dict, NamedTuple, TypeAlias, TypedDict, cast
 
 from pmd_beamphysics.particles import c_light
 import numpy as np
@@ -15,6 +15,9 @@ from ..input import (
     Multipole,
     Quadrupole,
     Solenoid,
+    SolenoidWithRFCavity,
+    SuperconductingCavity,
+    TravelingWaveRFCavity,
     WriteFull,
 )
 
@@ -46,7 +49,11 @@ class UnusableElementError(Exception): ...
 class UnsupportedElementError(Exception): ...
 
 
-def ele_head(tao: Tao, ele: str | int, which: str = "model") -> dict:
+def ele_methods(tao: Tao, ele: str | int, which: str = "model") -> dict[str, int | str]:
+    return cast(dict[str, int | str], tao.ele_methods(ele, which=which))
+
+
+def ele_head(tao: Tao, ele: str | int, which: str = "model") -> dict[str, Any]:
     return cast(dict, tao.ele_head(ele, which=which))
 
 
@@ -184,6 +191,30 @@ def get_multipole_info(tao: Tao, ele_id: str | int) -> MultipoleInfo | None:
     return MultipoleInfo(order=order, Bn=d0["Bn"])  # May need another factor
 
 
+CavityClass: TypeAlias = (
+    type[SuperconductingCavity]
+    | type[SolenoidWithRFCavity]
+    | type[TravelingWaveRFCavity]
+)
+
+
+def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:
+    cavity_type = cavity_type.lower()
+    tracking_method = tracking_method.lower()
+
+    if cavity_type == "standing_wave":
+        if tracking_method in {"bmad_standard"}:
+            return SuperconductingCavity
+        if tracking_method in {"runge_kutta", "time_runge_kutta"}:
+            return SolenoidWithRFCavity
+    elif cavity_type == "traveling_wave":
+        if tracking_method in {"bmad_standard"}:
+            return TravelingWaveRFCavity
+    raise NotImplementedError(
+        f"No mapping of cavity type for {tracking_method=} {cavity_type=}"
+    )
+
+
 def element_from_tao(
     tao: Tao,
     ele_id: str | int,
@@ -192,7 +223,7 @@ def element_from_tao(
     default_map_steps: int = 10,
     enable_csr: bool = False,
     species: str = "electron",
-    verbose: bool = True,
+    verbose: bool = False,
 ) -> AnyInputElement | None:
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
@@ -379,6 +410,75 @@ def element_from_tao(
             rotation_error_z=info["TILT_TOT"],
         )
 
+    if key == "lcavity":
+        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
+            raise NotImplementedError("Z offset not supported for Lcavity")
+        if np.abs(info["X_PITCH_TOT"]) > 0.0:
+            raise NotImplementedError("X pitch not currently supported for Lcavity")
+        if np.abs(info["Y_PITCH_TOT"]) > 0.0:
+            raise NotImplementedError("Y pitch not currently supported for Lcavity")
+
+        radius = get_element_radius(
+            info["X1_LIMIT"],
+            info["X2_LIMIT"],
+            info["Y1_LIMIT"],
+            info["Y2_LIMIT"],
+            default=1,
+        )
+
+        method_info = ele_methods(tao, ele_id, which=which)
+        cls = get_cavity_class(
+            cavity_type=info["CAVITY_TYPE"].lower(),
+            tracking_method=cast(str, method_info["tracking_method"]).lower(),
+        )
+
+        if cls is TravelingWaveRFCavity:
+            kwargs = {
+                "length_for_wakefield": 0.0,
+                "gap_size": 0.0,
+                "theta0": info["PHI0"] * 360.0,
+                "theta1": 0.0,
+                "aperture_size": 0.0,
+                "field_scaling": info["GRADIENT"],
+            }
+        elif cls is SuperconductingCavity:
+            kwargs = {
+                "phase": 0.0,
+                "scale": 0.0,
+            }
+        elif cls is SolenoidWithRFCavity:
+            kwargs = {
+                "length_for_wakefield": 0.0,
+                "gap_size": 0.0,
+                "theta0": info["PHI0"] * 360.0,
+                "theta1": 0.0,
+                "aperture_size": 0.0,
+                "field_scaling": 0.0,
+            }
+        else:
+            raise RuntimeError(f"Unexpected cavity type: {cls=}")
+
+        return cls(
+            name=name,
+            length=length,
+            steps=info["NUM_STEPS"],
+            map_steps=default_map_steps,
+            file_id=0.0,
+            # bz0=0.0,
+            # aperture_size=0.0,
+            # aperture_size_for_wk=0.0,
+            # gap_size_for_wk=0.0,
+            # length_for_wk=0.0,
+            # The radius of the quadrupole, measured in meters.
+            rf_frequency=info["RF_FREQUENCY"],
+            radius=radius,  # TODO is this the aperture radius?
+            misalignment_error_x=offset_x,
+            misalignment_error_y=offset_y,
+            rotation_error_x=0.0,
+            rotation_error_y=0.0,
+            rotation_error_z=-info["TILT_TOT"],
+            **kwargs,
+        )
     if length > 0.0:
         raise UnsupportedElementError(key)
 

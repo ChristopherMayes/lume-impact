@@ -632,9 +632,9 @@ class CCL(InputElement, element_id=103, has_input_file=True):
         with 0 for maximum energy gain).
     radius : float
         Radius of the element in meters.
-    x_misalignment : float
+    misalignment_error_x : float
         X-axis misalignment error in meters.
-    y_misalignment : float
+    misalignment_error_y : float
         Y-axis misalignment error in meters.
     rotation_error_x : float
         Rotation error about the x-axis in radians.
@@ -654,8 +654,8 @@ class CCL(InputElement, element_id=103, has_input_file=True):
     theta0: float = 0.0  # driven phase
     file_id: float = 0.0
     radius: float = 0.0
-    x_misalignment: float = 0.0
-    y_misalignment: float = 0.0
+    misalignment_error_x: float = 0.0
+    misalignment_error_y: float = 0.0
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
@@ -675,7 +675,7 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
         half-element which is computed by numerical integration.
     scale : float
         Field scaling factor.
-    frequency : float
+    rf_frequency : float
         RF frequency in Hz.
     phase : float
         Driven phase in degrees (design phase with 0 for maximum energy gain).
@@ -691,14 +691,14 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
     type_id: Literal[104] = 104
 
     scale: float = 0.0
-    frequency: float = 0.0
+    rf_frequency: float = 0.0
     phase: float = 0.0  # theta0
     file_id: float = 0
     radius: float = 0.0
 
     # TODO not in the docs:
-    x_misalignment: float = 0.0
-    y_misalignment: float = 0.0
+    misalignment_error_x: float = 0.0
+    misalignment_error_y: float = 0.0
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
@@ -753,20 +753,21 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     map_steps: int = 0
     type_id: Literal[105] = 105
 
-    field_scaling: float  # field scaling factor
-    rf_frequency: float  # RF frequency in Hz
-    theta0: float  # driven phase in degrees
-    file_id: float  # input field ID
-    radius: float  # radius in meters
-    misalignment_error_x: float  # x misalignment error in meters
-    misalignment_error_y: float  # y misalignment error in meters
-    rotation_error_x: float  # x rotation error in radians
-    rotation_error_y: float  # y rotation error in radians
-    rotation_error_z: float  # z rotation error in radians
-    bz0: float  # Bz0 in Tesla
-    aperture_size_for_wk: float  # aperture size for wakefield
-    gap_size_for_wk: float  # gap size for wake
-    length_for_wk: float  # length for wake, RF structure wakefield turned on if > 0
+    field_scaling: float = 0.0  # field scaling factor
+    rf_frequency: float = 0.0  # RF frequency in Hz
+    theta0: float = 0.0  # driven phase in degrees
+    file_id: float = 0.0  # input field ID
+    radius: float = 0.0  # radius in meters
+    misalignment_error_x: float = 0.0  # x misalignment error in meters
+    misalignment_error_y: float = 0.0  # y misalignment error in meters
+    rotation_error_x: float = 0.0  # x rotation error in radians
+    rotation_error_y: float = 0.0  # y rotation error in radians
+    rotation_error_z: float = 0.0  # z rotation error in radians
+    bz0: float = 0.0  # Bz0 in Tesla
+    aperture_size_for_wk: float = 0.0  # aperture size for wakefield
+    gap_size_for_wk: float = 0.0  # gap size for wake
+    # length for wake, RF structure wakefield turned on if > 0
+    length_for_wk: float = 0.0
 
 
 class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
@@ -1823,10 +1824,16 @@ class ImpactZInput(BaseModel):
         tao: Tao,
         track_start: str | None = None,
         track_end: str | None = None,
+        **kwargs,
     ) -> ImpactZInput:
         from .interfaces.bmad import input_from_tao
 
-        return input_from_tao(tao, track_start=track_start, track_end=track_end)
+        return input_from_tao(
+            tao,
+            track_start=track_start,
+            track_end=track_end,
+            **kwargs,
+        )
 
     @classmethod
     def _from_parsed_lines(

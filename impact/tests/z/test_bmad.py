@@ -52,6 +52,7 @@ comparison_lattices = [
     "sextupole.bmad",
     "solenoid.bmad",
     "decapole.bmad",
+    "lcavity.bmad",
     "optics_matching.bmad",
 ]
 

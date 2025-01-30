@@ -1,0 +1,18 @@
+parameter[p0c]                      = 10e6
+parameter[particle]                 = Electron
+parameter[geometry] = Open
+
+beginning[beta_a]    = 10
+beginning[beta_b]    = 10
+
+
+swcav: lcavity, L = 1,
+    rf_frequency = 1300e6,
+    voltage = 1e6,
+    phi0=0.1
+
+twcav: swcav, cavity_type = traveling_wave
+
+lat: line = (swcav)
+
+use, lat
