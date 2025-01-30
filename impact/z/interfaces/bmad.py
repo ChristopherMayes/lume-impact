@@ -171,6 +171,22 @@ class MultipoleInfo(NamedTuple):
     Bn: float
 
 
+class _CavityCommon(TypedDict):
+    name: str
+    length: int
+    steps: int
+    map_steps: int
+    file_id: float
+    rf_frequency: float
+    phase_deg: float
+    radius: float
+    misalignment_error_x: float
+    misalignment_error_y: float
+    rotation_error_x: float
+    rotation_error_y: float
+    rotation_error_z: float
+
+
 def get_multipole_info(tao: Tao, ele_id: str | int) -> MultipoleInfo | None:
     info = cast(EleMultipoles, tao.ele_multipoles(ele_id))
     data = info["data"]
@@ -432,53 +448,49 @@ def element_from_tao(
             tracking_method=cast(str, method_info["tracking_method"]).lower(),
         )
 
-        if cls is TravelingWaveRFCavity:
-            kwargs = {
-                "length_for_wakefield": 0.0,
-                "gap_size": 0.0,
-                "theta0": info["PHI0"] * 360.0,
-                "theta1": 0.0,
-                "aperture_size": 0.0,
-                "field_scaling": info["GRADIENT"],
-            }
-        elif cls is SuperconductingCavity:
-            kwargs = {
-                "phase": 0.0,
-                "scale": 0.0,
-            }
-        elif cls is SolenoidWithRFCavity:
-            kwargs = {
-                "length_for_wakefield": 0.0,
-                "gap_size": 0.0,
-                "theta0": info["PHI0"] * 360.0,
-                "theta1": 0.0,
-                "aperture_size": 0.0,
-                "field_scaling": 0.0,
-            }
-        else:
-            raise RuntimeError(f"Unexpected cavity type: {cls=}")
-
-        return cls(
-            name=name,
-            length=length,
-            steps=info["NUM_STEPS"],
-            map_steps=default_map_steps,
-            file_id=0.0,
-            # bz0=0.0,
-            # aperture_size=0.0,
-            # aperture_size_for_wk=0.0,
-            # gap_size_for_wk=0.0,
-            # length_for_wk=0.0,
-            # The radius of the quadrupole, measured in meters.
-            rf_frequency=info["RF_FREQUENCY"],
-            radius=radius,  # TODO is this the aperture radius?
-            misalignment_error_x=offset_x,
-            misalignment_error_y=offset_y,
-            rotation_error_x=0.0,
-            rotation_error_y=0.0,
-            rotation_error_z=-info["TILT_TOT"],
-            **kwargs,
+        common = cast(
+            _CavityCommon,
+            dict(
+                name=str(name),
+                length=length,
+                steps=info["NUM_STEPS"],
+                map_steps=default_map_steps,
+                file_id=0.0,
+                rf_frequency=info["RF_FREQUENCY"],
+                phase_deg=info["PHI0"] * 360.0,
+                radius=radius,  # TODO is this the aperture radius?
+                misalignment_error_x=offset_x,
+                misalignment_error_y=offset_y,
+                rotation_error_x=0.0,
+                rotation_error_y=0.0,
+                rotation_error_z=-float(info["TILT_TOT"]),
+            ),
         )
+        if cls is TravelingWaveRFCavity:
+            return cls(
+                **common,
+                aperture_size_for_wakefield=0.0,
+                field_scaling=info["GRADIENT"],
+                gap_size=0.0,
+                length_for_wakefield=0.0,
+                phase_diff=0.0,
+            )
+        if cls is SuperconductingCavity:
+            return cls(
+                **common,
+                scale=0.0,
+            )
+        if cls is SolenoidWithRFCavity:
+            return cls(
+                **common,
+                aperture_size_for_wakefield=0.0,
+                bz0=0.0,
+                field_scaling=0.0,
+                gap_size_for_wakefield=0.0,
+                length_for_wakefield=0.0,
+            )
+        raise RuntimeError(f"Unexpected cavity type: {cls=}")
+
     if length > 0.0:
         raise UnsupportedElementError(key)
 

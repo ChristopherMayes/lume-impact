@@ -476,7 +476,7 @@ class DTL(InputElement, element_id=101, has_input_file=True):
         Scaling factor for the electrical/magnetic field.
     rf_frequency : float
         RF frequency in Hertz.
-    theta0 : float
+    phase_deg : float
         Driven phase in degrees.
     file_id : float
         Input field ID (using a simple sinusoidal model if ID<0).
@@ -519,7 +519,7 @@ class DTL(InputElement, element_id=101, has_input_file=True):
 
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    theta0: float = 0.0
+    phase_deg: float = 0.0
     file_id: float = 0.0
     radius: float = 0.0
     quad1_length: float = 0.0
@@ -565,7 +565,7 @@ class CCDTL(InputElement, element_id=102, has_input_file=True):
         Field scaling factor.
     rf_frequency : float
         RF frequency in Hertz.
-    theta0 : float
+    phase_deg : float
         Driven phase in degrees.
     file_id : float
         Input field ID (if ID<0, use simple sinusoidal model, only works for the map integrator).
@@ -596,7 +596,7 @@ class CCDTL(InputElement, element_id=102, has_input_file=True):
 
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    theta0: float = 0.0  # theta0
+    phase_deg: float = 0.0  # theta0
     file_id: float = 0.0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
@@ -624,7 +624,7 @@ class CCL(InputElement, element_id=103, has_input_file=True):
         Field scaling factor.
     rf_frequency : float
         RF frequency in Hertz.
-    theta0 : float
+    phase_deg : float
         Driven phase in degrees.
     file_id : float
         Input field ID. If ID < 0, use the simple sinusoidal model
@@ -651,7 +651,7 @@ class CCL(InputElement, element_id=103, has_input_file=True):
 
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    theta0: float = 0.0  # driven phase
+    phase_deg: float = 0.0  # driven phase
     file_id: float = 0.0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
@@ -677,7 +677,7 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
         Field scaling factor.
     rf_frequency : float
         RF frequency in Hz.
-    phase : float
+    phase_deg : float
         Driven phase in degrees (design phase with 0 for maximum energy gain).
     file_id : float
         Input field ID (if ID < 0, only works for the map integrator).
@@ -692,7 +692,7 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
 
     scale: float = 0.0
     rf_frequency: float = 0.0
-    phase: float = 0.0  # theta0
+    phase_deg: float = 0.0  # theta0
     file_id: float = 0
     radius: float = 0.0
 
@@ -722,7 +722,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
         The field scaling factor.
     rf_frequency : float
         The RF frequency in Hertz.
-    theta0 : float
+    phase_deg : float
         The driven phase in degrees.
     file_id : float
         The input field ID.
@@ -740,11 +740,11 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
         The error in rotation about the z-axis in radians.
     bz0 : float
         The Bz0 field value in Tesla.
-    aperture_size_for_wk : float
+    aperture_size_for_wakefield : float
         The aperture size for wakefield computations.
-    gap_size_for_wk : float
+    gap_size_for_wakefield : float
         The gap size for the wake field.
-    length_for_wk : float
+    length_for_wakefield : float
         The length for wake, indicating RF structure wakefield should be turned on if this value is greater than zero.
     """
 
@@ -755,7 +755,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
 
     field_scaling: float = 0.0  # field scaling factor
     rf_frequency: float = 0.0  # RF frequency in Hz
-    theta0: float = 0.0  # driven phase in degrees
+    phase_deg: float = 0.0  # driven phase in degrees
     file_id: float = 0.0  # input field ID
     radius: float = 0.0  # radius in meters
     misalignment_error_x: float = 0.0  # x misalignment error in meters
@@ -764,10 +764,10 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     rotation_error_y: float = 0.0  # y rotation error in radians
     rotation_error_z: float = 0.0  # z rotation error in radians
     bz0: float = 0.0  # Bz0 in Tesla
-    aperture_size_for_wk: float = 0.0  # aperture size for wakefield
-    gap_size_for_wk: float = 0.0  # gap size for wake
+    aperture_size_for_wakefield: float = 0.0  # aperture size for wakefield
+    gap_size_for_wakefield: float = 0.0  # gap size for wake
     # length for wake, RF structure wakefield turned on if > 0
-    length_for_wk: float = 0.0
+    length_for_wakefield: float = 0.0
 
 
 class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
@@ -791,7 +791,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
         Scaling factor for the field.
     rf_frequency : float
         RF frequency, in Hertz.
-    theta0 : float
+    phase_deg : float
         Driven phase in degrees.
     file_id : float
         Input field ID.
@@ -807,9 +807,9 @@ class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
         Rotation errors in x [rad].
     rotation_error_z : float
         Rotation errors in x [rad].
-    theta1 : float
+    phase_diff : float
         Phase difference B and A (pi - beta * d).
-    aperture_size : float
+    aperture_size_for_wakefield : float
         Aperture size for wakefield. An aperture size >0 enables the
         wakefield calculation.
     gap_size : float
@@ -828,7 +828,7 @@ class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
 
     field_scaling: float = 0.0  # scale
     rf_frequency: float = 0.0  # rf freq
-    theta0: float = 0.0  # driven_phase
+    phase_deg: float = 0.0  # driven_phase
     file_id: float = 0.0  # file_id
     radius: float = 0.0  # radius
     misalignment_error_x: float = 0.0
@@ -836,8 +836,8 @@ class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
-    theta1: float = 0.0  # phase diff
-    aperture_size: float = 0.0
+    phase_diff: float = 0.0  # phase diff
+    aperture_size_for_wakefield: float = 0.0
     gap_size: float = 0.0
     length_for_wakefield: float = 0.0
 
@@ -862,7 +862,7 @@ class UserDefinedRFCavity(InputElement, element_id=110, has_input_file=True):
         Scaling factor for the field.
     rf_frequency : float
         RF frequency in Hertz.
-    theta0 : float
+    phase_deg : float
         Driven phase in degrees.
     file_id : float
         ID of the input field.
@@ -898,7 +898,7 @@ class UserDefinedRFCavity(InputElement, element_id=110, has_input_file=True):
 
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
-    theta0: float = 0.0  # driven phase
+    phase_deg: float = 0.0  # driven phase
     file_id: float = 0.0
     radius_x: float = 0.0
     radius_y: float = 0.0
