@@ -299,134 +299,181 @@ def _split_extra(cls: type[BaseModel], dct: dict) -> dict[str, Any]:
 
 class OutputStats(BaseModel, arbitrary_types_allowed=False):
     beta_ref: UnitlessArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Beta of the reference particle."
     )
     charge_state_n_particle: UnitlessArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="The number of particles for each charge state.",
     )
     gamma_ref: UnitlessArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Reference particle gamma."
     )
     kinetic_energy_ref: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Reference particle kinetic energy in MeV. LUME-ImpactZ converts this automatically to eV.",
     )
     loadbalance_max_n_particle: UnitlessArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Maximum number of particles on a processing element (PE).",
     )
     loadbalance_min_n_particle: UnitlessArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Minimum number of particles on a processing element (PE).",
     )
     max_amplitude_energy_dev: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Maximum energy deviation in MeV."
     )
     max_amplitude_gammabeta_x: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Maximum Px (in radians)."
     )
     max_amplitude_gammabeta_y: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Maximum Py (in radians)."
     )
     max_amplitude_phase: DegreesArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Maximum phase (in degrees)."
     )
     max_amplitude_x: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Maximum X (in meters)."
     )
     max_amplitude_y: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Maximum Y (in meters)."
     )
-    max_r: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
+    max_r: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Maximum radius (Rmax) in meters, measured from the axis of the pipe.",
+    )
     mean_gammabeta_x: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Centroid momentum in the x-direction (rad).",
     )
     mean_gammabeta_y: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Centroid momentum in the y-direction (rad).",
     )
     mean_gammabeta_z: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Centroid momentum in the z-direction (eV).",
     )
-    mean_x: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
-    mean_y: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
-    mean_z: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
+    mean_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Centroid location in the x-direction (meters).",
+    )
+    mean_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Centroid location in the y-direction (meters).",
+    )
+    mean_z: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Centroid location in the z-direction (meters).",
+    )
     moment3_energy_deviation: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Third-order central moment for energy deviation (eV).",
     )
     moment3_gammabeta_x: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Third-order central moment for Px (rad).",
     )
     moment3_gammabeta_y: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Third-order central moment for Py (rad).",
     )
     moment3_phase: DegreesArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Third-order central moment for phase (degree).",
     )
     moment3_x: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Third-order central moment for x (meters).",
     )
     moment3_y: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Third-order central moment for y (meters).",
     )
     moment4_energy_deviation: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Fourth-order central moment for energy deviation (eV).",
     )
     moment4_gammabeta_x: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Fourth-order central moment for Px (rad).",
     )
     moment4_gammabeta_y: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Fourth-order central moment for Py (rad).",
     )
     moment4_phase: DegreesArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Fourth-order central moment for phase (degree).",
     )
     moment4_x: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Fourth-order central moment for x (meters).",
     )
     moment4_y: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Fourth-order central moment for y (meters).",
     )
     n_particle: UnitlessArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Total number of particles in the bunch.",
     )
     neg_cov_x__gammabeta_x: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Twiss parameter alpha for x-direction.",
     )
     neg_cov_y__gammabeta_y: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Twiss parameter alpha for y-direction.",
     )
     neg_cov_z__gammabeta_z: UnitlessArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Twiss parameter alpha for z-direction.",
     )
     norm_emit_x: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Normalized RMS emittance in x-direction [m-rad].",
     )
     norm_emit_y: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Normalized RMS emittance in y-direction [m-rad].",
     )
     norm_emit_z: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="Normalized RMS emittance in z-direction [degree-MeV].",
     )
     phase_ref: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray, description="Absolute phase in radians."
     )
     sigma_gammabeta_x: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="RMS momentum in the x-direction (rad).",
     )
     sigma_gammabeta_y: RadiansArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="RMS momentum in the y-direction (rad).",
     )
     sigma_gammabeta_z: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="RMS momentum in the z-direction (eV).",
     )
     sigma_x: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="RMS size in the x-direction (meters).",
     )
     sigma_y: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="RMS size in the y-direction (meters).",
     )
     sigma_z: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray, description=""
+        default_factory=_empty_ndarray,
+        description="RMS size in the z-direction (meters).",
     )
+    z: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Z position (meters)"
+    )
+
     units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
-    z: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
     extra: dict[str, NDArray] = pydantic.Field(
         default_factory=dict,
         description=(
