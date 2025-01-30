@@ -178,6 +178,7 @@ class _CavityCommon(TypedDict):
     map_steps: int
     file_id: float
     rf_frequency: float
+    field_scaling: float
     phase_deg: float
     radius: float
     misalignment_error_x: float
@@ -251,6 +252,9 @@ def element_from_tao(
 
     key = info["key"].lower()
     length = info["L"]
+
+    assert isinstance(key, str)
+    assert isinstance(length, float)
 
     if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
         offset_x = info["X_OFFSET_TOT"] + np.sin(info["X_PITCH_TOT"]) * length / 2.0
@@ -451,16 +455,17 @@ def element_from_tao(
         common = cast(
             _CavityCommon,
             dict(
-                name=str(name),
+                name=name,
                 length=length,
                 steps=info["NUM_STEPS"],
                 map_steps=default_map_steps,
                 file_id=0.0,
-                rf_frequency=info["RF_FREQUENCY"],
-                phase_deg=info["PHI0"] * 360.0,
+                rf_frequency=float(info["RF_FREQUENCY"]),
+                phase_deg=float(info["PHI0"] * 360.0),
                 radius=radius,  # TODO is this the aperture radius?
-                misalignment_error_x=offset_x,
-                misalignment_error_y=offset_y,
+                field_scaling=float(info["GRADIENT"]) * 2.0,
+                misalignment_error_x=float(offset_x),
+                misalignment_error_y=float(offset_y),
                 rotation_error_x=0.0,
                 rotation_error_y=0.0,
                 rotation_error_z=-float(info["TILT_TOT"]),
@@ -470,22 +475,17 @@ def element_from_tao(
             return cls(
                 **common,
                 aperture_size_for_wakefield=0.0,
-                field_scaling=info["GRADIENT"],
                 gap_size=0.0,
                 length_for_wakefield=0.0,
                 phase_diff=0.0,
             )
         if cls is SuperconductingCavity:
-            return cls(
-                **common,
-                scale=0.0,
-            )
+            return cls(**common)
         if cls is SolenoidWithRFCavity:
             return cls(
                 **common,
                 aperture_size_for_wakefield=0.0,
                 bz0=0.0,
-                field_scaling=0.0,
                 gap_size_for_wakefield=0.0,
                 length_for_wakefield=0.0,
             )

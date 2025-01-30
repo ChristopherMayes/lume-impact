@@ -690,7 +690,7 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
     map_steps: int = 0
     type_id: Literal[104] = 104
 
-    scale: float = 0.0
+    field_scaling: float = 0.0
     rf_frequency: float = 0.0
     phase_deg: float = 0.0  # theta0
     file_id: float = 0
