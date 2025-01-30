@@ -1,6 +1,6 @@
-parameter[p0c]                      = 10e6
-parameter[particle]                 = Electron
-parameter[geometry] = Open
+parameter[e_tot]    = 10e6
+parameter[particle] = electron
+parameter[geometry] = open
 
 beginning[beta_a]    = 10
 beginning[beta_b]    = 10
@@ -11,8 +11,8 @@ swcav: lcavity, L = 1,
     voltage = 1e6,
     phi0=0.1
 
-twcav: swcav, cavity_type = traveling_wave
+twcav: swcav, cavity_type = traveling_wave, num_steps = 10
 
-lat: line = (swcav)
+lat: line = (twcav)
 
 use, lat
