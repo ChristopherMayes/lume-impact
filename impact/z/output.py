@@ -646,7 +646,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
                 particles_raw[key] = raw
                 phase_ref = stats.phase_ref[z_end_idx]
                 particles[key] = raw.to_particle_group(
-                    reference_kinetic_energy=input.initial_kinetic_energy,
+                    reference_kinetic_energy=input.reference_kinetic_energy,
                     reference_frequency=input.reference_frequency,
                     phase_reference=phase_ref,
                 )

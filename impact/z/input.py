@@ -1791,7 +1791,7 @@ class ImpactZInput(BaseModel):
 
     # Line 11
     average_current: float = 1.0
-    initial_kinetic_energy: float = 0.0
+    reference_kinetic_energy: float = 0.0
     reference_particle_mass: float = 0.0
     reference_particle_charge: float = 0.0
     reference_frequency: float = 0.0
@@ -1914,7 +1914,7 @@ class ImpactZInput(BaseModel):
 
         (
             res.average_current,
-            res.initial_kinetic_energy,
+            res.reference_kinetic_energy,
             res.reference_particle_mass,
             res.reference_particle_charge,
             res.reference_frequency,
@@ -1972,8 +1972,8 @@ class ImpactZInput(BaseModel):
 {self.twiss_alpha_y:.20g} {self.twiss_beta_y:.20g} {self.twiss_norm_emit_y:.20g} {self.twiss_mismatch_y:.20g} {self.twiss_mismatch_py:.20g} {self.twiss_offset_y:.20g} {self.twiss_offset_py:.20g}
 ! twiss_alpha_z twiss_beta_z twiss_norm_emit_z twiss_mismatch_z twiss_mismatch_e_z twiss_offset_phase_z twiss_offset_energy_z
 {self.twiss_alpha_z:.20g} {self.twiss_beta_z:.20g} {self.twiss_norm_emit_z:.20g} {self.twiss_mismatch_z:.20g} {self.twiss_mismatch_e_z:.20g} {self.twiss_offset_phase_z:.20g} {self.twiss_offset_energy_z:.20g}
-! average_current initial_kinetic_energy reference_particle_mass reference_particle_charge reference_frequency initial_phase_ref
-{self.average_current:.20g} {self.initial_kinetic_energy:.20g} {self.reference_particle_mass:.20g} {self.reference_particle_charge:.20g} {self.reference_frequency:.20g} {self.initial_phase_ref:.20g}
+! average_current reference_kinetic_energy reference_particle_mass reference_particle_charge reference_frequency initial_phase_ref
+{self.average_current:.20g} {self.reference_kinetic_energy:.20g} {self.reference_particle_mass:.20g} {self.reference_particle_charge:.20g} {self.reference_frequency:.20g} {self.initial_phase_ref:.20g}
 ! ** lattice **
 {lattice}
         """.strip()
@@ -2006,13 +2006,13 @@ class ImpactZInput(BaseModel):
             iz_particles = ImpactZParticles.from_particle_group(
                 self.initial_particles,
                 reference_frequency=self.reference_frequency,
-                reference_kinetic_energy=self.initial_kinetic_energy,
+                reference_kinetic_energy=self.reference_kinetic_energy,
             )
             iz_particles.write_impact(particles_path)
             # TODO: support this in openpmd-beamphysics
             # self.initial_particles.write_impact(
             #     str(particles_path),
-            #     cathode_kinetic_energy_ref=self.initial_kinetic_energy,
+            #     cathode_kinetic_energy_ref=self.reference_kinetic_energy,
             # )
             extra_paths.append(particles_path)
 

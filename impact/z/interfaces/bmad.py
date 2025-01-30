@@ -547,7 +547,7 @@ def input_from_tao(
     reference_particle_charge = charge_state(branch_particle.lower())
     species_mass = mass_of(branch_particle.lower())
 
-    initial_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
+    reference_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
 
     omega = 2 * np.pi * reference_frequency
     initial_phase_ref = start_head["ref_time"] * omega
@@ -631,7 +631,7 @@ def input_from_tao(
         twiss_offset_px=start_ele_orbit["px"],
         twiss_offset_py=start_ele_orbit["py"],
         average_current=0.0,  # TODO users must set this if they want space charge calcs
-        initial_kinetic_energy=initial_kinetic_energy,
+        reference_kinetic_energy=reference_kinetic_energy,
         reference_particle_mass=species_mass,
         reference_particle_charge=reference_particle_charge,
         reference_frequency=reference_frequency,
