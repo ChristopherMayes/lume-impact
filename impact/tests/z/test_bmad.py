@@ -94,9 +94,9 @@ def test_compare_sxy(
 
     # P1 = output.particles["final_particles"]
 
-    z = output.stats["z"]
-    x = output.stats["mean_x"]
-    y = output.stats["mean_y"]
+    z = output.stats.z
+    x = output.stats.mean_x
+    y = output.stats.mean_y
 
     x_tao_interp = np.interp(z, s_tao, x_tao)
     y_tao_interp = np.interp(z, s_tao, y_tao)

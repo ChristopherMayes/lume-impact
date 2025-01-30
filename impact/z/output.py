@@ -24,7 +24,19 @@ from .types import (
     SequenceBaseModel,
     NDArray,
 )
-from .units import Degrees, Meters, MeV, Radians, Unitless, known_unit
+from .units import (
+    Degrees,
+    DegreesArray,
+    MeVArray,
+    Meters,
+    MeV,
+    MetersArray,
+    Radians,
+    RadiansArray,
+    Unitless,
+    UnitlessArray,
+    known_unit,
+)
 
 try:
     from collections.abc import Mapping
@@ -272,6 +284,169 @@ class ImpactZSlices(BaseModel):
         return cls.from_contents(contents, filename=filename)
 
 
+def _empty_ndarray():
+    return np.zeros(0)
+
+
+def _split_extra(cls: type[BaseModel], dct: dict) -> dict[str, Any]:
+    extra = dct.pop("extra", {})
+    assert isinstance(extra, dict)
+    # Don't let computed fields make it into 'extra':
+    for fld in cls.model_computed_fields:
+        dct.pop(fld, None)
+    return {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
+
+
+class OutputStats(BaseModel, arbitrary_types_allowed=False):
+    beta_ref: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    charge_state_n_particle: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    gamma_ref: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    kinetic_energy_ref: MeVArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    loadbalance_max_n_particle: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    loadbalance_min_n_particle: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    max_amplitude_energy_dev: MeVArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    max_amplitude_gammabeta_x: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    max_amplitude_gammabeta_y: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    max_amplitude_phase: DegreesArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    max_amplitude_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    max_amplitude_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    max_r: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
+    mean_gammabeta_x: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    mean_gammabeta_y: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    mean_gammabeta_z: MeVArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    mean_x: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
+    mean_y: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
+    mean_z: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
+    moment3_energy_deviation: MeVArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment3_gammabeta_x: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment3_gammabeta_y: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment3_phase: DegreesArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment3_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment3_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment4_energy_deviation: MeVArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment4_gammabeta_x: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment4_gammabeta_y: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment4_phase: DegreesArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment4_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    moment4_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    n_particle: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    neg_cov_x__gammabeta_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    neg_cov_y__gammabeta_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    neg_cov_z__gammabeta_z: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    norm_emit_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    norm_emit_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    norm_emit_z: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    phase_ref: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    sigma_gammabeta_x: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    sigma_gammabeta_y: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    sigma_gammabeta_z: MeVArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    sigma_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    sigma_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    sigma_z: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description=""
+    )
+    units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    z: MetersArray = pydantic.Field(default_factory=_empty_ndarray, description="")
+    extra: dict[str, NDArray] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Impact-Z output data.  This is a future-proofing mechanism "
+            "in case Impact-Z changes and LUME-Impact is not yet ready for it."
+        ),
+    )
+
+    @classmethod
+    def from_stats_files(cls, workdir: pathlib.Path) -> OutputStats:
+        stats, units = load_stat_files_from_path(workdir)
+
+        extra = _split_extra(cls, stats)
+        return OutputStats(
+            units=units,
+            extra=extra,
+            **stats,
+        )
+
+
 class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
     """
     IMPACT-Z command output.
@@ -289,7 +464,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         default_factory=RunInfo,
         description="Run-related information - output text and timing.",
     )
-    stats: dict[str, np.ndarray] = pydantic.Field(default={}, repr=False)
+    stats: OutputStats = OutputStats()
     alias: dict[str, str] = pydantic.Field(
         default={
             "-cov_x__gammabeta_x": "neg_cov_x__gammabeta_x",
@@ -397,8 +572,9 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             The output data.
         """
 
-        stats, units = load_stat_files_from_path(workdir)
+        stats = OutputStats.from_stats_files(workdir)
 
+        units = stats.units.copy()
         particles_raw = {}
         particles = {}
         slices = {}
@@ -409,7 +585,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         for ele in input.lattice:
             z_start = z_end
             z_end += ele.length
-            z_end_idx = np.argmin(np.abs(stats["z"] - z_start))
+            z_end_idx = np.argmin(np.abs(stats.z - z_start))
 
             if isinstance(ele, WriteSliceInfo):
                 key = _get_dict_key(slices, ele.file_id, ele.name)
@@ -423,7 +599,7 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
 
                 key = _get_dict_key(particles_raw, ele.file_id, ele.name)
                 particles_raw[key] = raw
-                phase_ref = stats["phase_ref"][z_end_idx]
+                phase_ref = stats.phase_ref[z_end_idx]
                 particles[key] = raw.to_particle_group(
                     reference_kinetic_energy=input.initial_kinetic_energy,
                     reference_frequency=input.reference_frequency,
