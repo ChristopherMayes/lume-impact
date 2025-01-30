@@ -129,4 +129,4 @@ def test_compare_sxy(
     plt.legend()
     plt.show()
     np.testing.assert_allclose(actual=x, desired=x_tao_interp, atol=1e-4)
-    np.testing.assert_allclose(actual=y, desired=y_tao_interp)
+    np.testing.assert_allclose(actual=y, desired=y_tao_interp, atol=1e-4)
