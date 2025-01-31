@@ -47,7 +47,7 @@ def tao_unique_names(tao: Tao):
     return unique_name
 
 
-def ele_info(tao: Tao, ele_id, which="model") -> dict:
+def ele_info(tao: Tao, ele_id, which="model") -> dict[str, float | str | int]:
     """
     Returns a dict of element attributes from ele_head and ele_gen_attribs
     """

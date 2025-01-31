@@ -457,11 +457,11 @@ def element_from_tao(
                 length=length,
                 steps=info["NUM_STEPS"],
                 map_steps=default_map_steps,
-                file_id=0.0,
+                file_id=-1.0,  # TODO: same for all cavity types?
                 rf_frequency=float(info["RF_FREQUENCY"]),
-                phase_deg=float(info["PHI0"] * 360.0),
+                phase_deg=float(info["PHI0"]) * 360.0,
                 radius=radius,  # TODO is this the aperture radius?
-                field_scaling=float(info["GRADIENT"]) * 2.0,
+                field_scaling=float(info["GRADIENT"]),
                 misalignment_error_x=float(offset_x),
                 misalignment_error_y=float(offset_y),
                 rotation_error_x=0.0,
