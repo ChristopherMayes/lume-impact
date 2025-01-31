@@ -504,9 +504,7 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
             **stats,
         )
         res.mean_energy = (
-            reference_kinetic_energy
-            + reference_particle_mass
-            - res.neg_delta_mean_energy
+            res.kinetic_energy_ref + reference_particle_mass - res.neg_delta_mean_energy
         )
         return res
 
@@ -899,7 +897,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
         RMS size (m)
     neg_delta_mean_energy : float
         Negative delta mean energy, used to convert to mean energy [eV]
-        where `mean_energy = reference_kinetic_energy + reference_particle_mass - neg_delta_mean_energy`
+        where `neg_delta_mean_energy = (kinetic_energy_ref - mean_energy) + reference_particle_mass `
         In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
     sigma_gammabeta_z : float
         RMS momentum [eV]
