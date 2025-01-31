@@ -532,7 +532,6 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
     alias: dict[str, str] = pydantic.Field(
         default={
             "-cov_x__gammabeta_x": "neg_cov_x__gammabeta_x",
-            "mean_z": "z",
         },
     )
     particles_raw: dict[str | int, ImpactZParticles] = pydantic.Field(
@@ -565,7 +564,10 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
         # parent, array_attr = self._split_parent_and_attr(key)
         # return getattr(parent, array_attr)
         key = self.alias.get(key, key)
-        return self.stats[key]
+        try:
+            return getattr(self.stats, key)
+        except AttributeError:
+            raise KeyError(key)
 
     @override
     def __iter__(self) -> Generator[str]:
@@ -595,14 +597,14 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
             # return self.centroid_field(component=key[0:2])
 
         # Allow flipping covariance keys
-        if key.startswith("cov_") and key not in self.stats:
+        if key.startswith("cov_") and key not in self:
             k1, k2 = key[4:].split("__")
             key = f"cov_{k2}__{k1}"
 
-        if key not in self.stats:
+        if key not in self:
             raise ValueError(f"{key} is not available in the output data")
 
-        return self.stats[self.alias.get(key, key)]
+        return self[self.alias.get(key, key)]
 
     @classmethod
     def from_input_settings(
