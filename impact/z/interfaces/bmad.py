@@ -17,7 +17,7 @@ from ..input import (
     Solenoid,
     SolenoidWithRFCavity,
     SuperconductingCavity,
-    TravelingWaveRFCavity,
+    CCL,
     WriteFull,
 )
 
@@ -209,9 +209,7 @@ def get_multipole_info(tao: Tao, ele_id: str | int) -> MultipoleInfo | None:
 
 
 CavityClass: TypeAlias = (
-    type[SuperconductingCavity]
-    | type[SolenoidWithRFCavity]
-    | type[TravelingWaveRFCavity]
+    type[SuperconductingCavity] | type[SolenoidWithRFCavity] | type[CCL]
 )
 
 
@@ -226,7 +224,7 @@ def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:
             return SolenoidWithRFCavity
     elif cavity_type == "traveling_wave":
         if tracking_method in {"bmad_standard"}:
-            return TravelingWaveRFCavity
+            return CCL
     raise NotImplementedError(
         f"No mapping of cavity type for {tracking_method=} {cavity_type=}"
     )
@@ -471,15 +469,7 @@ def element_from_tao(
                 rotation_error_z=-float(info["TILT_TOT"]),
             ),
         )
-        if cls is TravelingWaveRFCavity:
-            return cls(
-                **common,
-                aperture_size_for_wakefield=0.0,
-                gap_size=0.0,
-                length_for_wakefield=0.0,
-                phase_diff=0.0,
-            )
-        if cls is SuperconductingCavity:
+        if cls is CCL or cls is SuperconductingCavity:
             return cls(**common)
         if cls is SolenoidWithRFCavity:
             return cls(
