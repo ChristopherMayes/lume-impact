@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import IntEnum
 import logging
+import math
 import pathlib
 import tempfile
 
@@ -249,15 +250,21 @@ def element_from_tao(
     if verbose:
         print_ele_info(ele_id, info)
 
-    key = info["key"].lower()
+    key = str(info["key"]).lower()
     length = info["L"]
 
     assert isinstance(key, str)
     assert isinstance(length, float)
 
     if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
-        offset_x = info["X_OFFSET_TOT"] + np.sin(info["X_PITCH_TOT"]) * length / 2.0
-        offset_y = info["Y_OFFSET_TOT"] - np.sin(info["Y_PITCH_TOT"]) * length / 2.0
+        offset_x = (
+            float(info["X_OFFSET_TOT"])
+            + math.sin(float(info["X_PITCH_TOT"])) * length / 2.0
+        )
+        offset_y = (
+            float(info["Y_OFFSET_TOT"])
+            - math.sin(float(info["Y_PITCH_TOT"])) * length / 2.0
+        )
     else:
         offset_x = 0.0
         offset_y = 0.0
@@ -463,14 +470,18 @@ def element_from_tao(
                 phase_deg=float(info["PHI0"]) * 360.0,
                 radius=radius,  # TODO is this the aperture radius?
                 field_scaling=float(info["GRADIENT"]),
-                misalignment_error_x=float(offset_x),
-                misalignment_error_y=float(offset_y),
+                misalignment_error_x=offset_x,
+                misalignment_error_y=offset_y,
                 rotation_error_x=0.0,
                 rotation_error_y=0.0,
                 rotation_error_z=-float(info["TILT_TOT"]),
             ),
         )
         if cls is CCL or cls is SuperconductingCavity:
+            if cls is CCL and np.abs(offset_x) > 0:
+                logger.warning(f"{offset_x=} for CCL element {name!r} may not work")
+            if cls is CCL and np.abs(offset_y) > 0:
+                logger.warning(f"{offset_y=} for CCL element {name!r} may not work")
             return cls(**common)
         if cls is SolenoidWithRFCavity:
             return cls(
