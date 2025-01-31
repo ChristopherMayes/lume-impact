@@ -1664,6 +1664,10 @@ AnyInputElement = (
 T_InputElement = TypeVar("T_InputElement", bound=InputElement)
 
 
+def load_rfdata_from_file(path: pathlib.Path) -> np.ndarray:
+    return parsers.lines_to_ndarray(parsers.read_input_file(path))
+
+
 def load_file_data_from_lattice(
     lattice: list[AnyInputElement],
     work_dir: pathlib.Path | None = None,
@@ -1679,9 +1683,7 @@ def load_file_data_from_lattice(
             ele_file_id = int(ele.file_id)
             ext_data_fn = work_dir / ele.input_filename
             try:
-                file_data[str(ele_file_id)] = parsers.lines_to_ndarray(
-                    parsers.read_input_file(ext_data_fn)
-                )
+                file_data[str(ele_file_id)] = load_rfdata_from_file(ext_data_fn)
             except FileNotFoundError:
                 logger.warning(
                     f"Referenced file in lattice element {idx} (of type {type(ele).__name__}) "
@@ -2028,16 +2030,23 @@ class ImpactZInput(BaseModel):
                 logger.info(
                     f"Writing file for element {type(ele).__name__}: {fn} (file id={file_id})"
                 )
-                try:
-                    data = self.file_data[str(file_id)]
-                except KeyError:
+
+                keys = [file_id, ele.name] if ele.name else [file_id]
+
+                for key in keys:
+                    try:
+                        data = self.file_data[str(key)]
+                    except KeyError:
+                        pass
+                    else:
+                        np.savetxt(workdir / fn, data)
+                        break
+                else:
                     if error_if_missing:
                         raise FileNotFoundError(f"Missing input file: {fn}")
                     logger.warning(
                         f"Expected input file not found: {fn} (file id={file_id})"
                     )
-                else:
-                    np.savetxt(workdir / fn, data)
 
         return [input_file_path, *extra_paths]
 

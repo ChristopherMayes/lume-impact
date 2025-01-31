@@ -46,6 +46,7 @@ from .input import (
     EnergyModulation,
     KickBeamUsingMultipole,
     HaltExecution,
+    load_rfdata_from_file,
 )
 from .output import ImpactZOutput, ImpactZSlices
 from .particles import ImpactZParticles
@@ -101,4 +102,5 @@ __all__ = [
     "WriteFull",
     "WritePhaseSpaceInfo",
     "WriteSliceInfo",
+    "load_rfdata_from_file",
 ]
