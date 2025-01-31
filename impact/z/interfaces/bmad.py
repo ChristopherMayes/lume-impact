@@ -219,7 +219,8 @@ def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:
 
     if cavity_type == "standing_wave":
         if tracking_method in {"bmad_standard"}:
-            return SuperconductingCavity
+            return CCL
+            # return SuperconductingCavity
         if tracking_method in {"runge_kutta", "time_runge_kutta"}:
             return SolenoidWithRFCavity
     elif cavity_type == "traveling_wave":
