@@ -609,7 +609,7 @@ def input_from_tao(
     reference_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
 
     omega = 2 * np.pi * reference_frequency
-    initial_phase_ref = start_head["ref_time"] * omega
+    initial_phase_ref = float(start_head["ref_time"]) * omega
     tao_global = cast(dict, tao.tao_global())
 
     lattice: list[AnyInputElement] = [

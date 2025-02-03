@@ -2132,7 +2132,7 @@ class ImpactZInput(BaseModel):
                 raise ValueError(
                     "Must specify `current` if `initial_particles` is unset"
                 )
-            current = float(self.initial_particles.charge) / self.reference_frequency
+            current = float(self.initial_particles.charge) * self.reference_frequency
 
         assert np.abs(current) > 0.0
         self.average_current = current
