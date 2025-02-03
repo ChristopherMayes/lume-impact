@@ -12,6 +12,7 @@ from pmd_beamphysics.particles import c_light
 import numpy as np
 from ..input import (
     AnyInputElement,
+    CollimateBeamWithRectangularAperture,
     Dipole,
     Multipole,
     Quadrupole,
@@ -50,12 +51,15 @@ class UnusableElementError(Exception): ...
 class UnsupportedElementError(Exception): ...
 
 
-def ele_methods(tao: Tao, ele: str | int, which: str = "model") -> dict[str, int | str]:
-    return cast(dict[str, int | str], tao.ele_methods(ele, which=which))
+TaoInfoDict: TypeAlias = dict[str, str | float | int]
 
 
-def ele_head(tao: Tao, ele: str | int, which: str = "model") -> dict[str, Any]:
-    return cast(dict, tao.ele_head(ele, which=which))
+def ele_methods(tao: Tao, ele: str | int, which: str = "model") -> TaoInfoDict:
+    return cast(TaoInfoDict, tao.ele_methods(ele, which=which))
+
+
+def ele_head(tao: Tao, ele: str | int, which: str = "model") -> TaoInfoDict:
+    return cast(TaoInfoDict, tao.ele_head(ele, which=which))
 
 
 def get_element_index(
@@ -232,28 +236,20 @@ def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:
     )
 
 
-def element_from_tao(
-    tao: Tao,
+def single_element_from_tao_info(
     ele_id: str | int,
-    which: Which = "model",
+    *,
+    info: TaoInfoDict,
+    ele_methods_info: TaoInfoDict,
+    multipole_info: MultipoleInfo | None,
     name: str = "",
     default_map_steps: int = 10,
-    enable_csr: bool = False,
+    global_csr_flag: bool = False,
     species: str = "electron",
-    verbose: bool = False,
-) -> AnyInputElement | list[AnyInputElement] | None:
-    try:
-        info = ele_info(tao, ele_id=ele_id, which=which)
-    except KeyError:
-        raise UnusableElementError(str(ele_id))
-
-    if verbose:
-        print_ele_info(ele_id, info)
-
+) -> AnyInputElement | None:
     key = str(info["key"]).lower()
-    length = info["L"]
 
-    assert isinstance(key, str)
+    length = info["L"]
     assert isinstance(length, float)
 
     x1_limit = float(info.get("X1_LIMIT", 0.0))
@@ -275,12 +271,6 @@ def element_from_tao(
         offset_x = 0.0
         offset_y = 0.0
 
-    multipole_info = get_multipole_info(tao, ele_id=ele_id)
-    if multipole_info is not None and key != "thick_multipole":
-        raise NotImplementedError(
-            f"Multipoles not supported for element type key {key!r}"
-        )
-
     if key in {"drift", "pipe", "monitor"}:
         return Drift(
             length=length,
@@ -301,6 +291,8 @@ def element_from_tao(
                 f"Impact-Z, this should be 'Full'"
             )
 
+        element_csr_flag = str(ele_methods_info["csr_method"]).lower() == "1_dim"
+        csr = global_csr_flag or element_csr_flag
         return Dipole(
             name=name,
             length=length,
@@ -308,7 +300,7 @@ def element_from_tao(
             map_steps=default_map_steps,
             angle=float(info["ANGLE"]),  # rad
             k1=float(info["K1"]),
-            input_switch=201.0 if enable_csr else 0.0,  # TODO
+            input_switch=201.0 if csr else 0.0,
             hgap=float(info["HGAP"]),
             e1=float(info["E1"]),
             e2=float(info["E2"]),
@@ -426,10 +418,9 @@ def element_from_tao(
         if np.abs(info["Y_PITCH_TOT"]) > 0.0:
             raise NotImplementedError("Y pitch not currently supported for Lcavity")
 
-        method_info = ele_methods(tao, ele_id, which=which)
         cls = get_cavity_class(
             cavity_type=str(info["CAVITY_TYPE"]).lower(),
-            tracking_method=cast(str, method_info["tracking_method"]).lower(),
+            tracking_method=str(ele_methods_info["tracking_method"]).lower(),
         )
 
         common = cast(
@@ -471,6 +462,95 @@ def element_from_tao(
         raise UnsupportedElementError(key)
 
 
+def add_aperture(
+    element: AnyInputElement,
+    aperture_type: str,
+    aperture_at: str,
+    *,
+    x1_limit: float,
+    x2_limit: float,
+    y1_limit: float,
+    y2_limit: float,
+) -> list[AnyInputElement]:
+    radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=1)
+
+    if all(value == 0.0 for value in [x1_limit, x2_limit, y1_limit, y2_limit]):
+        return [element]
+
+    if aperture_type in {"rectangular", "elliptical"}:
+        aperture = CollimateBeamWithRectangularAperture(
+            name=f"{element.name}_aperture",
+            radius=radius,
+            xmin=x1_limit,
+            xmax=x2_limit,
+            ymin=y1_limit,
+            ymax=y2_limit,
+        )
+        if aperture_at == "entrance_end":
+            return [aperture, element]
+        if aperture_at == "exit_end":
+            return [element, aperture]
+
+    return [element]
+
+
+def element_from_tao(
+    tao: Tao,
+    ele_id: str | int,
+    which: Which = "model",
+    name: str = "",
+    default_map_steps: int = 10,
+    global_csr_flag: bool = False,
+    species: str = "electron",
+    verbose: bool = False,
+    include_collimation: bool = True,
+) -> list[AnyInputElement]:
+    try:
+        info = ele_info(tao, ele_id=ele_id, which=which)
+    except KeyError:
+        raise UnusableElementError(str(ele_id))
+
+    if verbose:
+        print_ele_info(ele_id, info)
+
+    key = str(info["key"]).lower()
+
+    multipole_info = get_multipole_info(tao, ele_id=ele_id)
+    if multipole_info is not None and key != "thick_multipole":
+        raise NotImplementedError(
+            f"Multipoles not supported for element type key {key!r}"
+        )
+
+    ele_methods_info = ele_methods(tao, ele_id, which=which)
+
+    inner_ele = single_element_from_tao_info(
+        ele_id=ele_id,
+        info=info,
+        multipole_info=multipole_info,
+        ele_methods_info=ele_methods_info,
+        name=name,
+        default_map_steps=default_map_steps,
+        global_csr_flag=global_csr_flag,
+        species=species,
+    )
+
+    if inner_ele is None:
+        return []
+
+    if not include_collimation:
+        return [inner_ele]
+
+    return add_aperture(
+        inner_ele,
+        x1_limit=float(info.get("X1_LIMIT", 0.0)),
+        x2_limit=float(info.get("X2_LIMIT", 0.0)),
+        y1_limit=float(info.get("Y1_LIMIT", 0.0)),
+        y2_limit=float(info.get("Y2_LIMIT", 0.0)),
+        aperture_type=str(info["aperture_type"]).lower(),
+        aperture_at=str(info["aperture_at"]).lower(),
+    )
+
+
 def input_from_tao(
     tao: Tao,
     track_start: str | None = None,
@@ -490,6 +570,7 @@ def input_from_tao(
     verbose: bool = False,
     initial_particles_file_id: int = 2000,
     final_particles_file_id: int = 2001,
+    include_collimation: bool = True,
 ) -> ImpactZInput:
     idx_to_name = get_index_to_name(
         tao,
@@ -516,6 +597,8 @@ def input_from_tao(
         tao.ele_gen_attribs(str(ix_beginning), which=which),
     )
     start_ele_orbit = cast(dict[str, float], tao.ele_orbit(ix_beginning, which=which))
+    global_csr_flag = cast(dict, tao.bmad_com())["csr_and_space_charge_on"]
+    assert isinstance(global_csr_flag, bool)
 
     branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
     branch_particle: str = branch1["param_particle"]
@@ -541,12 +624,13 @@ def input_from_tao(
                 name=name,
                 verbose=verbose,
                 species=branch_particle.lower(),
+                global_csr_flag=global_csr_flag,
+                include_collimation=include_collimation,
             )
         except UnusableElementError as ex:
             logger.debug("Skipping element: %s (%s)", ele_id, ex)
         else:
-            if z_elem is not None:
-                lattice.append(z_elem)
+            lattice.extend(z_elem)
 
     lattice.append(WriteFull(name="final_particles", file_id=final_particles_file_id))
 
