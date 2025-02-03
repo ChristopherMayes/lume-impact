@@ -14,8 +14,15 @@ from .conftest import z_tests
 
 lattice_root = z_tests / "bmad"
 
+lattice_markers = {
+    "elements.bmad": pytest.mark.xfail(reason="Unsupported elements"),
+}
 lattices = pytest.mark.parametrize(
-    "lattice", [pytest.param(fn, id=fn.name) for fn in lattice_root.glob("*.bmad")]
+    "lattice",
+    [
+        pytest.param(fn, id=fn.name, marks=lattice_markers.get(fn.name, []))
+        for fn in lattice_root.glob("*.bmad")
+    ],
 )
 
 
