@@ -241,7 +241,7 @@ def element_from_tao(
     enable_csr: bool = False,
     species: str = "electron",
     verbose: bool = False,
-) -> AnyInputElement | None:
+) -> AnyInputElement | list[AnyInputElement] | None:
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
     except KeyError:
@@ -255,6 +255,12 @@ def element_from_tao(
 
     assert isinstance(key, str)
     assert isinstance(length, float)
+
+    x1_limit = float(info.get("X1_LIMIT", 0.0))
+    x2_limit = float(info.get("X2_LIMIT", 0.0))
+    y1_limit = float(info.get("Y1_LIMIT", 0.0))
+    y2_limit = float(info.get("Y2_LIMIT", 0.0))
+    radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=1)
 
     if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
         offset_x = (
@@ -279,7 +285,7 @@ def element_from_tao(
         return Drift(
             length=length,
             name=name,
-            steps=info["NUM_STEPS"],
+            steps=int(info["NUM_STEPS"]),
             map_steps=default_map_steps,
             radius=1.0,  # no such thing in bmad, right?
         )
@@ -298,21 +304,21 @@ def element_from_tao(
         return Dipole(
             name=name,
             length=length,
-            steps=info["NUM_STEPS"],
+            steps=int(info["NUM_STEPS"]),
             map_steps=default_map_steps,
-            angle=info["ANGLE"],  # rad
-            k1=info["K1"],
+            angle=float(info["ANGLE"]),  # rad
+            k1=float(info["K1"]),
             input_switch=201.0 if enable_csr else 0.0,  # TODO
-            hgap=info["HGAP"],
-            e1=info["E1"],
-            e2=info["E2"],
+            hgap=float(info["HGAP"]),
+            e1=float(info["E1"]),
+            e2=float(info["E2"]),
             entrance_curvature=0.0,
             exit_curvature=0.0,
-            fint=info["FINT"],
-            # misalignment_error_x=info["X_OFFSET_TOT"],  # or X_OFFSET?
-            # misalignment_error_y=info["Y_OFFSET_TOT"],  # or Y_OFFSET?
-            # rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            # rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
+            fint=float(info["FINT"]),
+            # misalignment_error_x=info["X_OFFSET_TOT"],
+            # misalignment_error_y=info["Y_OFFSET_TOT"],
+            # rotation_error_x=info["X_PITCH_TOT"],
+            # rotation_error_y=info["Y_PITCH_TOT"],
             # rotation_error_z=info["REF_TILT_TOT"],
         )
 
@@ -329,7 +335,7 @@ def element_from_tao(
                 # "decapole": "k4",
                 # "dodecapole": "k5",
             }[key]
-            field_strength = info[field_strength_key]
+            field_strength = float(info[field_strength_key])
         else:
             if multipole_info is None:
                 raise RuntimeError("thick_multipole has no ele:multipoles information")
@@ -339,24 +345,16 @@ def element_from_tao(
                 (4.0 * 3.0 * 2.0)  # 4!
                 * charge_state(species)
                 * multipole_info.Bn
-                * info["P0C"]
+                * float(info["P0C"])
                 / c_light
                 / length
             )
             field_strength = b4_gradient
 
-        radius = get_element_radius(
-            info["X1_LIMIT"],
-            info["X2_LIMIT"],
-            info["Y1_LIMIT"],
-            info["Y2_LIMIT"],
-            default=1,
-        )
-
         return Multipole(
             name=name,
             length=length,
-            steps=info["NUM_STEPS"],
+            steps=int(info["NUM_STEPS"]),
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             multipole_type=multipole_type,
@@ -365,9 +363,9 @@ def element_from_tao(
             radius=radius,
             misalignment_error_x=offset_x,
             misalignment_error_y=offset_y,
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=info["TILT_TOT"],
+            rotation_error_x=float(info["X_PITCH_TOT"]),
+            rotation_error_y=float(info["Y_PITCH_TOT"]),
+            rotation_error_z=float(info["TILT_TOT"]),
         )
 
     if key == "quadrupole":
@@ -378,21 +376,13 @@ def element_from_tao(
         if np.abs(info["Y_PITCH_TOT"]) > 0.0:
             raise NotImplementedError("Y pitch not currently supported for Quadrupole")
 
-        radius = get_element_radius(
-            info["X1_LIMIT"],
-            info["X2_LIMIT"],
-            info["Y1_LIMIT"],
-            info["Y2_LIMIT"],
-            default=1,
-        )
-
         return Quadrupole(
             name=name,
             length=length,
-            steps=info["NUM_STEPS"],
+            steps=int(info["NUM_STEPS"]),
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-            k1=info["K1"],  # NOTE: 1/m^2 (this is not actually )
+            k1=float(info["K1"]),  # NOTE: 1/m^2 (this is not actually )
             # file_id : float
             #     An ID for the input gradient file. Determines profile behavior:
             #     if greater than 0, a fringe field profile is read; if less than -10,
@@ -404,36 +394,28 @@ def element_from_tao(
             radius=radius,  # TODO is this the aperture radius?
             misalignment_error_x=offset_x,
             misalignment_error_y=offset_y,
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=-info["TILT_TOT"],
+            rotation_error_x=float(info["X_PITCH_TOT"]),
+            rotation_error_y=float(info["Y_PITCH_TOT"]),
+            rotation_error_z=-float(info["TILT_TOT"]),
         )
     if key == "solenoid":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Solenoid")
 
-        radius = get_element_radius(
-            info["X1_LIMIT"],
-            info["X2_LIMIT"],
-            info["Y1_LIMIT"],
-            info["Y2_LIMIT"],
-            default=1,
-        )
-
         return Solenoid(
             name=name,
             length=length,
-            steps=info["NUM_STEPS"],
+            steps=int(info["NUM_STEPS"]),
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-            Bz0=info["BS_FIELD"],
+            Bz0=float(info["BS_FIELD"]),
             file_id=-1,  # TODO?
             radius=radius,  # TODO arbitrary
             misalignment_error_x=offset_x,
             misalignment_error_y=offset_y,
-            rotation_error_x=info["X_PITCH_TOT"],  # or X_PITCH?
-            rotation_error_y=info["Y_PITCH_TOT"],  # or Y_PITCH?
-            rotation_error_z=info["TILT_TOT"],
+            rotation_error_x=float(info["X_PITCH_TOT"]),
+            rotation_error_y=float(info["Y_PITCH_TOT"]),
+            rotation_error_z=float(info["TILT_TOT"]),
         )
 
     if key == "lcavity":
@@ -444,17 +426,9 @@ def element_from_tao(
         if np.abs(info["Y_PITCH_TOT"]) > 0.0:
             raise NotImplementedError("Y pitch not currently supported for Lcavity")
 
-        radius = get_element_radius(
-            info["X1_LIMIT"],
-            info["X2_LIMIT"],
-            info["Y1_LIMIT"],
-            info["Y2_LIMIT"],
-            default=1,
-        )
-
         method_info = ele_methods(tao, ele_id, which=which)
         cls = get_cavity_class(
-            cavity_type=info["CAVITY_TYPE"].lower(),
+            cavity_type=str(info["CAVITY_TYPE"]).lower(),
             tracking_method=cast(str, method_info["tracking_method"]).lower(),
         )
 
