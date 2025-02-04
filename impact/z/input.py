@@ -14,6 +14,8 @@ import pydantic.alias_generators
 from lume import tools as lume_tools
 from typing_extensions import Protocol, runtime_checkable
 
+from ..impact import suggested_processor_domain
+from .. import tools
 from . import parsers
 from .constants import (
     BoundaryType,
@@ -1804,6 +1806,7 @@ class ImpactZInput(BaseModel):
 
     # Internal
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
+    verbose: bool = False
 
     # User-provided external file data, indexed by number
     file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
@@ -2148,6 +2151,34 @@ class ImpactZInput(BaseModel):
         # Keep particles up-to-date.
         if self.initial_particles is not None and charge > 0.0:
             self.initial_particles.charge = charge
+
+    @property
+    def numprocs(self):
+        """Number of MPI processors."""
+        return self.ncpu_y * self.ncpu_z
+
+    @numprocs.setter
+    def numprocs(self, n: int) -> None:
+        n = int(n)
+        if n < 0:
+            raise ValueError("numprocs must be >= 0")
+        if not n:
+            n = tools.get_suggested_nproc()
+
+        Npcol, Nprow = suggested_processor_domain(self.nz, self.ny, n)
+
+        self.ncpu_y = Npcol
+        self.ncpu_z = Nprow
+
+        if self.use_mpi and n == 1:
+            self.use_mpi = False
+
+        if n > 1 and not self.use_mpi:
+            self.use_mpi = True
+
+        if self.verbose:
+            mpi = "(MPI enabled)" if self.use_mpi else ""
+            print(f"Setting Npcol, Nprow = {Npcol}, {Nprow} {mpi}")
 
     # @property
     # def LOWERs(self) -> list[ELEMENT]:
