@@ -246,6 +246,7 @@ def single_element_from_tao_info(
     default_map_steps: int = 10,
     global_csr_flag: bool = False,
     species: str = "electron",
+    integrator_type: IntegratorType = IntegratorType.linear_map,
 ) -> AnyInputElement | None:
     key = str(info["key"]).lower()
 
@@ -368,13 +369,17 @@ def single_element_from_tao_info(
         if np.abs(info["Y_PITCH_TOT"]) > 0.0:
             raise NotImplementedError("Y pitch not currently supported for Quadrupole")
 
+        k1 = {
+            IntegratorType.linear_map: float(info["K1"]),
+            IntegratorType.runge_kutta: float(info["B1_GRADIENT"]),
+        }[integrator_type]
         return Quadrupole(
             name=name,
             length=length,
             steps=int(info["NUM_STEPS"]),
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
-            k1=float(info["K1"]),  # NOTE: 1/m^2 (this is not actually )
+            k1=k1,
             # file_id : float
             #     An ID for the input gradient file. Determines profile behavior:
             #     if greater than 0, a fringe field profile is read; if less than -10,
@@ -504,6 +509,7 @@ def element_from_tao(
     species: str = "electron",
     verbose: bool = False,
     include_collimation: bool = True,
+    integrator_type: IntegratorType = IntegratorType.linear_map,
 ) -> list[AnyInputElement]:
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
@@ -532,6 +538,7 @@ def element_from_tao(
         default_map_steps=default_map_steps,
         global_csr_flag=global_csr_flag,
         species=species,
+        integrator_type=integrator_type,
     )
 
     if inner_ele is None:
@@ -549,6 +556,26 @@ def element_from_tao(
         aperture_type=str(info["aperture_type"]).lower(),
         aperture_at=str(info["aperture_at"]).lower(),
     )
+
+
+def change_lattice_integrator(
+    tao: Tao,
+    input: ImpactZInput,
+    integrator_type: IntegratorType,
+    elem_to_tao_id: dict[int, list[AnyInputElement]],
+    which: Which = "model",
+) -> None:
+    for ele_id, elems in elem_to_tao_id.items():
+        for elem in elems:
+            if isinstance(elem, Quadrupole):
+                info = ele_info(tao, ele_id, which=which)
+                elem.k1 = {
+                    IntegratorType.linear_map: float(info["K1"]),
+                    IntegratorType.runge_kutta: float(info["B1_GRADIENT"]),
+                }[integrator_type]
+                logger.debug(
+                    f"Updated Quadrupole {elem.name} k1={elem.k1} for {integrator_type}"
+                )
 
 
 def input_from_tao(
@@ -571,6 +598,7 @@ def input_from_tao(
     initial_particles_file_id: int = 2000,
     final_particles_file_id: int = 2001,
     include_collimation: bool = True,
+    integrator_type: IntegratorType = IntegratorType.linear_map,
 ) -> ImpactZInput:
     idx_to_name = get_index_to_name(
         tao,
@@ -615,9 +643,10 @@ def input_from_tao(
     lattice: list[AnyInputElement] = [
         WriteFull(name="initial_particles", file_id=initial_particles_file_id),
     ]
+    tao_id_to_elems: dict[int, list[AnyInputElement]] = {}
     for ele_id, name in idx_to_name.items():
         try:
-            z_elem = element_from_tao(
+            z_elems = element_from_tao(
                 tao,
                 ele_id,
                 which=which,
@@ -626,11 +655,13 @@ def input_from_tao(
                 species=branch_particle.lower(),
                 global_csr_flag=global_csr_flag,
                 include_collimation=include_collimation,
+                integrator_type=integrator_type,
             )
         except UnusableElementError as ex:
             logger.debug("Skipping element: %s (%s)", ele_id, ex)
         else:
-            lattice.extend(z_elem)
+            lattice.extend(z_elems)
+            tao_id_to_elems[ele_id] = z_elems
 
     lattice.append(WriteFull(name="final_particles", file_id=final_particles_file_id))
 
@@ -642,7 +673,7 @@ def input_from_tao(
         # Line 2
         seed=tao_global["random_seed"],
         n_particle=n_particle,
-        integrator_type=IntegratorType.linear_map,
+        integrator_type=integrator_type,
         err=1,
         # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
         diagnostic_type=DiagnosticType.at_given_time,
@@ -700,11 +731,17 @@ def input_from_tao(
         initial_particles=initial_particles,
     )
 
-    if input.multipoles:
+    if input.multipoles and input.integrator_type == IntegratorType.linear_map:
         logger.warning(
             "Slower integrator type Runge-Kutta selected as "
             "Multipoles in Impact-Z require it to function."
         )
         input.integrator_type = IntegratorType.runge_kutta
+        change_lattice_integrator(
+            tao,
+            input,
+            IntegratorType.runge_kutta,
+            tao_id_to_elems,
+        )
 
     return input

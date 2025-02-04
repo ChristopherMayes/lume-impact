@@ -10,6 +10,7 @@ from pmd_beamphysics.units import mec2
 from pytao import SubprocessTao as Tao
 
 from ...z import ImpactZ, ImpactZInput
+from ...z.constants import IntegratorType
 from .conftest import z_tests
 
 lattice_root = z_tests / "bmad"
@@ -70,12 +71,23 @@ positron_lattices = [
 ]
 
 
+@pytest.fixture(
+    params=[IntegratorType.linear_map, IntegratorType.runge_kutta],
+    ids=["linear_map", "runge_kutta"],
+)
+def integrator_type(request: pytest.FixtureRequest) -> IntegratorType:
+    return request.param
+
+
 @pytest.mark.parametrize(
     "lattice",
     [pytest.param(lattice_root / fn, id=fn) for fn in comparison_lattices],
 )
 def test_compare_sxy(
-    request: pytest.FixtureRequest, tmp_path: pathlib.Path, lattice: pathlib.Path
+    request: pytest.FixtureRequest,
+    tmp_path: pathlib.Path,
+    integrator_type: IntegratorType,
+    lattice: pathlib.Path,
 ) -> None:
     energy = 10e6
     pz = np.sqrt(energy**2 - mec2**2)
@@ -85,7 +97,13 @@ def test_compare_sxy(
 
     with Tao(lattice_file=lattice, noplot=True) as tao:
         set_initial_particles(tao, P0, path=tmp_path)
-        input = ImpactZInput.from_tao(tao)
+        input = ImpactZInput.from_tao(tao, integrator_type=integrator_type)
+
+        if input.integrator_type == IntegratorType.runge_kutta:
+            if integrator_type == IntegratorType.linear_map:
+                pytest.skip("Runge-kutta required")
+
+        input.integrator_type = integrator_type
 
         x_tao = np.array(tao.bunch_comb("x"))
         y_tao = np.array(tao.bunch_comb("y"))
