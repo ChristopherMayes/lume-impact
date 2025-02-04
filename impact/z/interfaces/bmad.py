@@ -134,9 +134,9 @@ def print_ele_info(ele_id: str | int, ele_info: dict[str, Any]) -> None:
         print(f"{key}: {value} {units}")
 
 
-def get_element_radius(*limits: float, default=1.0) -> float:
+def get_element_radius(*limits: float, default=0.03) -> float:
     """
-    Calculate the maximum quadrupole radius from the given limits.
+    Calculate the maximum radius from the given limits.
 
     Parameters
     ----------
@@ -146,7 +146,7 @@ def get_element_radius(*limits: float, default=1.0) -> float:
         provided unless relying on the default value.
     default : float, optional
         The default radius to return if none of the provided limits
-        are greater than this value. The default is 1.0.
+        are greater than this value. The default is 0.03 m.
 
     Returns
     -------
@@ -257,7 +257,7 @@ def single_element_from_tao_info(
     x2_limit = float(info.get("X2_LIMIT", 0.0))
     y1_limit = float(info.get("Y1_LIMIT", 0.0))
     y2_limit = float(info.get("Y2_LIMIT", 0.0))
-    radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=1)
+    radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
 
     if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
         offset_x = (
@@ -477,7 +477,7 @@ def add_aperture(
     y1_limit: float,
     y2_limit: float,
 ) -> list[AnyInputElement]:
-    radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=1)
+    radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
 
     if all(value == 0.0 for value in [x1_limit, x2_limit, y1_limit, y2_limit]):
         return [element]
@@ -508,7 +508,7 @@ def element_from_tao(
     global_csr_flag: bool = False,
     species: str = "electron",
     verbose: bool = False,
-    include_collimation: bool = True,
+    include_collimation: bool = False,
     integrator_type: IntegratorType = IntegratorType.linear_map,
 ) -> list[AnyInputElement]:
     try:
@@ -597,7 +597,7 @@ def input_from_tao(
     verbose: bool = False,
     initial_particles_file_id: int = 2000,
     final_particles_file_id: int = 2001,
-    include_collimation: bool = True,
+    include_collimation: bool = False,
     integrator_type: IntegratorType = IntegratorType.linear_map,
 ) -> ImpactZInput:
     idx_to_name = get_index_to_name(
