@@ -271,7 +271,7 @@ def single_element_from_tao_info(
         offset_x = 0.0
         offset_y = 0.0
 
-    if key in {"drift", "pipe", "monitor"}:
+    if key in {"drift", "pipe", "monitor", "instrument"}:
         return Drift(
             length=length,
             name=name,
