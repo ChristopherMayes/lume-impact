@@ -6,7 +6,8 @@ def make_solenoid_rfcavity_rfdata_simple(
     *,
     rf_frequency: float | None = None,
     rf_wavelength: float | None = None,
-    n_cells: int = 1,
+    n_cell: int = 1,
+    L_pad: float = 0.0,
 ) -> np.ndarray:
     """
     Create minimal IMPACT-Z rfdata for the `SolenoidWithRFCavity` element for a
@@ -21,8 +22,10 @@ def make_solenoid_rfcavity_rfdata_simple(
         The RF frequency in Hertz. If specified, rf_wavelength must not be specified.
     rf_wavelength : float or None, optional
         The RF wavelength in meters. If specified, rf_frequency must not be specified.
-    n_cells : int, optional
+    n_cell : int, optional
         Number of cells. Default is 1.
+    L_pad : float, optional
+        Length of padding before and after the element.
 
     Returns
     -------
@@ -44,22 +47,24 @@ def make_solenoid_rfcavity_rfdata_simple(
     if rf_wavelength is None:
         raise ValueError("Either rf_frequency or rf_wavelength must be specified")
 
-    L = rf_wavelength
-    z0 = 0
-    z1 = n_cells * L
+    L_active = rf_wavelength * n_cell / 2
+    L_period = rf_wavelength
+
+    z0 = L_pad
+    z1 = L_active + L_pad
     data = [
         3,  # of Fourier coef. of Ez on axis
         z0,  # distance before the zedge.
         z1,  # distance after the zedge.
-        L,  # length of the Fourier expanded field.
-        0,
-        0,  # cos
-        1,  # sin
-        1.0,  # of Fourier coef. of Bz on axis.
+        L_period,  # length of the Fourier expanded field.
+        0,  # dc term
+        0,  # cos term
+        1,  # sin term
+        1.0,  # of Fourier coef. of Bz on axis, all zeros (required)
         0.0,
         0.0,
         0.0,
         0.0,
-    ]  # Fourier coefficients of the Bz on axis.
+    ]
 
     return np.array(data, dtype=float)

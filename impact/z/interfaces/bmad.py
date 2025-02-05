@@ -1,30 +1,16 @@
 from __future__ import annotations
 
-from enum import IntEnum
 import logging
 import math
 import pathlib
 import tempfile
-
+from enum import IntEnum
 from typing import Any, Dict, NamedTuple, TypeAlias, TypedDict, cast
 
-from pmd_beamphysics.particles import c_light
 import numpy as np
-from ..input import (
-    AnyInputElement,
-    CollimateBeamWithRectangularAperture,
-    Dipole,
-    Multipole,
-    Quadrupole,
-    Solenoid,
-    SolenoidWithRFCavity,
-    SuperconductingCavity,
-    CCL,
-    WriteFull,
-)
-
-from pmd_beamphysics.species import charge_state, mass_of
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.particles import c_light
+from pmd_beamphysics.species import charge_state, mass_of
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
 
@@ -38,8 +24,21 @@ from impact.z.constants import (
     OutputZType,
 )
 
-from ...interfaces.bmad import tao_unique_names, ele_info
+from ...interfaces.bmad import ele_info, tao_unique_names
 from .. import Drift, ImpactZInput
+from ..fieldmaps import make_solenoid_rfcavity_rfdata_simple
+from ..input import (
+    CCL,
+    AnyInputElement,
+    CollimateBeamWithRectangularAperture,
+    Dipole,
+    Multipole,
+    Quadrupole,
+    Solenoid,
+    SolenoidWithRFCavity,
+    SuperconductingCavity,
+    WriteFull,
+)
 
 logger = logging.getLogger(__name__)
 Which = Literal["model", "base", "design"]
@@ -235,7 +234,7 @@ def single_element_from_tao_info(
     species: str = "electron",
     integrator_type: IntegratorType = IntegratorType.linear_map,
     ref_time_start: float | None = None,
-) -> AnyInputElement | None:
+) -> tuple[AnyInputElement, np.ndarray | None] | None:
     key = str(info["key"]).lower()
 
     length = info["L"]
@@ -271,7 +270,7 @@ def single_element_from_tao_info(
             steps=num_steps,
             map_steps=default_map_steps,
             radius=1.0,  # no such thing in bmad, right?
-        )
+        ), None
 
     if key == "sbend":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -305,7 +304,7 @@ def single_element_from_tao_info(
             # rotation_error_x=rotation_error_x,
             # rotation_error_y=rotation_error_y,
             # rotation_error_z=rotation_error_z,
-        )
+        ), None
 
     if key in {"sextupole", "octupole", "thick_multipole"}:
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -351,7 +350,7 @@ def single_element_from_tao_info(
             rotation_error_x=rotation_error_x,
             rotation_error_y=rotation_error_y,
             rotation_error_z=rotation_error_z,
-        )
+        ), None
 
     if key == "quadrupole":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -386,7 +385,7 @@ def single_element_from_tao_info(
             rotation_error_x=rotation_error_x,
             rotation_error_y=rotation_error_y,
             rotation_error_z=-rotation_error_z,
-        )
+        ), None
     if key == "solenoid":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Solenoid")
@@ -405,7 +404,7 @@ def single_element_from_tao_info(
             rotation_error_x=rotation_error_x,
             rotation_error_y=rotation_error_y,
             rotation_error_z=rotation_error_z,
-        )
+        ), None
 
     if key == "lcavity":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -440,25 +439,40 @@ def single_element_from_tao_info(
                 rotation_error_x=0.0,
                 rotation_error_y=0.0,
                 rotation_error_z=-rotation_error_z,
-            )
+            ), None
         if cls is SolenoidWithRFCavity:
             if ref_time_start is None:
                 raise ValueError(f"ref_time_start required for {cls}")
 
             phi0 = float(info["PHI0"])
             rf_frequency = float(info["RF_FREQUENCY"])
+            rf_wavelength = c_light / rf_frequency
             phi0_autoscale = float(info["PHI0_AUTOSCALE"])
             phi0_ref = rf_frequency * ref_time_start
+            n_cell = int(info["N_CELL"])
+            L_active = float(info["L_ACTIVE"])
+            L_pad = (length - L_active) / 2
+
+            beta0 = float(info["P0C_START"]) / float(info["E_TOT_START"])
+
+            # Extra phi0 due to padding
+            phi0_pad = -L_pad / (beta0 * c_light) * rf_frequency
+
+            rf_data = make_solenoid_rfcavity_rfdata_simple(
+                rf_frequency=rf_frequency,
+                n_cell=n_cell,
+                L_pad=L_pad,
+            )
             return cls(
                 name=name,
                 length=length,
-                steps=max((num_steps, 100)),
+                steps=int((length / rf_wavelength) * 180.0),
                 map_steps=default_map_steps,
-                file_id=-1.0,  # TODO: same for all cavity types?
-                rf_frequency=float(info["RF_FREQUENCY"]),
-                phase_deg=(phi0 + phi0_autoscale - phi0_ref + 0.25) * 360.0,
+                file_id=-1.0,  # TODO
+                rf_frequency=rf_frequency,
+                phase_deg=(phi0 + phi0_autoscale - phi0_ref + 0.25 + phi0_pad) * 360.0,
                 radius=radius,
-                field_scaling=-float(info["GRADIENT"]) * 2,
+                field_scaling=-2.0 * float(info["GRADIENT"]) * length / L_active,
                 misalignment_error_x=offset_x,
                 misalignment_error_y=offset_y,
                 rotation_error_x=0.0,
@@ -468,7 +482,7 @@ def single_element_from_tao_info(
                 bz0=0.0,
                 gap_size_for_wakefield=0.0,
                 length_for_wakefield=0.0,
-            )
+            ), rf_data
         raise RuntimeError(f"Unexpected cavity type: {cls=}")
 
     if length > 0.0:
@@ -518,7 +532,8 @@ def element_from_tao(
     verbose: bool = False,
     include_collimation: bool = False,
     integrator_type: IntegratorType = IntegratorType.linear_map,
-) -> list[AnyInputElement]:
+    rfdata_file_id: int = 3000,
+) -> tuple[list[AnyInputElement], dict[int, np.ndarray]]:
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
     except KeyError:
@@ -539,7 +554,7 @@ def element_from_tao(
     ele_ref_time_start = cast(TaoInfoDict, tao.ele_param(ele_id, "ele.ref_time_start"))
     ref_time_start = float(ele_ref_time_start["ele_ref_time_start"])
 
-    inner_ele = single_element_from_tao_info(
+    res = single_element_from_tao_info(
         ele_id=ele_id,
         info=info,
         multipole_info=multipole_info,
@@ -551,16 +566,26 @@ def element_from_tao(
         integrator_type=integrator_type,
         ref_time_start=ref_time_start,
     )
+    if res is None:
+        return [], {}
+
+    inner_ele, rfdata = res
+    data = {}
+
+    if rfdata is not None:
+        assert isinstance(inner_ele, SolenoidWithRFCavity)
+        inner_ele.file_id = rfdata_file_id
+        data[rfdata_file_id] = rfdata
 
     # if isinstance(inner_ele, SolenoidWithRFCavity):
     #     # TODO no aperture support here
     #     return pad_solenoid_with_rf_cavity(inner_ele)
 
     if inner_ele is None:
-        return []
+        return [], data
 
     if not include_collimation:
-        return [inner_ele]
+        return [inner_ele], data
 
     return add_aperture(
         inner_ele,
@@ -570,7 +595,7 @@ def element_from_tao(
         y2_limit=float(info.get("Y2_LIMIT", 0.0)),
         aperture_type=str(info["aperture_type"]).lower(),
         aperture_at=str(info["aperture_at"]).lower(),
-    )
+    ), data
 
 
 def change_lattice_integrator(
@@ -659,9 +684,12 @@ def input_from_tao(
         WriteFull(name="initial_particles", file_id=initial_particles_file_id),
     ]
     tao_id_to_elems: dict[int, list[AnyInputElement]] = {}
+
+    rfdata_file_id = 3000
+    file_data = {}
     for ele_id, name in idx_to_name.items():
         try:
-            z_elems = element_from_tao(
+            z_elems, elem_data = element_from_tao(
                 tao,
                 ele_id,
                 which=which,
@@ -671,6 +699,7 @@ def input_from_tao(
                 global_csr_flag=global_csr_flag,
                 include_collimation=include_collimation,
                 integrator_type=integrator_type,
+                rfdata_file_id=rfdata_file_id,
             )
         except UnusableElementError as ex:
             logger.debug("Skipping element: %s (%s)", ele_id, ex)
@@ -678,6 +707,13 @@ def input_from_tao(
             lattice.extend(z_elems)
             tao_id_to_elems[ele_id] = z_elems
 
+            if elem_data:
+                for key, value in elem_data.items():
+                    file_data[str(key)] = value
+                rfdata_file_id = max(elem_data) + 1
+
+    # TODO
+    # combine_reused_rfdata(z_elems)
     lattice.append(WriteFull(name="final_particles", file_id=final_particles_file_id))
 
     input = ImpactZInput(
@@ -744,6 +780,8 @@ def input_from_tao(
         initial_phase_ref=initial_phase_ref,
         lattice=lattice,
         initial_particles=initial_particles,
+        # External file data
+        file_data=file_data,
     )
 
     if input.multipoles and input.integrator_type == IntegratorType.linear_map:
