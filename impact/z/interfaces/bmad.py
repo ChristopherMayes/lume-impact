@@ -521,6 +521,27 @@ def add_aperture(
     return [element]
 
 
+def ele_has_superpositions(tao: Tao, ele_id: int | str) -> bool:
+    """
+    Check if the specified element has superpositions based on its lord-slave data.
+
+    Parameters
+    ----------
+    tao : Tao
+    ele_id : int or str
+        The identifier (ID) or name of the element.
+
+    Returns
+    -------
+    bool
+    """
+    lord_slave = cast(list[dict], tao.ele_lord_slave(ele_id))
+    if len(lord_slave) == 1:
+        return lord_slave[0]["status"].lower() != "not_a_lord"
+
+    return True
+
+
 def element_from_tao(
     tao: Tao,
     ele_id: str | int,
@@ -538,6 +559,11 @@ def element_from_tao(
         info = ele_info(tao, ele_id=ele_id, which=which)
     except KeyError:
         raise UnusableElementError(str(ele_id))
+
+    if ele_has_superpositions(tao, ele_id):
+        raise NotImplementedError(
+            f"Superpositions are not yet supported (seen in element {ele_id})"
+        )
 
     if verbose:
         print_ele_info(ele_id, info)
