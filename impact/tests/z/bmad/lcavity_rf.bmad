@@ -1,0 +1,28 @@
+parameter[e_tot]    = 10e6
+parameter[particle] = electron
+parameter[geometry] = open
+
+beginning[beta_a]    = 10
+beginning[beta_b]    = 10
+
+rf_frequency = 1300e6
+rf_wavelength = c_light / 1300e6
+n_cell = 9
+
+L_extra = 0.2
+
+P1: pipe, L = 1
+P2: pipe, L = 0
+
+swcav: lcavity, L = rf_wavelength * n_cell / 2 + L_extra,
+    rf_frequency = rf_frequency,
+    voltage = 1e6,
+    n_cell = n_cell, longitudinal=0,
+    tracking_method=runge_kutta,
+    phi0=0
+
+twcav: swcav, cavity_type = traveling_wave, num_steps = 10
+
+lat: line = (P1, swcav, P2)
+
+use, lat
