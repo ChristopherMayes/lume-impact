@@ -312,7 +312,7 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
     )
     kinetic_energy_ref: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Reference particle kinetic energy in MeV. LUME-ImpactZ converts this automatically to eV.",
+        description="Reference particle kinetic energy. (eV)",
     )
     loadbalance_max_n_particle: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -438,15 +438,15 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
     )
     norm_emit_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Normalized RMS emittance in x-direction [m-rad].",
+        description="Normalized RMS emittance in x-direction (m-rad).",
     )
     norm_emit_y: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Normalized RMS emittance in y-direction [m-rad].",
+        description="Normalized RMS emittance in y-direction (m-rad).",
     )
     norm_emit_z: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Normalized RMS emittance in z-direction [degree-MeV].",
+        description="Normalized RMS emittance in z-direction (degree-MeV).",
     )
     phase_ref: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Absolute phase in radians."
@@ -664,8 +664,9 @@ class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
                 key = _get_dict_key(particles_raw, ele.file_id, ele.name)
                 particles_raw[key] = raw
                 phase_ref = stats.phase_ref[z_end_idx]
+                kinetic_energy = stats.kinetic_energy_ref[z_end_idx]
                 particles[key] = raw.to_particle_group(
-                    reference_kinetic_energy=input.reference_kinetic_energy,
+                    reference_kinetic_energy=kinetic_energy,
                     reference_frequency=input.reference_frequency,
                     phase_reference=phase_ref,
                 )
