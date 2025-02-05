@@ -63,6 +63,7 @@ comparison_lattices = [
     "decapole.bmad",
     "lcavity.bmad",
     "optics_matching.bmad",
+    "lcavity_rf.bmad",
 ]
 
 

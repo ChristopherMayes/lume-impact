@@ -760,7 +760,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     field_scaling: float = 0.0  # field scaling factor
     rf_frequency: float = 0.0  # RF frequency in Hz
     phase_deg: float = 0.0  # driven phase in degrees
-    file_id: float = 0.0  # input field ID
+    file_id: float = pydantic.Field(ge=1.0, le=999.0)
     radius: float = 0.0  # radius in meters
     misalignment_error_x: float = 0.0  # x misalignment error in meters
     misalignment_error_y: float = 0.0  # y misalignment error in meters

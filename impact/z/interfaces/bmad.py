@@ -468,7 +468,7 @@ def single_element_from_tao_info(
                 length=length,
                 steps=int((length / rf_wavelength) * 180.0),
                 map_steps=default_map_steps,
-                file_id=-1.0,  # TODO
+                file_id=1.0,
                 rf_frequency=rf_frequency,
                 phase_deg=(phi0 + phi0_autoscale - phi0_ref + 0.25 + phi0_pad) * 360.0,
                 radius=radius,
@@ -532,7 +532,7 @@ def element_from_tao(
     verbose: bool = False,
     include_collimation: bool = False,
     integrator_type: IntegratorType = IntegratorType.linear_map,
-    rfdata_file_id: int = 3000,
+    rfdata_file_id: int = 500,
 ) -> tuple[list[AnyInputElement], dict[int, np.ndarray]]:
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
@@ -685,7 +685,7 @@ def input_from_tao(
     ]
     tao_id_to_elems: dict[int, list[AnyInputElement]] = {}
 
-    rfdata_file_id = 3000
+    rfdata_file_id = 500
     file_data = {}
     for ele_id, name in idx_to_name.items():
         try:
