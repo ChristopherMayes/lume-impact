@@ -257,6 +257,10 @@ def single_element_from_tao_info(
     x2_limit = float(info.get("X2_LIMIT", 0.0))
     y1_limit = float(info.get("Y1_LIMIT", 0.0))
     y2_limit = float(info.get("Y2_LIMIT", 0.0))
+    rotation_error_x = float(info.get("X_PITCH_TOT", 0.0))
+    rotation_error_y = float(info.get("Y_PITCH_TOT", 0.0))
+    rotation_error_z = -float(info.get("TILT_TOT", 0.0))
+    num_steps = int(info.get("NUM_STEPS", 10))
     radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
 
     if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
@@ -276,7 +280,7 @@ def single_element_from_tao_info(
         return Drift(
             length=length,
             name=name,
-            steps=int(info["NUM_STEPS"]),
+            steps=num_steps,
             map_steps=default_map_steps,
             radius=1.0,  # no such thing in bmad, right?
         )
@@ -297,7 +301,7 @@ def single_element_from_tao_info(
         return Dipole(
             name=name,
             length=length,
-            steps=int(info["NUM_STEPS"]),
+            steps=num_steps,
             map_steps=default_map_steps,
             angle=float(info["ANGLE"]),  # rad
             k1=float(info["K1"]),
@@ -310,9 +314,9 @@ def single_element_from_tao_info(
             fint=float(info["FINT"]),
             # misalignment_error_x=info["X_OFFSET_TOT"],
             # misalignment_error_y=info["Y_OFFSET_TOT"],
-            # rotation_error_x=info["X_PITCH_TOT"],
-            # rotation_error_y=info["Y_PITCH_TOT"],
-            # rotation_error_z=info["REF_TILT_TOT"],
+            # rotation_error_x=rotation_error_x,
+            # rotation_error_y=rotation_error_y,
+            # rotation_error_z=rotation_error_z,
         )
 
     if key in {"sextupole", "octupole", "thick_multipole"}:
@@ -347,7 +351,7 @@ def single_element_from_tao_info(
         return Multipole(
             name=name,
             length=length,
-            steps=int(info["NUM_STEPS"]),
+            steps=num_steps,
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             multipole_type=multipole_type,
@@ -356,17 +360,17 @@ def single_element_from_tao_info(
             radius=radius,
             misalignment_error_x=offset_x,
             misalignment_error_y=offset_y,
-            rotation_error_x=float(info["X_PITCH_TOT"]),
-            rotation_error_y=float(info["Y_PITCH_TOT"]),
-            rotation_error_z=float(info["TILT_TOT"]),
+            rotation_error_x=rotation_error_x,
+            rotation_error_y=rotation_error_y,
+            rotation_error_z=rotation_error_z,
         )
 
     if key == "quadrupole":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Quadrupole")
-        if np.abs(info["X_PITCH_TOT"]) > 0.0:
+        if np.abs(rotation_error_x) > 0.0:
             raise NotImplementedError("X pitch not currently supported for Quadrupole")
-        if np.abs(info["Y_PITCH_TOT"]) > 0.0:
+        if np.abs(rotation_error_y) > 0.0:
             raise NotImplementedError("Y pitch not currently supported for Quadrupole")
 
         k1 = {
@@ -376,7 +380,7 @@ def single_element_from_tao_info(
         return Quadrupole(
             name=name,
             length=length,
-            steps=int(info["NUM_STEPS"]),
+            steps=num_steps,
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             k1=k1,
@@ -391,9 +395,9 @@ def single_element_from_tao_info(
             radius=radius,  # TODO is this the aperture radius?
             misalignment_error_x=offset_x,
             misalignment_error_y=offset_y,
-            rotation_error_x=float(info["X_PITCH_TOT"]),
-            rotation_error_y=float(info["Y_PITCH_TOT"]),
-            rotation_error_z=-float(info["TILT_TOT"]),
+            rotation_error_x=rotation_error_x,
+            rotation_error_y=rotation_error_y,
+            rotation_error_z=-rotation_error_z,
         )
     if key == "solenoid":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -402,7 +406,7 @@ def single_element_from_tao_info(
         return Solenoid(
             name=name,
             length=length,
-            steps=int(info["NUM_STEPS"]),
+            steps=num_steps,
             map_steps=default_map_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             Bz0=float(info["BS_FIELD"]),
@@ -410,17 +414,17 @@ def single_element_from_tao_info(
             radius=radius,  # TODO arbitrary
             misalignment_error_x=offset_x,
             misalignment_error_y=offset_y,
-            rotation_error_x=float(info["X_PITCH_TOT"]),
-            rotation_error_y=float(info["Y_PITCH_TOT"]),
-            rotation_error_z=float(info["TILT_TOT"]),
+            rotation_error_x=rotation_error_x,
+            rotation_error_y=rotation_error_y,
+            rotation_error_z=rotation_error_z,
         )
 
     if key == "lcavity":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Lcavity")
-        if np.abs(info["X_PITCH_TOT"]) > 0.0:
+        if np.abs(rotation_error_x) > 0.0:
             raise NotImplementedError("X pitch not currently supported for Lcavity")
-        if np.abs(info["Y_PITCH_TOT"]) > 0.0:
+        if np.abs(rotation_error_y) > 0.0:
             raise NotImplementedError("Y pitch not currently supported for Lcavity")
 
         cls = get_cavity_class(
@@ -433,7 +437,7 @@ def single_element_from_tao_info(
             dict(
                 name=name,
                 length=length,
-                steps=info["NUM_STEPS"],
+                steps=num_steps,
                 map_steps=default_map_steps,
                 file_id=-1.0,  # TODO: same for all cavity types?
                 rf_frequency=float(info["RF_FREQUENCY"]),
@@ -444,7 +448,7 @@ def single_element_from_tao_info(
                 misalignment_error_y=offset_y,
                 rotation_error_x=0.0,
                 rotation_error_y=0.0,
-                rotation_error_z=-float(info["TILT_TOT"]),
+                rotation_error_z=-rotation_error_z,
             ),
         )
         if cls is CCL or cls is SuperconductingCavity:
