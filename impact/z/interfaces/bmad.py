@@ -541,11 +541,10 @@ def ele_has_superpositions(tao: Tao, ele_id: int | str) -> bool:
     -------
     bool
     """
-    lord_slave = cast(list[dict], tao.ele_lord_slave(ele_id))
-    if len(lord_slave) == 1:
-        return lord_slave[0]["status"].lower() != "not_a_lord"
-
-    return True
+    return any(
+        "super" in info["status"].lower()
+        for info in cast(list[dict], tao.ele_lord_slave(ele_id))
+    )
 
 
 def element_from_tao(
