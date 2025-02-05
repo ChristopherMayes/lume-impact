@@ -176,23 +176,6 @@ class MultipoleInfo(NamedTuple):
     Bn: float
 
 
-class _CavityCommon(TypedDict):
-    name: str
-    length: int
-    steps: int
-    map_steps: int
-    file_id: float
-    rf_frequency: float
-    field_scaling: float
-    phase_deg: float
-    radius: float
-    misalignment_error_x: float
-    misalignment_error_y: float
-    rotation_error_x: float
-    rotation_error_y: float
-    rotation_error_z: float
-
-
 def get_multipole_info(tao: Tao, ele_id: str | int) -> MultipoleInfo | None:
     info = cast(EleMultipoles, tao.ele_multipoles(ele_id))
     data = info["data"]
@@ -236,6 +219,10 @@ def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:
     )
 
 
+# def pad_solenoid_with_rf_cavity(ele: SolenoidWithRFCavity, n_cells: int):
+#     if ele.length > (ele.rf_wavelength/2. * n_cells):
+
+
 def single_element_from_tao_info(
     ele_id: str | int,
     *,
@@ -247,6 +234,7 @@ def single_element_from_tao_info(
     global_csr_flag: bool = False,
     species: str = "electron",
     integrator_type: IntegratorType = IntegratorType.linear_map,
+    ref_time_start: float | None = None,
 ) -> AnyInputElement | None:
     key = str(info["key"]).lower()
 
@@ -432,9 +420,12 @@ def single_element_from_tao_info(
             tracking_method=str(ele_methods_info["tracking_method"]).lower(),
         )
 
-        common = cast(
-            _CavityCommon,
-            dict(
+        if cls is CCL or cls is SuperconductingCavity:
+            if cls is CCL and np.abs(offset_x) > 0:
+                logger.warning(f"{offset_x=} for CCL element {name!r} may not work")
+            if cls is CCL and np.abs(offset_y) > 0:
+                logger.warning(f"{offset_y=} for CCL element {name!r} may not work")
+            return cls(
                 name=name,
                 length=length,
                 steps=num_steps,
@@ -449,17 +440,30 @@ def single_element_from_tao_info(
                 rotation_error_x=0.0,
                 rotation_error_y=0.0,
                 rotation_error_z=-rotation_error_z,
-            ),
-        )
-        if cls is CCL or cls is SuperconductingCavity:
-            if cls is CCL and np.abs(offset_x) > 0:
-                logger.warning(f"{offset_x=} for CCL element {name!r} may not work")
-            if cls is CCL and np.abs(offset_y) > 0:
-                logger.warning(f"{offset_y=} for CCL element {name!r} may not work")
-            return cls(**common)
+            )
         if cls is SolenoidWithRFCavity:
+            if ref_time_start is None:
+                raise ValueError(f"ref_time_start required for {cls}")
+
+            phi0 = float(info["PHI0"])
+            rf_frequency = float(info["RF_FREQUENCY"])
+            phi0_autoscale = float(info["PHI0_AUTOSCALE"])
+            phi0_ref = rf_frequency * ref_time_start
             return cls(
-                **common,
+                name=name,
+                length=length,
+                steps=max((num_steps, 100)),
+                map_steps=default_map_steps,
+                file_id=-1.0,  # TODO: same for all cavity types?
+                rf_frequency=float(info["RF_FREQUENCY"]),
+                phase_deg=(phi0 + phi0_autoscale - phi0_ref + 0.25) * 360.0,
+                radius=radius,
+                field_scaling=-float(info["GRADIENT"]) * 2,
+                misalignment_error_x=offset_x,
+                misalignment_error_y=offset_y,
+                rotation_error_x=0.0,
+                rotation_error_y=0.0,
+                rotation_error_z=-rotation_error_z,
                 aperture_size_for_wakefield=0.0,
                 bz0=0.0,
                 gap_size_for_wakefield=0.0,
@@ -532,6 +536,8 @@ def element_from_tao(
         )
 
     ele_methods_info = ele_methods(tao, ele_id, which=which)
+    ele_ref_time_start = cast(TaoInfoDict, tao.ele_param(ele_id, "ele.ref_time_start"))
+    ref_time_start = float(ele_ref_time_start["ele_ref_time_start"])
 
     inner_ele = single_element_from_tao_info(
         ele_id=ele_id,
@@ -543,7 +549,12 @@ def element_from_tao(
         global_csr_flag=global_csr_flag,
         species=species,
         integrator_type=integrator_type,
+        ref_time_start=ref_time_start,
     )
+
+    # if isinstance(inner_ele, SolenoidWithRFCavity):
+    #     # TODO no aperture support here
+    #     return pad_solenoid_with_rf_cavity(inner_ele)
 
     if inner_ele is None:
         return []

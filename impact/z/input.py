@@ -14,6 +14,8 @@ import pydantic.alias_generators
 from lume import tools as lume_tools
 from typing_extensions import Protocol, runtime_checkable
 
+from pmd_beamphysics.particles import c_light
+
 from ..impact import suggested_processor_domain
 from .. import tools
 from . import parsers
@@ -770,6 +772,15 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     gap_size_for_wakefield: float = 0.0  # gap size for wake
     # length for wake, RF structure wakefield turned on if > 0
     length_for_wakefield: float = 0.0
+
+    @property
+    def rf_wavelength(self) -> float:
+        """RF wavelength."""
+        return c_light / self.rf_frequency
+
+    @rf_wavelength.setter
+    def rf_wavelength(self, value: float) -> None:
+        self.rf_frequency = c_light / value
 
 
 class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
