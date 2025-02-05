@@ -234,6 +234,7 @@ def single_element_from_tao_info(
     species: str = "electron",
     integrator_type: IntegratorType = IntegratorType.linear_map,
     ref_time_start: float | None = None,
+    has_superpositions: bool = False,
 ) -> tuple[AnyInputElement, np.ndarray | None] | None:
     key = str(info["key"]).lower()
 
@@ -441,6 +442,11 @@ def single_element_from_tao_info(
                 rotation_error_z=-rotation_error_z,
             ), None
         if cls is SolenoidWithRFCavity:
+            if has_superpositions:
+                raise NotImplementedError(
+                    f"Superpositions are not yet supported (seen in element {ele_id} {info['name']} of key {info['key']})"
+                )
+
             if ref_time_start is None:
                 raise ValueError(f"ref_time_start required for {cls}")
 
@@ -560,11 +566,6 @@ def element_from_tao(
     except KeyError:
         raise UnusableElementError(str(ele_id))
 
-    if ele_has_superpositions(tao, ele_id):
-        raise NotImplementedError(
-            f"Superpositions are not yet supported (seen in element {ele_id})"
-        )
-
     if verbose:
         print_ele_info(ele_id, info)
 
@@ -591,6 +592,7 @@ def element_from_tao(
         species=species,
         integrator_type=integrator_type,
         ref_time_start=ref_time_start,
+        has_superpositions=ele_has_superpositions(tao, ele_id),
     )
     if res is None:
         return [], {}
