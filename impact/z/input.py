@@ -14,6 +14,7 @@ import pydantic.alias_generators
 from lume import tools as lume_tools
 from typing_extensions import Protocol, runtime_checkable
 
+from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.particles import c_light
 
 from ..impact import suggested_processor_domain
@@ -1994,6 +1995,21 @@ class ImpactZInput(BaseModel):
 {lattice}
         """.strip()
 
+    def get_aligned_initial_particles(
+        self, phase_ref: float | None = None
+    ) -> ParticleGroup | None:
+        """A copy of the initial particles, with time shifted to align with the initial phase."""
+        if self.initial_particles is None:
+            return None
+
+        if phase_ref is None:
+            phase_ref = self.initial_phase_ref
+
+        t_offset = phase_ref / (2 * np.pi * self.reference_frequency)
+        particles = self.initial_particles.copy()
+        particles.t = particles.t - t_offset
+        return particles
+
     def write(
         self,
         workdir: AnyPath,
@@ -2016,11 +2032,12 @@ class ImpactZInput(BaseModel):
             print(contents, file=fp)
 
         extra_paths = []
-        if self.initial_particles:
-            # TODO cmayes cathode_kinetic_energy_ref?
+
+        initial_particles = self.get_aligned_initial_particles()
+        if initial_particles:
             particles_path = workdir / "particle.in"
             iz_particles = ImpactZParticles.from_particle_group(
-                self.initial_particles,
+                initial_particles,
                 reference_frequency=self.reference_frequency,
                 reference_kinetic_energy=self.reference_kinetic_energy,
             )
