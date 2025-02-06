@@ -1959,6 +1959,70 @@ class ImpactZInput(BaseModel):
         track_end: str | None = None,
         **kwargs,
     ) -> ImpactZInput:
+        """
+        Create an ImpactZInput object from a Tao instance's lattice.
+
+        This function converts a Tao model into an ImpactZInput by extracting the
+        relevant lattice and particle information, and packages it into a structure
+        suitable for running IMPACT-Z simulations.
+
+        Parameters
+        ----------
+        tao : Tao
+            The Tao instance.
+        track_start : str or None, optional
+            Name of the element in the Tao model where tracking begins.
+            If None, defaults to the first element.
+        track_end : str or None, optional
+            Name of the element in the Tao model where tracking ends.
+            If None, defaults to the last element.
+        radius_x : float, optional
+            The transverse aperture radius in the x-dimension.
+        radius_y : float, optional
+            The transverse aperture radius in the y-dimension.
+        ncpu_y : int, optional
+            Number of processor divisions along the y-axis.
+        ncpu_z : int, optional
+            Number of processor divisions along the z-axis.
+        nx : int, optional
+            Space charge grid mesh points along the x-axis.
+        ny : int, optional
+            Space charge grid mesh points along the y-axis.
+        nz : int, optional
+            Space charge grid mesh points along the z-axis.
+        which : "model", "base", or "design", optional
+            Specifies the source of lattice data used from Tao.
+        ix_uni : int, optional
+            The universe index.
+        ix_branch : int, optional
+            The branch index.
+        reference_frequency : float, optional
+            The reference frequency for IMPACT-Z.
+        verbose : bool, optional
+            If True, prints additional diagnostic information.
+        initial_particles_file_id : int, optional
+            File ID for the initial particle distribution.
+        final_particles_file_id : int, optional
+            File ID for the final particle distribution.
+        initial_rfdata_file_id : int, optional
+            File ID for the first RF data file.
+        initial_write_full_id : int, optional
+            File ID for the first WriteFull instance.
+        write_beam_eles : str or Sequence[str], optional
+            Element(s) by name or Tao-supported match to use at which to write
+            particle data via `WriteFull`.
+        include_collimation : bool, optional
+            If True, includes collimation elements in the lattice conversion.
+            Defaults to False as this doesn't work quite yet.
+        integrator_type : IntegratorType, optional
+            The integrator scheme to be used in the lattice conversion.
+            Defaults to 'linear_map', but this may be switched automatically to
+            Runge-Kutta depending on IMPACT-Z run requirements.
+
+        Returns
+        -------
+        ImpactZInput
+        """
         from .interfaces.bmad import input_from_tao
 
         return input_from_tao(
