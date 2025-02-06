@@ -1823,6 +1823,101 @@ class ImpactZInput(BaseModel):
     # User-provided external file data, indexed by number
     file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
 
+    def write_particles_at(
+        self,
+        elements: Sequence[int | str] | int | str,
+        *,
+        initial_particles: bool = True,
+        final_particles: bool = True,
+        start_file_id: int = 1,
+        suffix: str = "_WRITE",
+        in_place: bool = True,
+    ) -> list[AnyInputElement] | None:
+        """
+        Insert WriteFull elements in the lattice to record particle data at
+        specified points.
+
+        This function inserts WriteFull elements after each given lattice
+        element index or name, and can optionally add them at the beginning and
+        end of the lattice to record initial and final particle data,
+        respectively.
+
+        Parameters
+        ----------
+        elements : Sequence[int | str] or int or str
+            One or more element indices or names where new WriteFull elements
+            will be inserted.
+        initial_particles : bool, optional
+            If True, adds a WriteFull element at the beginning of the lattice
+            to record the initial particle distribution, by default True.
+        final_particles : bool, optional
+            If True, adds a WriteFull element at the end of the lattice to
+            record the final particle distribution, by default True.
+        start_file_id : int, optional
+            The file ID to assign to the first newly- inserted WriteFull
+            element, by default 1.
+        suffix : str, optional
+            Suffix appended to the names of newly inserted WriteFull elements,
+            by default "_WRITE".
+        in_place : bool, optional
+            If True, the lattice is modified in place; otherwise, a new lattice
+            with the modifications is returned, by default True.
+
+        Returns
+        -------
+        list[AnyInputElement] or None
+            If in_place is False, returns the new lattice list with WriteFull
+            elements inserted. If in_place is True, the lattice is modified in
+            place and None is returned.
+
+        Raises
+        ------
+        ValueError
+            If an element name in the input cannot be found in the lattice.
+        """
+        if isinstance(elements, (str, int)):
+            elements = [elements]
+
+        def get_save_indices():
+            by_name = self.by_name
+            for ele in elements:
+                if isinstance(ele, int):
+                    idx = ele
+                else:
+                    try:
+                        idx = new_lattice.index(by_name[ele])
+                    except Exception:
+                        raise ValueError(
+                            f"Element {ele} not found in the lattice. Note that WriteFull elements are not supported here."
+                        )
+                yield idx + 1
+
+        new_lattice: list[AnyInputElement] = [
+            ele for ele in self.lattice if not isinstance(ele, WriteFull)
+        ]
+        save_indices = sorted(set(get_save_indices()), reverse=True)
+
+        file_id = start_file_id
+        for idx in save_indices:
+            ele = new_lattice[idx - 1]
+            if not isinstance(ele, WriteFull):
+                new_lattice.insert(
+                    idx, WriteFull(name=f"{ele.name}{suffix}", file_id=file_id)
+                )
+                file_id += 1
+
+        if initial_particles:
+            new_lattice.insert(
+                0, WriteFull(name="initial_particles", file_id=start_file_id)
+            )
+        if final_particles:
+            new_lattice.append(WriteFull(name="final_particles", file_id=file_id))
+
+        if in_place:
+            self.lattice = new_lattice
+            return
+        return new_lattice
+
     @classmethod
     def from_file(cls, filename: pathlib.Path | str) -> ImpactZInput:
         lines = parsers.read_input_file(filename)
@@ -2102,7 +2197,7 @@ class ImpactZInput(BaseModel):
         lume_tools.make_executable(str(path))
 
     @property
-    def by_name(self) -> dict[str, InputElement]:
+    def by_name(self) -> dict[str, AnyInputElement]:
         return {ele.name: ele for ele in self.lattice if ele.name}
 
     @property
