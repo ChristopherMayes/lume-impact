@@ -5,7 +5,7 @@ import math
 import pathlib
 import tempfile
 from enum import IntEnum
-from typing import Any, Dict, NamedTuple, TypeAlias, TypedDict, cast
+from typing import Any, Dict, Iterable, NamedTuple, Sequence, TypeAlias, TypedDict, cast
 
 import numpy as np
 from pmd_beamphysics import ParticleGroup
@@ -96,6 +96,24 @@ def get_index_to_name(
         for ix_ele, name in idx_to_name.items()
         if ix_start <= ix_ele <= ix_end
     }
+
+
+def get_ele_indices_by_pattern(
+    tao: Tao,
+    patterns: list[str] | str,
+) -> list[int]:
+    if isinstance(patterns, str):
+        patterns = [patterns]
+
+    def all_ids():
+        for pattern in patterns:
+            ids = cast(
+                Iterable[int],  # NDArray[int]
+                tao.lat_list(pattern, "ele.ix_ele", flags="-array_out -no_slaves"),
+            )
+            yield from list(ids)
+
+    return sorted(set(all_ids()))
 
 
 def export_particles(tao: Tao, ele_id: str | int):
@@ -662,8 +680,11 @@ def input_from_tao(
     ix_branch: int = 0,
     reference_frequency: float = 1300000000.0,  # TODO: consider calculating this? it's somewhat arbitrary
     verbose: bool = False,
-    initial_particles_file_id: int = 2000,
-    final_particles_file_id: int = 2001,
+    initial_particles_file_id: int = 100,
+    final_particles_file_id: int = 101,
+    initial_rfdata_file_id: int = 500,
+    initial_write_full_id: int = 200,
+    write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
     include_collimation: bool = False,
     integrator_type: IntegratorType = IntegratorType.linear_map,
 ) -> ImpactZInput:
@@ -712,7 +733,10 @@ def input_from_tao(
     ]
     tao_id_to_elems: dict[int, list[AnyInputElement]] = {}
 
-    rfdata_file_id = 500
+    write_at_ids = get_ele_indices_by_pattern(tao, write_beam_eles)
+    output_file_id = initial_write_full_id
+    rfdata_file_id = initial_rfdata_file_id
+
     file_data = {}
     for ele_id, name in idx_to_name.items():
         try:
@@ -738,6 +762,16 @@ def input_from_tao(
                 for key, value in elem_data.items():
                     file_data[str(key)] = value
                 rfdata_file_id = max(elem_data) + 1
+
+            if ele_id in write_at_ids:
+                if lattice and isinstance(lattice[-1], WriteFull):
+                    # Don't duplicate WriteFulls
+                    pass
+                else:
+                    lattice.append(
+                        WriteFull(name=f"WRITE_{name}", file_id=output_file_id)
+                    )
+                    output_file_id += 1
 
     # TODO
     # combine_reused_rfdata(z_elems)

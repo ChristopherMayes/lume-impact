@@ -2084,11 +2084,12 @@ class ImpactZInput(BaseModel):
     def check(self):
         if self.initial_particles is not None:
             if self.distribution != DistributionZType.read:
-                raise ValueError(
-                    f"Initial particles set to {self.initial_particles}, however "
-                    f"distribution type is set to {self.distribution}. "
-                    f'In order to use initial particles, set `distribution="read"`'
-                )
+                self.distribution = DistributionZType.read
+                # raise ValueError(
+                #     f"Initial particles set to {self.initial_particles}, however "
+                #     f"distribution type is set to {self.distribution}. "
+                #     f'In order to use initial particles, set `distribution="read"`'
+                # )
 
     def write_run_script(
         self,
