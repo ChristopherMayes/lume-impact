@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import logging
 import math
 import pathlib
 import tempfile
+from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Any, Dict, Iterable, NamedTuple, Sequence, TypeAlias, TypedDict, cast
 

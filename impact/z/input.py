@@ -1834,7 +1834,7 @@ class ImpactZInput(BaseModel):
         every: Sequence[type[AnyInputElement]] | type[AnyInputElement] | None = None,
         initial_particles: bool = True,
         final_particles: bool = True,
-        start_file_id: int = 1,
+        start_file_id: int = 100,
         suffix: str = "_WRITE",
         in_place: bool = True,
     ) -> list[AnyInputElement] | None:

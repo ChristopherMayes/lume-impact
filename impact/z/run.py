@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import logging
 import os
 import pathlib
 import platform
+import re
 import shlex
 import shutil
 import traceback
 from time import monotonic
-from typing import Any, ClassVar
+from typing import Any, ClassVar, NamedTuple
 from collections.abc import Sequence
 
 import h5py
@@ -24,7 +26,7 @@ from . import units as units_mod
 from .errors import ImpactRunFailure
 from .input import ImpactZInput
 from .output import ImpactZOutput, RunInfo
-from .tools import read_if_path
+from .tools import is_jupyter, read_if_path
 from .types import AnyPath
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,38 @@ def find_workdir():
         return os.environ.get("SCRATCH")
     else:
         return None
+
+
+_run_update_regex = re.compile(r"enter elment \(type code\):\s*(\d+)\s*(\d+)")
+
+
+class _RunUpdate(NamedTuple):
+    # enter elment (type code):            1          -2
+    element_index: int
+    type_code: int
+
+    @classmethod
+    def from_line(cls, line: str) -> _RunUpdate | None:
+        match = _run_update_regex.match(line.strip())
+        if not match:
+            return None
+
+        element_index, type_code = match.groups()
+        return _RunUpdate(element_index=int(element_index), type_code=int(type_code))
+
+
+@contextmanager
+def _maybe_progress_bar(enable: bool, **kwargs):
+    if is_jupyter():
+        from tqdm.notebook import tqdm
+    else:
+        from tqdm import tqdm
+
+    if enable:
+        with tqdm(**kwargs) as pbar:
+            yield pbar
+    else:
+        yield None
 
 
 class ImpactZ(CommandWrapper):
@@ -238,24 +272,15 @@ class ImpactZ(CommandWrapper):
     @override
     def run(
         self,
-        load_fields: bool = False,
-        load_particles: bool = False,
-        smear: bool = True,
         raise_on_error: bool = True,
         verbose: bool | None = None,
+        progress_bar: bool = True,
     ) -> ImpactZOutput:
         """
         Execute IMPACT-Z with the configured input settings.
 
         Parameters
         ----------
-        load_fields : bool, default=False
-            After execution, load all field files.
-        load_particles : bool, default=False
-            After execution, load all particle files.
-        smear : bool, default=True
-            If set, for particles, this will smear the phase over the sample
-            (skipped) slices, preserving the modulus.
         raise_on_error : bool, default=True
             If it fails to run, raise an error. Depending on the error,
             output information may still be accessible in the ``.output``
@@ -285,37 +310,68 @@ class ImpactZ(CommandWrapper):
 
         self.write_input()
 
-        if self.timeout:
-            self.vprint(
-                f"Timeout of {self.timeout} is being used; output will be "
-                f"displayed after IMPACT-Z exits."
-            )
-            execute_result = tools.execute2(
-                shlex.split(runscript),
-                timeout=self.timeout,
-                cwd=self.path,
-            )
-            self.vprint(execute_result["log"])
-        else:
-            log = []
-            try:
-                for line in tools.execute(shlex.split(runscript), cwd=self.path):
-                    self.vprint(line, end="")
-                    log.append(line)
-            except Exception as ex:
-                log.append(f"IMPACT-Z exited with an error: {ex}")
-                self.vprint(log[-1])
-                execute_result = {
-                    "log": "".join(log),
-                    "error": True,
-                    "why_error": "error",
-                }
+        def update_progress_bar(line: str):
+            assert pbar is not None
+
+            update = _RunUpdate.from_line(line)
+            if update is not None:
+                try:
+                    ele = by_z[update.element_index - 1]
+                except IndexError:
+                    pbar.set_description("On unknown element", refresh=False)
+                else:
+                    pbar.set_description(
+                        f"Element: {ele.ele.name} (z={ele.z_start})",
+                        refresh=False,
+                    )
+
+                pbar.update(update.element_index)
+
+        with _maybe_progress_bar(
+            progress_bar,
+            total=len(self.input.lattice) + 1,
+        ) as pbar:
+            by_z = self.input.by_z
+
+            if self.timeout:
+                self.vprint(
+                    f"Timeout of {self.timeout} is being used; output will be "
+                    f"displayed after IMPACT-Z exits."
+                )
+                execute_result = tools.execute2(
+                    shlex.split(runscript),
+                    timeout=self.timeout,
+                    cwd=self.path,
+                )
+                self.vprint(execute_result["log"])
             else:
-                execute_result = {
-                    "log": "".join(log),
-                    "error": False,
-                    "why_error": "",
-                }
+                log = []
+                try:
+                    for line in tools.execute(shlex.split(runscript), cwd=self.path):
+                        if pbar is not None:
+                            update_progress_bar(line)
+
+                        self.vprint(line, end="")
+                        log.append(line)
+                except Exception as ex:
+                    log.append(f"IMPACT-Z exited with an error: {ex}")
+                    self.vprint(log[-1])
+                    execute_result = {
+                        "log": "".join(log),
+                        "error": True,
+                        "why_error": "error",
+                    }
+                    if pbar is not None:
+                        try:
+                            pbar.leave = True
+                        except Exception:
+                            logger.debug("Failed to set pbar.leave", exc_info=True)
+                else:
+                    execute_result = {
+                        "log": "".join(log),
+                        "error": False,
+                        "why_error": "",
+                    }
 
         end_time = monotonic()
 
@@ -334,11 +390,7 @@ class ImpactZ(CommandWrapper):
         self.vprint(f"{success_or_failure} - execution took {run_info.run_time:0.2f}s.")
 
         try:
-            self.output = self.load_output(
-                load_fields=load_fields,
-                load_particles=load_particles,
-                smear=smear,
-            )
+            self.output = self.load_output()
         except Exception as ex:
             stack = traceback.format_exc()
             run_info.error = True
@@ -598,22 +650,9 @@ class ImpactZ(CommandWrapper):
     @override
     def load_output(
         self,
-        load_fields: bool = False,
-        load_particles: bool = False,
-        smear: bool = True,
     ) -> ImpactZOutput:
         """
         Load the IMPACT-Z output files from disk.
-
-        Parameters
-        ----------
-        load_fields : bool, default=True
-            Load all field files.
-        load_particles : bool, default=True
-            Load all particle files.
-        smear : bool, default=True
-            If set, this will smear the particle phase over the sample
-            (skipped) slices, preserving the modulus.
 
         Returns
         -------
@@ -622,9 +661,6 @@ class ImpactZ(CommandWrapper):
         return ImpactZOutput.from_input_settings(
             input=self.input,
             workdir=pathlib.Path(self.path),
-            #     load_fields=load_fields,
-            #     load_particles=load_particles,
-            #     smear=smear,
         )
 
     @override

@@ -124,7 +124,7 @@ def test_write_particles_initial_final() -> None:
         ]
     )
 
-    input.write_particles_at()
+    input.write_particles_at(start_file_id=1)
     assert input.lattice == [
         WriteFull(name="initial_particles", file_id=1),
         Quadrupole(name="foo"),
@@ -141,7 +141,7 @@ def test_write_particles_at_every() -> None:
         ]
     )
 
-    input.write_particles_at(every=Quadrupole)
+    input.write_particles_at(every=Quadrupole, start_file_id=1)
     assert input.lattice == [
         WriteFull(name="initial_particles", file_id=1),
         Quadrupole(name="foo"),
@@ -160,7 +160,7 @@ def test_write_particles_at_foo() -> None:
         ]
     )
 
-    input.write_particles_at("foo")
+    input.write_particles_at("foo", start_file_id=1)
     assert input.lattice == [
         WriteFull(name="initial_particles", file_id=1),
         Quadrupole(name="foo"),
@@ -179,7 +179,7 @@ def test_write_particles_at_every_multi() -> None:
         ]
     )
 
-    input.write_particles_at("foo", every=Drift)
+    input.write_particles_at("foo", every=Drift, start_file_id=1)
     assert input.lattice == [
         WriteFull(name="initial_particles", file_id=1),
         Quadrupole(name="foo"),
