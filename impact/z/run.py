@@ -71,7 +71,9 @@ def find_workdir():
         return None
 
 
-_run_update_regex = re.compile(r"enter elment \(type code\):\s*(\d+)\s*(\d+)")
+_run_update_regex = re.compile(
+    r"^enter elment \(type code\):\s*(?P<element_index>-?\d+)\s+(?P<type_code>-?\d+)$"
+)
 
 
 class _RunUpdate(NamedTuple):
@@ -85,8 +87,11 @@ class _RunUpdate(NamedTuple):
         if not match:
             return None
 
-        element_index, type_code = match.groups()
-        return _RunUpdate(element_index=int(element_index), type_code=int(type_code))
+        group = match.groupdict()
+        return _RunUpdate(
+            element_index=int(group["element_index"]),
+            type_code=int(group["type_code"]),
+        )
 
 
 @contextmanager
@@ -314,19 +319,27 @@ class ImpactZ(CommandWrapper):
             assert pbar is not None
 
             update = _RunUpdate.from_line(line)
-            if update is not None:
-                try:
-                    ele = by_z[update.element_index - 1]
-                except IndexError:
-                    pbar.set_description("On unknown element")
-                else:
-                    pbar.set_description(f"Element: {ele.ele.name} (z={ele.z_start})")
-
-                pbar.update(update.element_index)
+            if update is None:
+                return
+            try:
+                ele = by_z[update.element_index - 1]
+            except IndexError:
+                pass
+            else:
+                pbar.set_postfix(
+                    {
+                        "Name": ele.ele.name,
+                        "Z": ele.z_start,
+                    },
+                    refresh=False,
+                )
+            pbar.n = update.element_index
+            pbar.refresh()
 
         with _maybe_progress_bar(
             progress_bar,
-            total=len(self.input.lattice) + 1,
+            total=len(self.input.lattice),
+            leave=False,
         ) as pbar:
             by_z = self.input.by_z
 
