@@ -318,12 +318,9 @@ class ImpactZ(CommandWrapper):
                 try:
                     ele = by_z[update.element_index - 1]
                 except IndexError:
-                    pbar.set_description("On unknown element", refresh=False)
+                    pbar.set_description("On unknown element")
                 else:
-                    pbar.set_description(
-                        f"Element: {ele.ele.name} (z={ele.z_start})",
-                        refresh=False,
-                    )
+                    pbar.set_description(f"Element: {ele.ele.name} (z={ele.z_start})")
 
                 pbar.update(update.element_index)
 
