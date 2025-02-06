@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import logging
 import math
 import pathlib
@@ -100,7 +101,7 @@ def get_index_to_name(
 
 def get_ele_indices_by_pattern(
     tao: Tao,
-    patterns: list[str] | str,
+    patterns: Sequence[str] | str,
 ) -> list[int]:
     if isinstance(patterns, str):
         patterns = [patterns]
@@ -663,6 +664,286 @@ def change_lattice_integrator(
                 )
 
 
+@dataclass
+class ConversionState:
+    track_start: str
+    track_end: str
+    reference_frequency: float
+    integrator_type: IntegratorType
+    ix_uni: int
+    ix_branch: int
+    which: Which
+
+    idx_to_name: dict[int, str]
+    ix_beginning: int
+    initial_particles: ParticleGroup | None
+
+    start_head: TaoInfoDict
+    start_twiss: dict[str, float]
+    start_gen_attr: dict[str, float]
+    start_ele_orbit: dict[str, float]
+    global_csr_flag: bool
+
+    branch1: dict[str, Any]
+    branch_particle: str
+
+    reference_particle_charge: float
+    species_mass: float
+
+    reference_kinetic_energy: float
+
+    omega: float
+    initial_phase_ref: float
+    tao_global: dict[str, Any]
+
+    tao_id_to_elems: dict[int, list[AnyInputElement]] = field(default_factory=dict)
+
+    @property
+    def n_particle(self) -> int:
+        return len(self.initial_particles) if self.initial_particles else 0
+
+    def convert_lattice(
+        self,
+        tao: Tao,
+        verbose: bool = False,
+        initial_particles_file_id: int = 100,
+        final_particles_file_id: int = 101,
+        initial_rfdata_file_id: int = 500,
+        initial_write_full_id: int = 200,
+        write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
+        include_collimation: bool = False,
+    ) -> tuple[list[AnyInputElement], dict[str, np.ndarray]]:
+        lattice: list[AnyInputElement] = [
+            WriteFull(name="initial_particles", file_id=initial_particles_file_id),
+        ]
+        tao_id_to_elems: dict[int, list[AnyInputElement]] = {}
+
+        write_at_ids = get_ele_indices_by_pattern(tao, write_beam_eles)
+        output_file_id = initial_write_full_id
+        rfdata_file_id = initial_rfdata_file_id
+
+        file_data = {}
+        for ele_id, name in self.idx_to_name.items():
+            try:
+                z_elems, elem_data = element_from_tao(
+                    tao,
+                    ele_id,
+                    which=self.which,
+                    name=name,
+                    verbose=verbose,
+                    species=self.branch_particle.lower(),
+                    global_csr_flag=self.global_csr_flag,
+                    include_collimation=include_collimation,
+                    integrator_type=self.integrator_type,
+                    rfdata_file_id=rfdata_file_id,
+                )
+            except UnusableElementError as ex:
+                logger.debug("Skipping element: %s (%s)", ele_id, ex)
+            else:
+                lattice.extend(z_elems)
+                tao_id_to_elems[ele_id] = z_elems
+
+                if elem_data:
+                    for key, value in elem_data.items():
+                        file_data[str(key)] = value
+                    rfdata_file_id = max(elem_data) + 1
+
+                if ele_id in write_at_ids:
+                    if lattice and isinstance(lattice[-1], WriteFull):
+                        # Don't duplicate WriteFulls
+                        pass
+                    else:
+                        lattice.append(
+                            WriteFull(name=f"WRITE_{name}", file_id=output_file_id)
+                        )
+                        output_file_id += 1
+
+        # TODO
+        # combine_reused_rfdata(z_elems)
+        lattice.append(
+            WriteFull(name="final_particles", file_id=final_particles_file_id)
+        )
+
+        self.tao_id_to_elems = tao_id_to_elems
+        return lattice, file_data
+
+    def to_input(
+        self,
+        tao: Tao,
+        lattice: list[AnyInputElement],
+        file_data: dict[str, np.ndarray],
+        radius_x: float = 0.0,
+        radius_y: float = 0.0,
+        ncpu_y: int = 1,
+        ncpu_z: int = 1,
+        nx: int = 64,
+        ny: int = 64,
+        nz: int = 64,
+    ) -> ImpactZInput:
+        input = ImpactZInput(
+            # Line 1
+            ncpu_y=ncpu_y,
+            ncpu_z=ncpu_z,
+            gpu=GPUFlag.disabled,
+            # Line 2
+            seed=self.tao_global["random_seed"],
+            n_particle=self.n_particle,
+            integrator_type=self.integrator_type,
+            err=1,
+            # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
+            diagnostic_type=DiagnosticType.at_given_time,
+            output_z=OutputZType.extended,
+            # Line 3
+            nx=nx,
+            ny=ny,
+            nz=nz,
+            boundary_type=BoundaryType.trans_open_longi_open,
+            radius_x=radius_x,
+            radius_y=radius_y,
+            z_period_size=0.0,
+            # Line 4
+            distribution=(
+                DistributionZType.read
+                if self.initial_particles
+                else DistributionZType.gauss
+            ),
+            restart=0,
+            subcycle=0,
+            nbunch=0,
+            # I think there are unused:
+            # particle_list=[],
+            # current_list=[],
+            # charge_over_mass_list=[],
+            # Twiss
+            twiss_alpha_x=self.start_twiss["alpha_a"],
+            twiss_alpha_y=self.start_twiss["alpha_b"],
+            twiss_alpha_z=0.0,  # start_twiss["alpha_z"],
+            twiss_beta_x=self.start_twiss["beta_a"],
+            twiss_beta_y=self.start_twiss["beta_b"],
+            twiss_beta_z=1.0,  # start_twiss["beta_z"],
+            twiss_norm_emit_x=1e-6,
+            twiss_norm_emit_y=1e-6,
+            twiss_norm_emit_z=1e-6,
+            # Twiss mismatch
+            twiss_mismatch_e_z=1.0,
+            twiss_mismatch_x=1.0,
+            twiss_mismatch_y=1.0,
+            twiss_mismatch_z=1.0,
+            twiss_mismatch_px=1.0,
+            twiss_mismatch_py=1.0,
+            # Twiss offset
+            twiss_offset_energy_z=0.0,
+            twiss_offset_phase_z=0.0,
+            twiss_offset_x=self.start_ele_orbit["x"],
+            twiss_offset_y=self.start_ele_orbit["y"],
+            twiss_offset_px=self.start_ele_orbit["px"],
+            twiss_offset_py=self.start_ele_orbit["py"],
+            average_current=0.0,  # TODO users must set this if they want space charge calcs
+            reference_kinetic_energy=self.reference_kinetic_energy,
+            reference_particle_mass=self.species_mass,
+            reference_particle_charge=self.reference_particle_charge,
+            reference_frequency=self.reference_frequency,
+            initial_phase_ref=self.initial_phase_ref,
+            lattice=lattice,
+            initial_particles=self.initial_particles,
+            # External file data
+            file_data=file_data,
+        )
+
+        if input.multipoles and input.integrator_type == IntegratorType.linear_map:
+            logger.warning(
+                "Slower integrator type Runge-Kutta selected as "
+                "Multipoles in Impact-Z require it to function."
+            )
+            input.integrator_type = IntegratorType.runge_kutta
+            change_lattice_integrator(
+                tao,
+                input,
+                IntegratorType.runge_kutta,
+                self.tao_id_to_elems,
+            )
+        return input
+
+    @classmethod
+    def from_tao(
+        cls,
+        tao: Tao,
+        track_start: str | None = None,
+        track_end: str | None = None,
+        reference_frequency: float = 1300000000.0,
+        ix_uni: int = 1,
+        ix_branch: int = 0,
+        which: Which = "model",
+        integrator_type: IntegratorType = IntegratorType.linear_map,
+    ) -> ConversionState:
+        idx_to_name = get_index_to_name(
+            tao,
+            track_start=track_start,
+            track_end=track_end,
+            # ix_uni=ix_uni, ix_branch=ix_branch
+        )
+
+        ix_beginning = list(idx_to_name)[0]
+        ix_end = list(idx_to_name)[-1]
+        try:
+            initial_particles = export_particles(tao, ix_beginning)
+        except TaoCommandError as ex:
+            logger.warning(f"Not using initial particles ({ex.errors[-1].message})")
+            initial_particles = None
+
+        start_head = ele_head(tao, str(ix_beginning), which=which)
+        start_twiss = cast(
+            dict[str, float], tao.ele_twiss(str(ix_beginning), which=which)
+        )
+        start_gen_attr = cast(
+            dict[str, float],
+            tao.ele_gen_attribs(str(ix_beginning), which=which),
+        )
+        start_ele_orbit = cast(
+            dict[str, float], tao.ele_orbit(ix_beginning, which=which)
+        )
+        global_csr_flag = cast(dict, tao.bmad_com())["csr_and_space_charge_on"]
+        assert isinstance(global_csr_flag, bool)
+
+        branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
+        branch_particle: str = branch1["param_particle"]
+
+        reference_particle_charge = charge_state(branch_particle.lower())
+        species_mass = mass_of(branch_particle.lower())
+
+        reference_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
+
+        omega = 2 * np.pi * reference_frequency
+        initial_phase_ref = float(start_head["ref_time"]) * omega
+        tao_global = cast(dict, tao.tao_global())
+
+        return cls(
+            track_start=idx_to_name[ix_beginning],
+            track_end=idx_to_name[ix_end],
+            reference_frequency=reference_frequency,
+            integrator_type=integrator_type,
+            ix_uni=ix_uni,
+            ix_branch=ix_branch,
+            which=which,
+            idx_to_name=idx_to_name,
+            ix_beginning=ix_beginning,
+            initial_particles=initial_particles,
+            start_head=start_head,
+            start_twiss=start_twiss,
+            start_gen_attr=start_gen_attr,
+            start_ele_orbit=start_ele_orbit,
+            global_csr_flag=global_csr_flag,
+            branch1=branch1,
+            branch_particle=branch_particle,
+            reference_particle_charge=reference_particle_charge,
+            species_mass=species_mass,
+            reference_kinetic_energy=reference_kinetic_energy,
+            omega=omega,
+            initial_phase_ref=initial_phase_ref,
+            tao_global=tao_global,
+        )
+
+
 def input_from_tao(
     tao: Tao,
     track_start: str | None = None,
@@ -688,174 +969,37 @@ def input_from_tao(
     include_collimation: bool = False,
     integrator_type: IntegratorType = IntegratorType.linear_map,
 ) -> ImpactZInput:
-    idx_to_name = get_index_to_name(
-        tao,
+    state = ConversionState.from_tao(
+        tao=tao,
         track_start=track_start,
         track_end=track_end,
-        # ix_uni=ix_uni, ix_branch=ix_branch
+        reference_frequency=reference_frequency,
+        ix_uni=ix_uni,
+        ix_branch=ix_branch,
+        which=which,
     )
 
-    ix_beginning = list(idx_to_name)[0]
-    # ix_end = list(idx_to_name)[-1]
-    try:
-        initial_particles = export_particles(tao, ix_beginning)
-    except TaoCommandError as ex:
-        logger.warning(f"Not using initial particles ({ex.errors[-1].message})")
-        initial_particles = None
-        n_particle = 0
-    else:
-        n_particle = len(initial_particles)
-
-    start_head = ele_head(tao, str(ix_beginning), which=which)
-    start_twiss = cast(dict[str, float], tao.ele_twiss(str(ix_beginning), which=which))
-    start_gen_attr = cast(
-        dict[str, float],
-        tao.ele_gen_attribs(str(ix_beginning), which=which),
+    lattice, file_data = state.convert_lattice(
+        tao=tao,
+        verbose=verbose,
+        initial_particles_file_id=initial_particles_file_id,
+        final_particles_file_id=final_particles_file_id,
+        initial_rfdata_file_id=initial_rfdata_file_id,
+        initial_write_full_id=initial_write_full_id,
+        write_beam_eles=write_beam_eles,
+        include_collimation=include_collimation,
     )
-    start_ele_orbit = cast(dict[str, float], tao.ele_orbit(ix_beginning, which=which))
-    global_csr_flag = cast(dict, tao.bmad_com())["csr_and_space_charge_on"]
-    assert isinstance(global_csr_flag, bool)
 
-    branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
-    branch_particle: str = branch1["param_particle"]
-
-    reference_particle_charge = charge_state(branch_particle.lower())
-    species_mass = mass_of(branch_particle.lower())
-
-    reference_kinetic_energy = start_gen_attr["E_TOT"] - species_mass
-
-    omega = 2 * np.pi * reference_frequency
-    initial_phase_ref = float(start_head["ref_time"]) * omega
-    tao_global = cast(dict, tao.tao_global())
-
-    lattice: list[AnyInputElement] = [
-        WriteFull(name="initial_particles", file_id=initial_particles_file_id),
-    ]
-    tao_id_to_elems: dict[int, list[AnyInputElement]] = {}
-
-    write_at_ids = get_ele_indices_by_pattern(tao, write_beam_eles)
-    output_file_id = initial_write_full_id
-    rfdata_file_id = initial_rfdata_file_id
-
-    file_data = {}
-    for ele_id, name in idx_to_name.items():
-        try:
-            z_elems, elem_data = element_from_tao(
-                tao,
-                ele_id,
-                which=which,
-                name=name,
-                verbose=verbose,
-                species=branch_particle.lower(),
-                global_csr_flag=global_csr_flag,
-                include_collimation=include_collimation,
-                integrator_type=integrator_type,
-                rfdata_file_id=rfdata_file_id,
-            )
-        except UnusableElementError as ex:
-            logger.debug("Skipping element: %s (%s)", ele_id, ex)
-        else:
-            lattice.extend(z_elems)
-            tao_id_to_elems[ele_id] = z_elems
-
-            if elem_data:
-                for key, value in elem_data.items():
-                    file_data[str(key)] = value
-                rfdata_file_id = max(elem_data) + 1
-
-            if ele_id in write_at_ids:
-                if lattice and isinstance(lattice[-1], WriteFull):
-                    # Don't duplicate WriteFulls
-                    pass
-                else:
-                    lattice.append(
-                        WriteFull(name=f"WRITE_{name}", file_id=output_file_id)
-                    )
-                    output_file_id += 1
-
-    # TODO
-    # combine_reused_rfdata(z_elems)
-    lattice.append(WriteFull(name="final_particles", file_id=final_particles_file_id))
-
-    input = ImpactZInput(
-        # Line 1
+    input = state.to_input(
+        tao=tao,
+        lattice=lattice,
+        file_data=file_data,
+        radius_x=radius_x,
+        radius_y=radius_y,
         ncpu_y=ncpu_y,
         ncpu_z=ncpu_z,
-        gpu=GPUFlag.disabled,
-        # Line 2
-        seed=tao_global["random_seed"],
-        n_particle=n_particle,
-        integrator_type=integrator_type,
-        err=1,
-        # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
-        diagnostic_type=DiagnosticType.at_given_time,
-        output_z=OutputZType.extended,
-        # Line 3
         nx=nx,
         ny=ny,
         nz=nz,
-        boundary_type=BoundaryType.trans_open_longi_open,
-        radius_x=radius_x,
-        radius_y=radius_y,
-        z_period_size=0.0,
-        # Line 4
-        distribution=(
-            DistributionZType.read if initial_particles else DistributionZType.gauss
-        ),
-        restart=0,
-        subcycle=0,
-        nbunch=0,
-        # I think there are unused:
-        # particle_list=[],
-        # current_list=[],
-        # charge_over_mass_list=[],
-        # Twiss
-        twiss_alpha_x=start_twiss["alpha_a"],
-        twiss_alpha_y=start_twiss["alpha_b"],
-        twiss_alpha_z=0.0,  # start_twiss["alpha_z"],
-        twiss_beta_x=start_twiss["beta_a"],
-        twiss_beta_y=start_twiss["beta_b"],
-        twiss_beta_z=1.0,  # start_twiss["beta_z"],
-        twiss_norm_emit_x=1e-6,
-        twiss_norm_emit_y=1e-6,
-        twiss_norm_emit_z=1e-6,
-        # Twiss mismatch
-        twiss_mismatch_e_z=1.0,
-        twiss_mismatch_x=1.0,
-        twiss_mismatch_y=1.0,
-        twiss_mismatch_z=1.0,
-        twiss_mismatch_px=1.0,
-        twiss_mismatch_py=1.0,
-        # Twiss offset
-        twiss_offset_energy_z=0.0,
-        twiss_offset_phase_z=0.0,
-        twiss_offset_x=start_ele_orbit["x"],
-        twiss_offset_y=start_ele_orbit["y"],
-        twiss_offset_px=start_ele_orbit["px"],
-        twiss_offset_py=start_ele_orbit["py"],
-        average_current=0.0,  # TODO users must set this if they want space charge calcs
-        reference_kinetic_energy=reference_kinetic_energy,
-        reference_particle_mass=species_mass,
-        reference_particle_charge=reference_particle_charge,
-        reference_frequency=reference_frequency,
-        initial_phase_ref=initial_phase_ref,
-        lattice=lattice,
-        initial_particles=initial_particles,
-        # External file data
-        file_data=file_data,
     )
-
-    if input.multipoles and input.integrator_type == IntegratorType.linear_map:
-        logger.warning(
-            "Slower integrator type Runge-Kutta selected as "
-            "Multipoles in Impact-Z require it to function."
-        )
-        input.integrator_type = IntegratorType.runge_kutta
-        change_lattice_integrator(
-            tao,
-            input,
-            IntegratorType.runge_kutta,
-            tao_id_to_elems,
-        )
-
     return input
