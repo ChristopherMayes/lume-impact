@@ -1678,7 +1678,31 @@ AnyInputElement = (
     | KickBeamUsingMultipole
     | HaltExecution
 )
+
+
 T_InputElement = TypeVar("T_InputElement", bound=InputElement)
+
+
+class ElementListProxy(list[T_InputElement]):
+    """
+    A list proxy class for input elements.
+
+    Getting or setting an attribute on an instance of this class will get or
+    set that attribute on each element of the list.
+
+    May be used as a normal list with indexing and standard methods such as `.append()`.
+    """
+
+    def __getattr__(self, attr: str):
+        return [getattr(element, attr) for element in self]
+
+    def __setattr__(self, attr, value):
+        # Allow setting of "internal" attributes on this proxy object.
+        if attr.startswith("_"):
+            object.__setattr__(self, attr, value)
+        else:
+            for element in self:
+                setattr(element, attr, value)
 
 
 def load_rfdata_from_file(path: pathlib.Path) -> np.ndarray:
@@ -2318,11 +2342,13 @@ class ImpactZInput(BaseModel):
         return by_z
 
     @property
-    def by_element(self) -> dict[type[T_InputElement], list[T_InputElement]]:
+    def by_element(
+        self,
+    ) -> dict[type[T_InputElement], ElementListProxy[T_InputElement]]:
         """Get beamline elements organized by their class."""
         by_element = {}
         for element in self.lattice:
-            by_element.setdefault(type(element), [])
+            by_element.setdefault(type(element), ElementListProxy[type(element)]())
             by_element[type(element)].append(element)
         return by_element
 
