@@ -121,7 +121,9 @@ class InputElement(BaseModel):
             name=name or line.inline_comment or "",
         )
 
-    def to_line(self, *, with_description: bool = True) -> str:
+    def to_line(
+        self, *, with_description: bool = True, z_start: float | None = None
+    ) -> str:
         def as_string(v: float | int):
             if isinstance(v, float):
                 return f"{v:.20g}"
@@ -137,7 +139,8 @@ class InputElement(BaseModel):
 
         name = f" {self.name}" if self.name else ""
 
-        desc = f"! {type(self).__name__}: " + " ".join(attr_to_value)
+        z_desc = f"z={z_start:.3f} " if z_start is not None else ""
+        desc = f"! [{z_desc}{type(self).__name__}] " + " ".join(attr_to_value)
         return f"{desc}\n{line} /{name}"
 
     @property
@@ -2146,7 +2149,11 @@ class ImpactZInput(BaseModel):
             header_lines.extend(repr(self).splitlines())
         full_header = "\n".join(f"! {line}" for line in header_lines)
 
-        lattice = "\n".join(ele.to_line() for ele in self.lattice)
+        lattice = "\n".join(
+            ele.ele.to_line(z_start=ele.z_start, with_description=True)
+            for ele in self.by_z
+        )
+
         return f"""
 {full_header}
 ! ncpu_y ncpu_z
