@@ -1819,6 +1819,7 @@ class ImpactZInput(BaseModel):
     # Internal
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
     verbose: bool = False
+    use_mpi: bool = False
 
     # User-provided external file data, indexed by number
     file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)

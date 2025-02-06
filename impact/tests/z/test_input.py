@@ -86,18 +86,18 @@ def compare_inputs(expected: str, generated: str):
         )
 
 
-@pytest.mark.parametrize(
+example_filenames = pytest.mark.parametrize(
     ("filename",),
     [pytest.param(fn, id=fn.name) for fn in impact_z_examples.glob("*.in")],
 )
+
+
+@example_filenames
 def test_load_input_smoke(filename: pathlib.Path) -> None:
     ImpactZInput.from_file(filename)
 
 
-@pytest.mark.parametrize(
-    ("filename",),
-    [pytest.param(fn, id=fn.name) for fn in impact_z_examples.glob("*.in")],
-)
+@example_filenames
 def test_input_roundtrip(filename: pathlib.Path) -> None:
     loaded = ImpactZInput.from_file(filename)
     with open(filename, "rt") as fp:
@@ -105,3 +105,12 @@ def test_input_roundtrip(filename: pathlib.Path) -> None:
 
     serialized_contents = loaded.to_contents()
     compare_inputs(on_disk_contents, serialized_contents)
+
+
+@example_filenames
+def test_set_ncpu(filename: pathlib.Path) -> None:
+    loaded = ImpactZInput.from_file(filename)
+    loaded.verbose = True
+    for numprocs in range(0, 30):
+        loaded.numprocs = numprocs
+        print("Set numprocs", numprocs, loaded.ncpu_y, loaded.ncpu_z)
