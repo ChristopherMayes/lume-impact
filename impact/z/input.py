@@ -5,7 +5,7 @@ import logging
 import pathlib
 import shlex
 import typing
-from typing import ClassVar, Literal, NamedTuple, TypeVar, cast
+from typing import ClassVar, Iterable, Literal, NamedTuple, TypeVar, cast
 from collections.abc import Sequence
 
 import numpy as np
@@ -1826,8 +1826,9 @@ class ImpactZInput(BaseModel):
 
     def write_particles_at(
         self,
-        elements: Sequence[int | str] | int | str,
+        elements: Sequence[int | str] | int | str = (),
         *,
+        every: Sequence[type[AnyInputElement]] | type[AnyInputElement] | None = None,
         initial_particles: bool = True,
         final_particles: bool = True,
         start_file_id: int = 1,
@@ -1843,11 +1844,16 @@ class ImpactZInput(BaseModel):
         end of the lattice to record initial and final particle data,
         respectively.
 
+        Specify `every` to write particles after each element of that type(s).
+
         Parameters
         ----------
         elements : Sequence[int | str] or int or str
             One or more element indices or names where new WriteFull elements
             will be inserted.
+        every : Sequence[class], class or None, optional
+            If provided, a WriteFull element will also be inserted after each
+            lattice element whose class is in this sequence. By default None.
         initial_particles : bool, optional
             If True, adds a WriteFull element at the beginning of the lattice
             to record the initial particle distribution, by default True.
@@ -1855,7 +1861,7 @@ class ImpactZInput(BaseModel):
             If True, adds a WriteFull element at the end of the lattice to
             record the final particle distribution, by default True.
         start_file_id : int, optional
-            The file ID to assign to the first newly- inserted WriteFull
+            The file ID to assign to the first newly inserted WriteFull
             element, by default 1.
         suffix : str, optional
             Suffix appended to the names of newly inserted WriteFull elements,
@@ -1879,6 +1885,13 @@ class ImpactZInput(BaseModel):
         if isinstance(elements, (str, int)):
             elements = [elements]
 
+        if every is None:
+            every = []
+        elif not isinstance(every, Iterable):
+            every = [every]
+
+        every = list(every)
+
         def get_save_indices():
             by_name = self.by_name
             for ele in elements:
@@ -1893,26 +1906,33 @@ class ImpactZInput(BaseModel):
                         )
                 yield idx + 1
 
+            for cls in every:
+                for ele in self.by_element.get(cls, []):
+                    try:
+                        yield new_lattice.index(ele) + 1
+                    except IndexError:
+                        pass
+
         new_lattice: list[AnyInputElement] = [
             ele for ele in self.lattice if not isinstance(ele, WriteFull)
         ]
         save_indices = sorted(set(get_save_indices()), reverse=True)
 
-        file_id = start_file_id
         for idx in save_indices:
             ele = new_lattice[idx - 1]
             if not isinstance(ele, WriteFull):
-                new_lattice.insert(
-                    idx, WriteFull(name=f"{ele.name}{suffix}", file_id=file_id)
-                )
-                file_id += 1
+                new_lattice.insert(idx, WriteFull(name=f"{ele.name}{suffix}"))
 
         if initial_particles:
-            new_lattice.insert(
-                0, WriteFull(name="initial_particles", file_id=start_file_id)
-            )
+            new_lattice.insert(0, WriteFull(name="initial_particles"))
         if final_particles:
-            new_lattice.append(WriteFull(name="final_particles", file_id=file_id))
+            new_lattice.append(WriteFull(name="final_particles"))
+
+        file_id = start_file_id
+        for elem in new_lattice:
+            if isinstance(elem, WriteFull):
+                elem.file_id = file_id
+                file_id += 1
 
         if in_place:
             self.lattice = new_lattice

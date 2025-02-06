@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pytest
 
-from ...z.input import ImpactZInput
+from ...z.input import ImpactZInput, Quadrupole, WriteFull, Drift
 from ...z.parsers import parse_input_line
 
 
@@ -114,3 +114,78 @@ def test_set_ncpu(filename: pathlib.Path) -> None:
     for numprocs in range(0, 30):
         loaded.numprocs = numprocs
         print("Set numprocs", numprocs, loaded.ncpu_y, loaded.ncpu_z)
+
+
+def test_write_particles_initial_final() -> None:
+    input = ImpactZInput(
+        lattice=[
+            Quadrupole(name="foo"),
+            Quadrupole(name="bar"),
+        ]
+    )
+
+    input.write_particles_at()
+    assert input.lattice == [
+        WriteFull(name="initial_particles", file_id=1),
+        Quadrupole(name="foo"),
+        Quadrupole(name="bar"),
+        WriteFull(name="final_particles", file_id=2),
+    ]
+
+
+def test_write_particles_at_every() -> None:
+    input = ImpactZInput(
+        lattice=[
+            Quadrupole(name="foo"),
+            Quadrupole(name="bar"),
+        ]
+    )
+
+    input.write_particles_at(every=Quadrupole)
+    assert input.lattice == [
+        WriteFull(name="initial_particles", file_id=1),
+        Quadrupole(name="foo"),
+        WriteFull(name="foo_WRITE", file_id=2),
+        Quadrupole(name="bar"),
+        WriteFull(name="bar_WRITE", file_id=3),
+        WriteFull(name="final_particles", file_id=4),
+    ]
+
+
+def test_write_particles_at_foo() -> None:
+    input = ImpactZInput(
+        lattice=[
+            Quadrupole(name="foo"),
+            Quadrupole(name="bar"),
+        ]
+    )
+
+    input.write_particles_at("foo")
+    assert input.lattice == [
+        WriteFull(name="initial_particles", file_id=1),
+        Quadrupole(name="foo"),
+        WriteFull(name="foo_WRITE", file_id=2),
+        Quadrupole(name="bar"),
+        WriteFull(name="final_particles", file_id=3),
+    ]
+
+
+def test_write_particles_at_every_multi() -> None:
+    input = ImpactZInput(
+        lattice=[
+            Quadrupole(name="foo"),
+            Drift(name="drift"),
+            Quadrupole(name="bar"),
+        ]
+    )
+
+    input.write_particles_at("foo", every=Drift)
+    assert input.lattice == [
+        WriteFull(name="initial_particles", file_id=1),
+        Quadrupole(name="foo"),
+        WriteFull(name="foo_WRITE", file_id=2),
+        Drift(name="drift"),
+        WriteFull(name="drift_WRITE", file_id=3),
+        Quadrupole(name="bar"),
+        WriteFull(name="final_particles", file_id=4),
+    ]
