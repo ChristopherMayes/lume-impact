@@ -1846,7 +1846,6 @@ class ImpactZInput(BaseModel):
     # Internal
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
     verbose: bool = False
-    use_mpi: bool = False
 
     # User-provided external file data, indexed by number
     file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
@@ -2408,15 +2407,15 @@ class ImpactZInput(BaseModel):
             self.initial_particles.charge = charge
 
     @property
-    def numprocs(self):
+    def nproc(self):
         """Number of MPI processors."""
         return self.ncpu_y * self.ncpu_z
 
-    @numprocs.setter
-    def numprocs(self, n: int) -> None:
-        n = int(n)
+    @nproc.setter
+    def nproc(self, n: int | None) -> None:
+        n = int(n or 0)
         if n < 0:
-            raise ValueError("numprocs must be >= 0")
+            raise ValueError("nproc must be >= 0")
         if not n:
             n = tools.get_suggested_nproc()
 
@@ -2425,15 +2424,9 @@ class ImpactZInput(BaseModel):
         self.ncpu_y = Npcol
         self.ncpu_z = Nprow
 
-        if self.use_mpi and n == 1:
-            self.use_mpi = False
-
-        if n > 1 and not self.use_mpi:
-            self.use_mpi = True
-
         if self.verbose:
-            mpi = "(MPI enabled)" if self.use_mpi else ""
-            print(f"Setting Npcol, Nprow = {Npcol}, {Nprow} {mpi}")
+            mpi = " (MPI enabled)" if self.nproc > 1 else ""
+            print(f"Setting Npcol, Nprow = {Npcol}, {Nprow}{mpi}")
 
     # @property
     # def LOWERs(self) -> list[ELEMENT]:

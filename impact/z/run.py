@@ -14,7 +14,6 @@ from typing import Any, ClassVar, NamedTuple
 from collections.abc import Sequence
 
 import h5py
-import psutil
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
 from pmd_beamphysics import ParticleGroup
@@ -250,19 +249,23 @@ class ImpactZ(CommandWrapper):
         """
         Number of MPI processes to use.
         """
-        return self._nproc
+        return self.input.nproc
 
     @nproc.setter
     def nproc(self, nproc: int | None):
-        if nproc is None or nproc == 0:
-            nproc = psutil.cpu_count(logical=False)
-        elif nproc < 0:
-            nproc += psutil.cpu_count(logical=False)
+        self.input.nproc = nproc
 
-        if nproc <= 0:
-            raise ValueError(f"Calculated nproc is invalid: {nproc}")
+    @property
+    def use_mpi(self):
+        """
+        Whether or not MPI should be used if supported.
+        """
+        return self.nproc != 1
 
-        self._nproc = nproc
+    @use_mpi.setter
+    def use_mpi(self, use_mpi: bool) -> None:
+        if not use_mpi:
+            self.nproc = 1
 
     @override
     def configure(self):
