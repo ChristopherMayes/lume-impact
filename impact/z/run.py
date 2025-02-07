@@ -225,8 +225,6 @@ class ImpactZ(CommandWrapper):
         self._units = dict(units or units_mod.known_unit)
         self._alias = dict(alias or {})
 
-        # MPI
-        self.nproc = 1
         self.nnode = 1
 
     @property
@@ -313,7 +311,8 @@ class ImpactZ(CommandWrapper):
         runscript = self.get_run_script()
 
         start_time = monotonic()
-        self.vprint(f"Running Impact-Z in {self.path}")
+        mpi = "with MPI " if self.use_mpi else ""
+        self.vprint(f"Running Impact-Z {mpi}in {self.path}")
         self.vprint(runscript)
 
         self.write_input()
