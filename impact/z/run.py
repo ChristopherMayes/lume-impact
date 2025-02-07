@@ -310,7 +310,7 @@ class ImpactZ(CommandWrapper):
         runscript = self.get_run_script()
 
         start_time = monotonic()
-        self.vprint(f"Running ImpactZ in {self.path}")
+        self.vprint(f"Running Impact-Z in {self.path}")
         self.vprint(runscript)
 
         self.write_input()

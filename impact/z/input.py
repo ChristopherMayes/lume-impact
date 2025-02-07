@@ -5,7 +5,7 @@ import logging
 import pathlib
 import shlex
 import typing
-from typing import ClassVar, Iterable, Literal, NamedTuple, TypeVar, cast
+from typing import Any, ClassVar, Iterable, Literal, NamedTuple, TypeVar, cast
 from collections.abc import Sequence
 
 import numpy as np
@@ -2292,15 +2292,28 @@ class ImpactZInput(BaseModel):
 
         return [input_file_path, *extra_paths]
 
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def _update_n_particle(cls, data: dict[str, Any]) -> dict[str, Any]:
+        initial_particles = data.get("initial_particles", None)
+        if initial_particles is not None:
+            data["n_particle"] = len(initial_particles)
+        return data
+
     def check(self):
         if self.initial_particles is not None:
             if self.distribution != DistributionZType.read:
                 self.distribution = DistributionZType.read
-                # raise ValueError(
-                #     f"Initial particles set to {self.initial_particles}, however "
-                #     f"distribution type is set to {self.distribution}. "
-                #     f'In order to use initial particles, set `distribution="read"`'
-                # )
+                # f'In order to use initial particles, set `distribution="read"`'
+            if self.n_particle == 0 or self.n_particle > len(self.initial_particles):
+                self.n_particle = len(self.initial_particles)
+        elif self.distribution == DistributionZType.read:
+            # No particles and 'read' mode may not work:
+            raise ValueError(
+                "Initial particles unset, yet distribution='read'. "
+                "To have IMPACT-Z generate particles, use distribution='uniform' or "
+                "one of the supported values (in `DistributionZType`)"
+            )
 
     def write_run_script(
         self,
