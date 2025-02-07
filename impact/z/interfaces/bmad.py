@@ -763,8 +763,8 @@ class ConversionState:
                 if ele.csr_enabled and isinstance(next_ele, Drift):
                     ele.set_csr(enabled=True, following_drift=True)
 
-        # TODO
         # combine_reused_rfdata(z_elems)
+
         lattice.append(
             WriteFull(name="final_particles", file_id=final_particles_file_id)
         )

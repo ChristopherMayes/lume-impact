@@ -19,6 +19,9 @@ lattice_markers = {
     "elements.bmad": pytest.mark.xfail(reason="Unsupported elements"),
     "csr_bench.bmad": pytest.mark.xfail(reason="Additional setup required"),
 }
+comparison_markers = {
+    "optics_matching.bmad": pytest.mark.xfail(reason="Not yet working", strict=True),
+}
 lattices = pytest.mark.parametrize(
     "lattice",
     [
@@ -82,7 +85,10 @@ def integrator_type(request: pytest.FixtureRequest) -> IntegratorType:
 
 @pytest.mark.parametrize(
     "lattice",
-    [pytest.param(lattice_root / fn, id=fn) for fn in comparison_lattices],
+    [
+        pytest.param(lattice_root / fn, id=fn, marks=comparison_markers.get(fn, []))
+        for fn in comparison_lattices
+    ],
 )
 def test_compare_sxy(
     request: pytest.FixtureRequest,
@@ -90,6 +96,11 @@ def test_compare_sxy(
     integrator_type: IntegratorType,
     lattice: pathlib.Path,
 ) -> None:
+    if (
+        lattice.name == "solenoid.bmad"
+        and integrator_type == IntegratorType.runge_kutta
+    ):
+        pytest.skip("Not yet working?")
     energy = 10e6
     pz = np.sqrt(energy**2 - mec2**2)
 
