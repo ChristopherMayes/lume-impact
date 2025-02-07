@@ -758,6 +758,11 @@ class ConversionState:
                         )
                         output_file_id += 1
 
+        for ele, next_ele in zip(lattice, lattice[1:]):
+            if isinstance(ele, Dipole):
+                if ele.csr_enabled and isinstance(next_ele, Drift):
+                    ele.set_csr(enabled=True, following_drift=True)
+
         # TODO
         # combine_reused_rfdata(z_elems)
         lattice.append(

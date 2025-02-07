@@ -352,7 +352,10 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     k1 : float, optional
         Field strength.
     input_switch : float, optional
-        Enable CSR if > 200.
+        CSR settings.
+        - `input_switch <= 200`: no CSR
+        - `200 < input_switch <=500`: CSR in the bend
+        - `input_switch > 500`: CSR in the bend and the next following drift
         Ref: https://github.com/impact-lbl/IMPACT-Z/blob/96ae896517bcb83fa741cd203892cb42a88f0e4f/src/Contrl/AccSimulator.f90#L999-L1004
     hgap : float, optional
         Half gap [m].
@@ -413,6 +416,30 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     rotation_error_x: float = 0.0
     rotation_error_y: float = 0.0
     rotation_error_z: float = 0.0
+
+    def set_csr(self, enabled: bool, following_drift: bool) -> None:
+        """
+        Set the input switch CSR setting.
+
+        Parameters
+        ----------
+        enabled : bool
+            Enable CSR for the dipole bend.
+        following_drift : bool
+            In addition to CSR for the dipole, also use CSR on the following
+            drift element.  Only applies when `enabled`.
+        """
+        if not enabled:
+            value = 0.0
+        elif following_drift:
+            value = 501.0
+        else:
+            value = 201.0
+        self.input_switch = value
+
+    @property
+    def csr_enabled(self) -> bool:
+        return self.input_switch > 200.0
 
 
 class Multipole(InputElement, element_id=5, has_input_file=True):
