@@ -111,9 +111,9 @@ def test_input_roundtrip(filename: pathlib.Path) -> None:
 def test_set_ncpu(filename: pathlib.Path) -> None:
     loaded = ImpactZInput.from_file(filename)
     loaded.verbose = True
-    for numprocs in range(0, 30):
-        loaded.numprocs = numprocs
-        print("Set numprocs", numprocs, loaded.ncpu_y, loaded.ncpu_z)
+    for nproc in range(0, 30):
+        loaded.nproc = nproc
+        print("Set numprocs", nproc, loaded.ncpu_y, loaded.ncpu_z)
 
 
 def test_write_particles_initial_final() -> None:
@@ -189,3 +189,33 @@ def test_write_particles_at_every_multi() -> None:
         Quadrupole(name="bar"),
         WriteFull(name="final_particles", file_id=4),
     ]
+
+
+def test_lattice_list_setattr():
+    input = ImpactZInput(
+        lattice=[
+            Quadrupole(name="a"),
+            Drift(name="drift"),
+            Quadrupole(name="b"),
+        ]
+    )
+
+    assert input.quadrupoles.name == ["a", "b"]
+    input.quadrupoles.name = ["c", "d"]
+    assert input.quadrupoles.name == ["c", "d"]
+    assert input.quadrupoles[0].name == "c"
+    assert input.quadrupoles[1].name == "d"
+
+    assert input.quadrupoles.length == [0.0, 0.0]
+
+    # broadcasting a single value to all
+    input.quadrupoles.length = 1.0
+    assert input.quadrupoles.length == [1.0, 1.0]
+    assert input.quadrupoles[0].length == 1.0
+    assert input.quadrupoles[1].length == 1.0
+
+    # setting a list of values
+    input.quadrupoles.length = [3.0, 4.0]
+    assert input.quadrupoles.length == [3.0, 4.0]
+    assert input.quadrupoles[0].length == 3.0
+    assert input.quadrupoles[1].length == 4.0

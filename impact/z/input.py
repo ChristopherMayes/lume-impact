@@ -1720,16 +1720,150 @@ class ElementListProxy(list[T_InputElement]):
     May be used as a normal list with indexing and standard methods such as `.append()`.
     """
 
+    # auto-generated (see _generate_attr_list_ below)
+    Bz0: list[float] | float
+    alphaX: list[float] | float
+    alphaY: list[float] | float
+    angle: list[float] | float
+    aperture_size_for_wakefield: list[float] | float
+    beam_centroid_6D: list[float] | float
+    beam_size: list[float] | float
+    betaX: list[float] | float
+    betaY: list[float] | float
+    bz0: list[float] | float
+    coordinate_type: list[RFCavityCoordinateType] | RFCavityCoordinateType
+    data_mode: list[RFCavityDataMode] | RFCavityDataMode
+    e1: list[float] | float
+    e2: list[float] | float
+    enable_wakefield: list[float] | float
+    energy_spread: list[float] | float
+    entrance_curvature: list[float] | float
+    exit_curvature: list[float] | float
+    field_scaling: list[float] | float
+    field_strength: list[float] | float
+    file_id: list[float] | float
+    fint: list[float] | float
+    gap_size: list[float] | float
+    gap_size_for_wakefield: list[float] | float
+    harm: list[int] | int
+    hgap: list[float] | float
+    id: list[int] | int
+    input_switch: list[float] | float
+    k0: list[float] | float
+    k1: list[float] | float
+    k2: list[float] | float
+    k3: list[float] | float
+    k4: list[float] | float
+    k5: list[float] | float
+    kx0_squared: list[float] | float
+    ky0_squared: list[float] | float
+    kz0_squared: list[float] | float
+    laser_wavelength: list[float] | float
+    length: list[float] | float
+    length_for_wakefield: list[float] | float
+    linear_map_integrator: list[float] | float
+    map_steps: list[int] | int
+    misalignment_error_x: list[float] | float
+    misalignment_error_y: list[float] | float
+    multipole_type: list[MultipoleType] | MultipoleType
+    name: list[str] | str
+    nonlinear_lorentz_integrator: list[float] | float
+    not_used: list[float] | float
+    phase_deg: list[float] | float
+    phase_diff: list[float] | float
+    phi0: list[float] | float
+    ptmis: list[float] | float
+    pxmax: list[float] | float
+    pxmis: list[float] | float
+    pxshift: list[float] | float
+    pymax: list[float] | float
+    pymis: list[float] | float
+    pyshift: list[float] | float
+    pzmax: list[float] | float
+    pzshift: list[float] | float
+    q1_misalignment_error_x: list[float] | float
+    q1_misalignment_error_y: list[float] | float
+    q1_rotation_error_x: list[float] | float
+    q1_rotation_error_y: list[float] | float
+    q1_rotation_error_z: list[float] | float
+    q2_misalignment_error_x: list[float] | float
+    q2_misalignment_error_y: list[float] | float
+    q2_rotation_error_x: list[float] | float
+    q2_rotation_error_y: list[float] | float
+    q2_rotation_error_z: list[float] | float
+    quad1_gradient: list[float] | float
+    quad1_length: list[float] | float
+    quad2_gradient: list[float] | float
+    quad2_length: list[float] | float
+    radius: list[float] | float
+    radius_x: list[float] | float
+    radius_y: list[float] | float
+    rf_frequency: list[float] | float
+    rf_misalignment_error_x: list[float] | float
+    rf_misalignment_error_y: list[float] | float
+    rf_rotation_error_x: list[float] | float
+    rf_rotation_error_y: list[float] | float
+    rf_rotation_error_z: list[float] | float
+    rotation_angle: list[float] | float
+    rotation_error_x: list[float] | float
+    rotation_error_y: list[float] | float
+    rotation_error_z: list[float] | float
+    sample_frequency: list[int] | int
+    shift: list[float] | float
+    slices: list[float] | float
+    steps: list[int] | int
+    tmis: list[float] | float
+    unused: list[float] | float
+    unused_0: list[float] | float
+    unused_1: list[float] | float
+    unused_2: list[float] | float
+    vmax: list[float] | float
+    x: list[float] | float
+    xmax: list[float] | float
+    xmin: list[float] | float
+    xmis: list[float] | float
+    xshift: list[float] | float
+    y: list[float] | float
+    ymax: list[float] | float
+    ymin: list[float] | float
+    ymis: list[float] | float
+    yshift: list[float] | float
+    z: list[float] | float
+    zmax: list[float] | float
+    zshift: list[float] | float
+
+    @staticmethod
+    def _generate_attr_list_():
+        eles = typing.get_args(AnyInputElement)
+        all_fields = {}
+        for ele in eles:
+            for name, fld in ele.model_fields.items():
+                all_fields.setdefault(name, []).append(fld)
+
+        for name, flds in sorted(all_fields.items()):
+            annotation = list(set(fld.annotation for fld in flds))
+            if len(annotation) == 1:
+                (cls,) = annotation
+                if cls is typing.Union and name == "angle":
+                    cls = float
+                print(f"{name}: list[{cls.__name__}] | {cls.__name__}")
+
     def __getattr__(self, attr: str):
         return [getattr(element, attr) for element in self]
 
-    def __setattr__(self, attr, value):
-        # Allow setting of "internal" attributes on this proxy object.
+    def __setattr__(self, attr: str, value) -> None:
         if attr.startswith("_"):
-            object.__setattr__(self, attr, value)
-        else:
-            for element in self:
-                setattr(element, attr, value)
+            # Allow setting of "internal" attributes on this proxy object.
+            return object.__setattr__(self, attr, value)
+
+        if not len(self):
+            return
+
+        if not isinstance(value, Sequence):
+            value = [value] * len(self)
+
+        for element, val in zip(self, value):
+            setattr(element, attr, val)
 
 
 def load_rfdata_from_file(path: pathlib.Path) -> np.ndarray:
@@ -2456,7 +2590,7 @@ class ImpactZInput(BaseModel):
             print(f"Setting Npcol, Nprow = {Npcol}, {Nprow}{mpi}")
 
     # @property
-    # def LOWERs(self) -> list[ELEMENT]:
+    # def LOWERs(self) -> ElementListProxy[ELEMENT]:
     #     """List of all ELEMENT instances."""
     #     return self.by_element.get(ELEMENT, [])
     #
@@ -2467,9 +2601,9 @@ class ImpactZInput(BaseModel):
     #
 
     @property
-    def drifts(self) -> list[Drift]:
+    def drifts(self) -> ElementListProxy[Drift]:
         """List of all Drift instances."""
-        return self.by_element.get(Drift, [])
+        return self.by_element.get(Drift, ElementListProxy())
 
     @property
     def drift(self) -> Drift:
@@ -2477,9 +2611,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(Drift)
 
     @property
-    def quadrupoles(self) -> list[Quadrupole]:
+    def quadrupoles(self) -> ElementListProxy[Quadrupole]:
         """List of all Quadrupole instances."""
-        return self.by_element.get(Quadrupole, [])
+        return self.by_element.get(Quadrupole, ElementListProxy())
 
     @property
     def quadrupole(self) -> Quadrupole:
@@ -2487,9 +2621,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(Quadrupole)
 
     @property
-    def constant_focusings(self) -> list[ConstantFocusing]:
+    def constant_focusings(self) -> ElementListProxy[ConstantFocusing]:
         """List of all ConstantFocusing instances."""
-        return self.by_element.get(ConstantFocusing, [])
+        return self.by_element.get(ConstantFocusing, ElementListProxy())
 
     @property
     def constant_focusing(self) -> ConstantFocusing:
@@ -2497,9 +2631,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(ConstantFocusing)
 
     @property
-    def solenoids(self) -> list[Solenoid]:
+    def solenoids(self) -> ElementListProxy[Solenoid]:
         """List of all Solenoid instances."""
-        return self.by_element.get(Solenoid, [])
+        return self.by_element.get(Solenoid, ElementListProxy())
 
     @property
     def solenoid(self) -> Solenoid:
@@ -2507,9 +2641,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(Solenoid)
 
     @property
-    def dipoles(self) -> list[Dipole]:
+    def dipoles(self) -> ElementListProxy[Dipole]:
         """List of all Dipole instances."""
-        return self.by_element.get(Dipole, [])
+        return self.by_element.get(Dipole, ElementListProxy())
 
     @property
     def dipole(self) -> Dipole:
@@ -2517,9 +2651,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(Dipole)
 
     @property
-    def multipoles(self) -> list[Multipole]:
+    def multipoles(self) -> ElementListProxy[Multipole]:
         """List of all Multipole instances."""
-        return self.by_element.get(Multipole, [])
+        return self.by_element.get(Multipole, ElementListProxy())
 
     @property
     def multipole(self) -> Multipole:
@@ -2527,9 +2661,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(Multipole)
 
     @property
-    def dtls(self) -> list[DTL]:
+    def dtls(self) -> ElementListProxy[DTL]:
         """List of all DTL instances."""
-        return self.by_element.get(DTL, [])
+        return self.by_element.get(DTL, ElementListProxy())
 
     @property
     def dtl(self) -> DTL:
@@ -2537,9 +2671,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(DTL)
 
     @property
-    def ccdtls(self) -> list[CCDTL]:
+    def ccdtls(self) -> ElementListProxy[CCDTL]:
         """List of all CCDTL instances."""
-        return self.by_element.get(CCDTL, [])
+        return self.by_element.get(CCDTL, ElementListProxy())
 
     @property
     def ccdtl(self) -> CCDTL:
@@ -2547,9 +2681,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(CCDTL)
 
     @property
-    def ccls(self) -> list[CCL]:
+    def ccls(self) -> ElementListProxy[CCL]:
         """List of all CCL instances."""
-        return self.by_element.get(CCL, [])
+        return self.by_element.get(CCL, ElementListProxy())
 
     @property
     def ccl(self) -> CCL:
@@ -2557,9 +2691,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(CCL)
 
     @property
-    def superconducting_cavitys(self) -> list[SuperconductingCavity]:
+    def superconducting_cavitys(self) -> ElementListProxy[SuperconductingCavity]:
         """List of all SuperconductingCavity instances."""
-        return self.by_element.get(SuperconductingCavity, [])
+        return self.by_element.get(SuperconductingCavity, ElementListProxy())
 
     @property
     def superconducting_cavity(self) -> SuperconductingCavity:
@@ -2567,9 +2701,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(SuperconductingCavity)
 
     @property
-    def solenoid_with_rf_cavitys(self) -> list[SolenoidWithRFCavity]:
+    def solenoid_with_rf_cavitys(self) -> ElementListProxy[SolenoidWithRFCavity]:
         """List of all SolenoidWithRFCavity instances."""
-        return self.by_element.get(SolenoidWithRFCavity, [])
+        return self.by_element.get(SolenoidWithRFCavity, ElementListProxy())
 
     @property
     def solenoid_with_rf_cavity(self) -> SolenoidWithRFCavity:
@@ -2577,9 +2711,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(SolenoidWithRFCavity)
 
     @property
-    def traveling_wave_rf_cavitys(self) -> list[TravelingWaveRFCavity]:
+    def traveling_wave_rf_cavitys(self) -> ElementListProxy[TravelingWaveRFCavity]:
         """List of all TravelingWaveRFCavity instances."""
-        return self.by_element.get(TravelingWaveRFCavity, [])
+        return self.by_element.get(TravelingWaveRFCavity, ElementListProxy())
 
     @property
     def traveling_wave_rf_cavity(self) -> TravelingWaveRFCavity:
@@ -2587,9 +2721,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(TravelingWaveRFCavity)
 
     @property
-    def user_defined_rf_cavitys(self) -> list[UserDefinedRFCavity]:
+    def user_defined_rf_cavitys(self) -> ElementListProxy[UserDefinedRFCavity]:
         """List of all UserDefinedRFCavity instances."""
-        return self.by_element.get(UserDefinedRFCavity, [])
+        return self.by_element.get(UserDefinedRFCavity, ElementListProxy())
 
     @property
     def user_defined_rf_cavity(self) -> UserDefinedRFCavity:
@@ -2597,9 +2731,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(UserDefinedRFCavity)
 
     @property
-    def shift_centroids(self) -> list[ShiftCentroid]:
+    def shift_centroids(self) -> ElementListProxy[ShiftCentroid]:
         """List of all ShiftCentroid instances."""
-        return self.by_element.get(ShiftCentroid, [])
+        return self.by_element.get(ShiftCentroid, ElementListProxy())
 
     @property
     def shift_centroid(self) -> ShiftCentroid:
@@ -2607,9 +2741,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(ShiftCentroid)
 
     @property
-    def write_fulls(self) -> list[WriteFull]:
+    def write_fulls(self) -> ElementListProxy[WriteFull]:
         """List of all WriteFull instances."""
-        return self.by_element.get(WriteFull, [])
+        return self.by_element.get(WriteFull, ElementListProxy())
 
     @property
     def write_full(self) -> WriteFull:
@@ -2617,9 +2751,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(WriteFull)
 
     @property
-    def density_profile_inputs(self) -> list[DensityProfileInput]:
+    def density_profile_inputs(self) -> ElementListProxy[DensityProfileInput]:
         """List of all DensityProfileInput instances."""
-        return self.by_element.get(DensityProfileInput, [])
+        return self.by_element.get(DensityProfileInput, ElementListProxy())
 
     @property
     def density_profile_input(self) -> DensityProfileInput:
@@ -2627,9 +2761,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(DensityProfileInput)
 
     @property
-    def density_profiles(self) -> list[DensityProfile]:
+    def density_profiles(self) -> ElementListProxy[DensityProfile]:
         """List of all DensityProfile instances."""
-        return self.by_element.get(DensityProfile, [])
+        return self.by_element.get(DensityProfile, ElementListProxy())
 
     @property
     def density_profile(self) -> DensityProfile:
@@ -2637,9 +2771,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(DensityProfile)
 
     @property
-    def projection_2ds(self) -> list[Projection2D]:
+    def projection_2ds(self) -> ElementListProxy[Projection2D]:
         """List of all Projection2D instances."""
-        return self.by_element.get(Projection2D, [])
+        return self.by_element.get(Projection2D, ElementListProxy())
 
     @property
     def projection_2d(self) -> Projection2D:
@@ -2647,9 +2781,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(Projection2D)
 
     @property
-    def density_3ds(self) -> list[Density3D]:
+    def density_3ds(self) -> ElementListProxy[Density3D]:
         """List of all Density3D instances."""
-        return self.by_element.get(Density3D, [])
+        return self.by_element.get(Density3D, ElementListProxy())
 
     @property
     def density_3d(self) -> Density3D:
@@ -2657,9 +2791,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(Density3D)
 
     @property
-    def write_phase_space_infos(self) -> list[WritePhaseSpaceInfo]:
+    def write_phase_space_infos(self) -> ElementListProxy[WritePhaseSpaceInfo]:
         """List of all WritePhaseSpaceInfo instances."""
-        return self.by_element.get(WritePhaseSpaceInfo, [])
+        return self.by_element.get(WritePhaseSpaceInfo, ElementListProxy())
 
     @property
     def write_phase_space_info(self) -> WritePhaseSpaceInfo:
@@ -2667,9 +2801,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(WritePhaseSpaceInfo)
 
     @property
-    def write_slice_infos(self) -> list[WriteSliceInfo]:
+    def write_slice_infos(self) -> ElementListProxy[WriteSliceInfo]:
         """List of all WriteSliceInfo instances."""
-        return self.by_element.get(WriteSliceInfo, [])
+        return self.by_element.get(WriteSliceInfo, ElementListProxy())
 
     @property
     def write_slice_info(self) -> WriteSliceInfo:
@@ -2679,9 +2813,11 @@ class ImpactZInput(BaseModel):
     @property
     def scale_mismatch_particle_6d_coordinatess(
         self,
-    ) -> list[ScaleMismatchParticle6DCoordinates]:
+    ) -> ElementListProxy[ScaleMismatchParticle6DCoordinates]:
         """List of all ScaleMismatchParticle6DCoordinates instances."""
-        return self.by_element.get(ScaleMismatchParticle6DCoordinates, [])
+        return self.by_element.get(
+            ScaleMismatchParticle6DCoordinates, ElementListProxy()
+        )
 
     @property
     def scale_mismatch_particle_6d_coordinates(
@@ -2693,9 +2829,11 @@ class ImpactZInput(BaseModel):
     @property
     def collimate_beam_with_rectangular_apertures(
         self,
-    ) -> list[CollimateBeamWithRectangularAperture]:
+    ) -> ElementListProxy[CollimateBeamWithRectangularAperture]:
         """List of all CollimateBeamWithRectangularAperture instances."""
-        return self.by_element.get(CollimateBeamWithRectangularAperture, [])
+        return self.by_element.get(
+            CollimateBeamWithRectangularAperture, ElementListProxy()
+        )
 
     @property
     def collimate_beam_with_rectangular_aperture(
@@ -2707,9 +2845,11 @@ class ImpactZInput(BaseModel):
     @property
     def rotate_beam_with_respect_to_longitudinal_axiss(
         self,
-    ) -> list[RotateBeamWithRespectToLongitudinalAxis]:
+    ) -> ElementListProxy[RotateBeamWithRespectToLongitudinalAxis]:
         """List of all RotateBeamWithRespectToLongitudinalAxis instances."""
-        return self.by_element.get(RotateBeamWithRespectToLongitudinalAxis, [])
+        return self.by_element.get(
+            RotateBeamWithRespectToLongitudinalAxis, ElementListProxy()
+        )
 
     @property
     def rotate_beam_with_respect_to_longitudinal_axis(
@@ -2719,9 +2859,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(RotateBeamWithRespectToLongitudinalAxis)
 
     @property
-    def beam_shifts(self) -> list[BeamShift]:
+    def beam_shifts(self) -> ElementListProxy[BeamShift]:
         """List of all BeamShift instances."""
-        return self.by_element.get(BeamShift, [])
+        return self.by_element.get(BeamShift, ElementListProxy())
 
     @property
     def beam_shift(self) -> BeamShift:
@@ -2729,9 +2869,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(BeamShift)
 
     @property
-    def beam_energy_spreads(self) -> list[BeamEnergySpread]:
+    def beam_energy_spreads(self) -> ElementListProxy[BeamEnergySpread]:
         """List of all BeamEnergySpread instances."""
-        return self.by_element.get(BeamEnergySpread, [])
+        return self.by_element.get(BeamEnergySpread, ElementListProxy())
 
     @property
     def beam_energy_spread(self) -> BeamEnergySpread:
@@ -2739,9 +2879,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(BeamEnergySpread)
 
     @property
-    def shift_beam_centroids(self) -> list[ShiftBeamCentroid]:
+    def shift_beam_centroids(self) -> ElementListProxy[ShiftBeamCentroid]:
         """List of all ShiftBeamCentroid instances."""
-        return self.by_element.get(ShiftBeamCentroid, [])
+        return self.by_element.get(ShiftBeamCentroid, ElementListProxy())
 
     @property
     def shift_beam_centroid(self) -> ShiftBeamCentroid:
@@ -2749,9 +2889,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(ShiftBeamCentroid)
 
     @property
-    def integrator_type_switchs(self) -> list[IntegratorTypeSwitch]:
+    def integrator_type_switchs(self) -> ElementListProxy[IntegratorTypeSwitch]:
         """List of all IntegratorTypeSwitch instances."""
-        return self.by_element.get(IntegratorTypeSwitch, [])
+        return self.by_element.get(IntegratorTypeSwitch, ElementListProxy())
 
     @property
     def integrator_type_switch(self) -> IntegratorTypeSwitch:
@@ -2759,9 +2899,11 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(IntegratorTypeSwitch)
 
     @property
-    def beam_kicker_by_rf_nonlinearitys(self) -> list[BeamKickerByRFNonlinearity]:
+    def beam_kicker_by_rf_nonlinearitys(
+        self,
+    ) -> ElementListProxy[BeamKickerByRFNonlinearity]:
         """List of all BeamKickerByRFNonlinearity instances."""
-        return self.by_element.get(BeamKickerByRFNonlinearity, [])
+        return self.by_element.get(BeamKickerByRFNonlinearity, ElementListProxy())
 
     @property
     def beam_kicker_by_rf_nonlinearity(self) -> BeamKickerByRFNonlinearity:
@@ -2769,9 +2911,11 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(BeamKickerByRFNonlinearity)
 
     @property
-    def rfcavity_structure_wakefields(self) -> list[RfcavityStructureWakefield]:
+    def rfcavity_structure_wakefields(
+        self,
+    ) -> ElementListProxy[RfcavityStructureWakefield]:
         """List of all RfcavityStructureWakefield instances."""
-        return self.by_element.get(RfcavityStructureWakefield, [])
+        return self.by_element.get(RfcavityStructureWakefield, ElementListProxy())
 
     @property
     def rfcavity_structure_wakefield(self) -> RfcavityStructureWakefield:
@@ -2779,9 +2923,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(RfcavityStructureWakefield)
 
     @property
-    def energy_modulations(self) -> list[EnergyModulation]:
+    def energy_modulations(self) -> ElementListProxy[EnergyModulation]:
         """List of all EnergyModulation instances."""
-        return self.by_element.get(EnergyModulation, [])
+        return self.by_element.get(EnergyModulation, ElementListProxy())
 
     @property
     def energy_modulation(self) -> EnergyModulation:
@@ -2789,9 +2933,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(EnergyModulation)
 
     @property
-    def kick_beam_using_multipoles(self) -> list[KickBeamUsingMultipole]:
+    def kick_beam_using_multipoles(self) -> ElementListProxy[KickBeamUsingMultipole]:
         """List of all KickBeamUsingMultipole instances."""
-        return self.by_element.get(KickBeamUsingMultipole, [])
+        return self.by_element.get(KickBeamUsingMultipole, ElementListProxy())
 
     @property
     def kick_beam_using_multipole(self) -> KickBeamUsingMultipole:
@@ -2799,9 +2943,9 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(KickBeamUsingMultipole)
 
     @property
-    def halt_executions(self) -> list[HaltExecution]:
+    def halt_executions(self) -> ElementListProxy[HaltExecution]:
         """List of all HaltExecution instances."""
-        return self.by_element.get(HaltExecution, [])
+        return self.by_element.get(HaltExecution, ElementListProxy())
 
     @property
     def halt_execution(self) -> HaltExecution:
