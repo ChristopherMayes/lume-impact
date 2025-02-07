@@ -578,7 +578,8 @@ def element_from_tao(
     include_collimation: bool = False,
     integrator_type: IntegratorType = IntegratorType.linear_map,
     rfdata_file_id: int = 500,
-) -> tuple[list[AnyInputElement], dict[int, np.ndarray]]:
+    file_data: dict[str, np.ndarray] | None = None,
+) -> tuple[list[AnyInputElement], dict[str, np.ndarray]]:
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
     except KeyError:
@@ -620,8 +621,18 @@ def element_from_tao(
 
     if rfdata is not None:
         assert isinstance(inner_ele, SolenoidWithRFCavity)
-        inner_ele.file_id = rfdata_file_id
-        data[rfdata_file_id] = rfdata
+
+        for existing_id, existing_data in (file_data or {}).items():
+            if np.array_equal(existing_data, rfdata):
+                logger.debug(
+                    f"Element {inner_ele.name} reusing rfdata from {existing_id}"
+                )
+                inner_ele.file_id = int(existing_id)
+                break
+        else:
+            logger.debug(f"Element {inner_ele.name} new rfdata {rfdata_file_id}")
+            inner_ele.file_id = rfdata_file_id
+            data[str(rfdata_file_id)] = rfdata
 
     # if isinstance(inner_ele, SolenoidWithRFCavity):
     #     # TODO no aperture support here
@@ -722,7 +733,7 @@ class ConversionState:
         output_file_id = initial_write_full_id
         rfdata_file_id = initial_rfdata_file_id
 
-        file_data = {}
+        file_data: dict[str, np.ndarray] = {}
         for ele_id, name in self.idx_to_name.items():
             try:
                 z_elems, elem_data = element_from_tao(
@@ -736,6 +747,7 @@ class ConversionState:
                     include_collimation=include_collimation,
                     integrator_type=self.integrator_type,
                     rfdata_file_id=rfdata_file_id,
+                    file_data=file_data,
                 )
             except UnusableElementError as ex:
                 logger.debug("Skipping element: %s (%s)", ele_id, ex)
@@ -745,8 +757,8 @@ class ConversionState:
 
                 if elem_data:
                     for key, value in elem_data.items():
-                        file_data[str(key)] = value
-                    rfdata_file_id = max(elem_data) + 1
+                        file_data[key] = value
+                    rfdata_file_id = max(int(key) for key in elem_data) + 1
 
                 if ele_id in write_at_ids:
                     if lattice and isinstance(lattice[-1], WriteFull):
@@ -762,8 +774,6 @@ class ConversionState:
             if isinstance(ele, Dipole):
                 if ele.csr_enabled and isinstance(next_ele, Drift):
                     ele.set_csr(enabled=True, following_drift=True)
-
-        # combine_reused_rfdata(z_elems)
 
         lattice.append(
             WriteFull(name="final_particles", file_id=final_particles_file_id)
