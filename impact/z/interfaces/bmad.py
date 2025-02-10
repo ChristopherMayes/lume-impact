@@ -33,6 +33,7 @@ from ..input import (
     AnyInputElement,
     CollimateBeamWithRectangularAperture,
     Dipole,
+    IntegratorTypeSwitch,
     Multipole,
     Quadrupole,
     Solenoid,
@@ -523,11 +524,11 @@ def add_aperture(
     x2_limit: float,
     y1_limit: float,
     y2_limit: float,
-) -> list[AnyInputElement]:
+) -> tuple[list[AnyInputElement], list[AnyInputElement]]:
     radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
 
     if all(value == 0.0 for value in [x1_limit, x2_limit, y1_limit, y2_limit]):
-        return [element]
+        return [], []
 
     if aperture_type in {"rectangular", "elliptical"}:
         aperture = CollimateBeamWithRectangularAperture(
@@ -539,11 +540,11 @@ def add_aperture(
             ymax=y2_limit,
         )
         if aperture_at == "entrance_end":
-            return [aperture, element]
+            return [aperture], []
         if aperture_at == "exit_end":
-            return [element, aperture]
+            return [], [aperture]
 
-    return [element]
+    return [], []
 
 
 def ele_has_superpositions(tao: Tao, ele_id: int | str) -> bool:
@@ -619,6 +620,9 @@ def element_from_tao(
     inner_ele, rfdata = res
     data = {}
 
+    leading_elements: list[AnyInputElement] = []
+    trailing_elements: list[AnyInputElement] = []
+
     if rfdata is not None:
         assert isinstance(inner_ele, SolenoidWithRFCavity)
 
@@ -637,22 +641,36 @@ def element_from_tao(
     # if isinstance(inner_ele, SolenoidWithRFCavity):
     #     # TODO no aperture support here
     #     return pad_solenoid_with_rf_cavity(inner_ele)
+    #
+    if isinstance(inner_ele, Multipole):
+        leading_elements.append(
+            IntegratorTypeSwitch(integrator_type=IntegratorType.runge_kutta)
+        )
+        trailing_elements.insert(
+            0, IntegratorTypeSwitch(integrator_type=IntegratorType.linear_map)
+        )
 
     if inner_ele is None:
         return [], data
 
-    if not include_collimation:
-        return [inner_ele], data
+    if include_collimation:
+        aperture_leading, aperture_trailing = add_aperture(
+            inner_ele,
+            x1_limit=float(info.get("X1_LIMIT", 0.0)),
+            x2_limit=float(info.get("X2_LIMIT", 0.0)),
+            y1_limit=float(info.get("Y1_LIMIT", 0.0)),
+            y2_limit=float(info.get("Y2_LIMIT", 0.0)),
+            aperture_type=str(info["aperture_type"]).lower(),
+            aperture_at=str(info["aperture_at"]).lower(),
+        )
+        leading_elements = [*leading_elements, *aperture_leading]
+        trailing_elements = [*aperture_trailing, *trailing_elements]
 
-    return add_aperture(
+    return [
+        *leading_elements,
         inner_ele,
-        x1_limit=float(info.get("X1_LIMIT", 0.0)),
-        x2_limit=float(info.get("X2_LIMIT", 0.0)),
-        y1_limit=float(info.get("Y1_LIMIT", 0.0)),
-        y2_limit=float(info.get("Y2_LIMIT", 0.0)),
-        aperture_type=str(info["aperture_type"]).lower(),
-        aperture_at=str(info["aperture_at"]).lower(),
-    ), data
+        *trailing_elements,
+    ], data
 
 
 def change_lattice_integrator(
@@ -784,7 +802,6 @@ class ConversionState:
 
     def to_input(
         self,
-        tao: Tao,
         lattice: list[AnyInputElement],
         file_data: dict[str, np.ndarray],
         radius_x: float = 0.0,
@@ -795,7 +812,7 @@ class ConversionState:
         ny: int = 64,
         nz: int = 64,
     ) -> ImpactZInput:
-        input = ImpactZInput(
+        return ImpactZInput(
             # Line 1
             ncpu_y=ncpu_y,
             ncpu_z=ncpu_z,
@@ -864,20 +881,6 @@ class ConversionState:
             # External file data
             file_data=file_data,
         )
-
-        if input.multipoles and input.integrator_type == IntegratorType.linear_map:
-            logger.warning(
-                "Slower integrator type Runge-Kutta selected as "
-                "Multipoles in Impact-Z require it to function."
-            )
-            input.integrator_type = IntegratorType.runge_kutta
-            change_lattice_integrator(
-                tao,
-                input,
-                IntegratorType.runge_kutta,
-                self.tao_id_to_elems,
-            )
-        return input
 
     @classmethod
     def from_tao(
@@ -1071,7 +1074,7 @@ def input_from_tao(
     )
 
     input = state.to_input(
-        tao=tao,
+        # tao=tao,
         lattice=lattice,
         file_data=file_data,
         radius_x=radius_x,

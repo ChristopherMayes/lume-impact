@@ -1487,16 +1487,8 @@ class IntegratorTypeSwitch(InputElement, element_id=-25):
     steps : int
         Unused.
     map_steps : int
-        Number of "map steps". Each half-step involves computing a map for that
-        half-element which is computed by numerical integration.
-    beam_centroid_6D : float
-        Shift the beam centroid in 6D phase space.
-    radius : float
-        Radius (in meters), not used.
-    linear_map_integrator : float
-        Use linear map integrator.
-    nonlinear_lorentz_integrator : float
-        Use the nonlinear Lorentz integrator for complicated external fields where transfer maps are not available.
+        Integrator type.
+    unused : float
     """
 
     length: float = 0.0
@@ -1504,10 +1496,21 @@ class IntegratorTypeSwitch(InputElement, element_id=-25):
     map_steps: int = 0
     type_id: Literal[-25] = -25
 
-    beam_centroid_6D: float = 0.0
-    radius: float = 0.0
-    linear_map_integrator: float = 0.0
-    nonlinear_lorentz_integrator: float = 0.0
+    unused: float = 0.0
+
+    def __init__(self, integrator_type: IntegratorType | None = None, **kwargs):
+        if integrator_type is not None:
+            kwargs["map_steps"] = int(integrator_type)
+
+        super().__init__(**kwargs)
+
+    @property
+    def integrator_type(self) -> int:
+        return self.map_steps
+
+    @integrator_type.setter
+    def integrator_type(self, value: int | IntegratorType) -> None:
+        self.integrator_type = int(value)
 
 
 class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
