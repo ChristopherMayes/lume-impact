@@ -987,7 +987,7 @@ class WriteFull(InputElement, element_id=-2, has_output_file=True):
         Unused.
     steps : int
         Unused.
-    map_steps : int
+    file_id : int
         The File ID.
     unused_2 : float
         Unused
@@ -1006,26 +1006,15 @@ class WriteFull(InputElement, element_id=-2, has_output_file=True):
       gamma).
     """
 
-    def __init__(self, file_id: int | None = None, sample_frequency: int = 0, **kwargs):
-        if file_id is not None:
-            kwargs["map_steps"] = file_id
-
-        super().__init__(**kwargs, sample_frequency=sample_frequency)
-
     length: float = 0.0
     steps: int = 0
-    map_steps: int = 0
+    file_id: int = pydantic.Field(
+        default=0,
+        validation_alias=pydantic.AliasChoices("file_id", "map_steps"),
+    )
     type_id: Literal[-2] = -2
     unused_2: float = 0.0
     sample_frequency: int = 0
-
-    @property
-    def file_id(self) -> int:
-        return self.map_steps
-
-    @file_id.setter
-    def file_id(self, value) -> None:
-        self.map_steps = value
 
 
 class DensityProfileInput(InputElement, element_id=-3):
@@ -1486,31 +1475,20 @@ class IntegratorTypeSwitch(InputElement, element_id=-25):
         Unused.
     steps : int
         Unused.
-    map_steps : int
+    integrator_type : IntegratorType
         Integrator type.
     unused : float
     """
 
     length: float = 0.0
     steps: int = 0
-    map_steps: int = 0
+    integrator_type: IntegratorType = pydantic.Field(
+        default=IntegratorType.linear_map,
+        validation_alias=pydantic.AliasChoices("integrator_type", "map_steps"),
+    )
     type_id: Literal[-25] = -25
 
     unused: float = 0.0
-
-    def __init__(self, integrator_type: IntegratorType | None = None, **kwargs):
-        if integrator_type is not None:
-            kwargs["map_steps"] = int(integrator_type)
-
-        super().__init__(**kwargs)
-
-    @property
-    def integrator_type(self) -> int:
-        return self.map_steps
-
-    @integrator_type.setter
-    def integrator_type(self, value: int | IntegratorType) -> None:
-        self.integrator_type = int(value)
 
 
 class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
