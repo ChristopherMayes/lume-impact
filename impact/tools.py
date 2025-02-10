@@ -1,9 +1,11 @@
 import datetime
+import importlib
 import json
 import os
 import platform
 import shutil
 import subprocess
+import sys
 from copy import deepcopy
 from hashlib import blake2b
 
@@ -297,4 +299,29 @@ def find_workdir():
 
 def get_suggested_nproc() -> int:
     """Get the suggested number of processes to use for MPI."""
-    return psutil.cpu_count(logical=False)
+    return psutil.cpu_count(logical=False) or 1
+
+
+def import_by_name(clsname: str) -> type:
+    """
+    Import the given class or function by name.
+
+    Parameters
+    ----------
+    clsname : str
+        The module path to find the class e.g.
+        ``"pcdsdevices.device_types.IPM"``
+
+    Returns
+    -------
+    type
+    """
+    module, cls = clsname.rsplit(".", 1)
+    if module not in sys.modules:
+        importlib.import_module(module)
+
+    mod = sys.modules[module]
+    try:
+        return getattr(mod, cls)
+    except AttributeError:
+        raise ImportError(f"Unable to import {clsname!r} from module {module!r}")

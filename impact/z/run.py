@@ -158,7 +158,7 @@ class ImpactZ(CommandWrapper):
     original_path: AnyPath
 
     _input: ImpactZInput
-    output: Any | None
+    output: ImpactZOutput | None
 
     def __init__(
         self,
@@ -555,21 +555,11 @@ class ImpactZ(CommandWrapper):
     ) -> None:
         self.input.initial_particles = value
 
-    # @property
-    # @override
-    # def initial_field(self) -> Optional[FieldFile]:
-    #     """Initial field, if defined.  Property is alias for `.input.main.initial_field`."""
-    #     return self.input.initial_field
-    #
-    # @initial_field.setter
-    # def initial_field(self, value: Optional[FieldFile]) -> None:
-    #     self.input.initial_field = value
-    #
-    # def _archive(self, h5: h5py.Group):
-    #     self.input.archive(h5.create_group("input"))
-    #     if self.output is not None:
-    #         self.output.archive(h5.create_group("output"))
-    #
+    def _archive(self, h5: h5py.Group):
+        self.input.archive(h5.create_group("input"))
+        if self.output is not None:
+            self.output.archive(h5.create_group("output"))
+
     @override
     def archive(self, dest: AnyPath | h5py.Group) -> None:
         """
@@ -579,23 +569,21 @@ class ImpactZ(CommandWrapper):
         ----------
         dest : filename or h5py.Group
         """
-        raise NotImplementedError()
-        # if isinstance(dest, (str, pathlib.Path)):
-        #     with h5py.File(dest, "w") as fp:
-        #         self._archive(fp)
-        # elif isinstance(dest, (h5py.File, h5py.Group)):
-        #     self._archive(dest)
+        if isinstance(dest, (str, pathlib.Path)):
+            with h5py.File(dest, "w") as fp:
+                self._archive(fp)
+        elif isinstance(dest, (h5py.File, h5py.Group)):
+            self._archive(dest)
 
     to_hdf5 = archive
 
-    #
-    # def _load_archive(self, h5: h5py.Group):
-    #     self.input = ImpactZInput.from_archive(h5["input"])
-    #     if "output" in h5:
-    #         self.output = ImpactZOutput.from_archive(h5["output"])
-    #     else:
-    #         self.output = None
-    #
+    def _load_archive(self, h5: h5py.Group):
+        self.input = ImpactZInput.from_archive(h5["input"])
+        if "output" in h5:
+            self.output = ImpactZOutput.from_archive(h5["output"])
+        else:
+            self.output = None
+
     @override
     def load_archive(self, arch: AnyPath | h5py.Group) -> None:
         """
@@ -605,7 +593,6 @@ class ImpactZ(CommandWrapper):
         ----------
         arch : filename or h5py.Group
         """
-        raise NotImplementedError()
         if isinstance(arch, (str, pathlib.Path)):
             with h5py.File(arch, "r") as fp:
                 self._load_archive(fp)

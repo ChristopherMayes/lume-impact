@@ -8,6 +8,7 @@ import typing
 from typing import Any, ClassVar, Iterable, Literal, NamedTuple, TypeVar, cast
 from collections.abc import Sequence
 
+import h5py
 import numpy as np
 import pydantic
 import pydantic.alias_generators
@@ -19,7 +20,7 @@ from pmd_beamphysics.particles import c_light
 
 from ..impact import suggested_processor_domain
 from .. import tools
-from . import parsers
+from . import archive as _archive, parsers
 from .constants import (
     BoundaryType,
     DiagnosticType,
@@ -225,7 +226,7 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
     map_steps: int = 0
     type_id: Literal[1] = 1
     k1: float = 0.0
-    file_id: float = 0
+    file_id: float = 0.0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -324,7 +325,7 @@ class Solenoid(InputElement, element_id=3, has_input_file=True):
     type_id: Literal[3] = 3
 
     Bz0: float = 0.0
-    file_id: float = 0
+    file_id: float = 0.0
     radius: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
@@ -481,8 +482,7 @@ class Multipole(InputElement, element_id=5, has_input_file=True):
     map_steps: int = 0
     type_id: Literal[5] = 5
 
-    # TODO untested
-    multipole_type: MultipoleType
+    multipole_type: MultipoleType = MultipoleType.sextupole
     field_strength: float = 0.0
     file_id: float = 0.0
     radius: float = 0.0
@@ -728,7 +728,7 @@ class SuperconductingCavity(InputElement, element_id=104, has_input_file=True):
     field_scaling: float = 0.0
     rf_frequency: float = 0.0
     phase_deg: float = 0.0  # theta0
-    file_id: float = 0
+    file_id: float = 0.0
     radius: float = 0.0
 
     # TODO not in the docs:
@@ -791,7 +791,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     field_scaling: float = 0.0  # field scaling factor
     rf_frequency: float = 0.0  # RF frequency in Hz
     phase_deg: float = 0.0  # driven phase in degrees
-    file_id: float = pydantic.Field(ge=1.0, le=999.0)
+    file_id: float = pydantic.Field(ge=1.0, le=999.0, default=1.0)
     radius: float = 0.0  # radius in meters
     misalignment_error_x: float = 0.0  # x misalignment error in meters
     misalignment_error_y: float = 0.0  # y misalignment error in meters
@@ -1549,7 +1549,7 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     type_id: Literal[-41] = -41
 
     not_used: float = 1.0
-    file_id: float = 0
+    file_id: float = 0.0
     # TODO -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
     enable_wakefield: float = 0.0
 
@@ -2569,6 +2569,35 @@ class ImpactZInput(BaseModel):
         if self.verbose:
             mpi = " (MPI enabled)" if self.nproc > 1 else ""
             print(f"Setting Npcol, Nprow = {Npcol}, {Nprow}{mpi}")
+
+    def archive(self, h5: h5py.Group) -> None:
+        """
+        Dump input data into the given HDF5 group.
+
+        Parameters
+        ----------
+        h5 : h5py.Group
+            The HDF5 file in which to write the information.
+        """
+        _archive.store_in_hdf5_file(h5, self)
+
+    @classmethod
+    def from_archive(cls, h5: h5py.Group) -> ImpactZInput:
+        """
+        Loads input from archived h5 file.
+
+        Parameters
+        ----------
+        h5 : str or h5py.File
+            The filename or handle on h5py.File from which to load data.
+        """
+        loaded = _archive.restore_from_hdf5_file(h5)
+        if not isinstance(loaded, ImpactZInput):
+            raise ValueError(
+                f"Loaded {loaded.__class__.__name__} instead of a "
+                f"ImpactZInput instance.  Was the HDF group correct?"
+            )
+        return loaded
 
     # @property
     # def LOWERs(self) -> ElementListProxy[ELEMENT]:

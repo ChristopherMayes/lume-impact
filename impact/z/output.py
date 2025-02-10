@@ -6,15 +6,18 @@ import typing
 from typing import Any, TypeVar
 from collections.abc import Generator, Sequence
 
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pydantic
 import pydantic.alias_generators
+
+from pmd_beamphysics.particles import c_light
 from .particles import ImpactZParticles
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
-from . import parsers
+from . import archive as _archive, parsers
 from .input import HasOutputFile, ImpactZInput, WriteSliceInfo
 from .types import (
     AnyPath,
@@ -494,6 +497,7 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
         workdir: pathlib.Path,
         reference_kinetic_energy: float,
         reference_particle_mass: float,
+        reference_frequency: float,
     ) -> OutputStats:
         stats, units = load_stat_files_from_path(workdir)
 
@@ -503,255 +507,17 @@ class OutputStats(BaseModel, arbitrary_types_allowed=False):
             extra=extra,
             **stats,
         )
+
+        # NOTE: sigma_z starts off as RMS phase in degrees
+        k = 2 * np.pi * reference_frequency / c_light
+        res.sigma_z *= np.pi / 180.0 / k
+
+        # NOTE: sigma_z is technically zero
+
         res.mean_energy = (
             res.kinetic_energy_ref + reference_particle_mass - res.neg_delta_mean_energy
         )
         return res
-
-
-class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
-    """
-    IMPACT-Z command output.
-
-    Attributes
-    ----------
-    run : RunInfo
-        Execution information - e.g., how long did it take and what was
-        the output from Impact-Z.
-    alias : dict[str, str]
-        Dictionary of aliased data keys.
-    """
-
-    run: RunInfo = pydantic.Field(
-        default_factory=RunInfo,
-        description="Run-related information - output text and timing.",
-    )
-    stats: OutputStats = OutputStats()
-    alias: dict[str, str] = pydantic.Field(
-        default={
-            "-cov_x__gammabeta_x": "neg_cov_x__gammabeta_x",
-        },
-    )
-    particles_raw: dict[str | int, ImpactZParticles] = pydantic.Field(
-        default={},
-        repr=False,
-    )
-    particles: dict[str | int, PydanticParticleGroup] = pydantic.Field(
-        default={},
-        repr=False,
-    )
-    slices: dict[int, ImpactZSlices] = pydantic.Field(
-        default={},
-        repr=False,
-    )
-    key_to_unit: dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
-
-    @override
-    def __eq__(self, other: Any) -> bool:
-        return BaseModel.__eq__(self, other)
-
-    @override
-    def __ne__(self, other: Any) -> bool:
-        return BaseModel.__ne__(self, other)
-
-    @override
-    def __getitem__(self, key: str) -> Any:
-        """Support for Mapping -> easy access to data."""
-        # _check_for_unsupported_key(key)
-
-        # parent, array_attr = self._split_parent_and_attr(key)
-        # return getattr(parent, array_attr)
-        key = self.alias.get(key, key)
-        try:
-            return getattr(self.stats, key)
-        except AttributeError:
-            raise KeyError(key)
-
-    @override
-    def __iter__(self) -> Generator[str]:
-        """Support for Mapping -> easy access to data."""
-        yield from self.stats
-
-    @override
-    def __len__(self) -> int:
-        """Support for Mapping -> easy access to data."""
-        return len(self.stats)
-
-    def units(self, key: str) -> pmd_unit:
-        return self.key_to_unit[self.alias.get(key, key)]
-
-    def stat(self, key: str):
-        """
-        Array from .output['stats'][key]
-
-        Additional keys are avalable:
-            'mean_energy': mean energy
-            'Ez': z component of the electric field at the centroid particle
-            'Bz'  z component of the magnetic field at the centroid particle
-            'cov_{a}__{b}': any symmetric covariance matrix term
-        """
-        if key in ("Ez", "Bz"):
-            raise NotImplementedError()
-            # return self.centroid_field(component=key[0:2])
-
-        # Allow flipping covariance keys
-        if key.startswith("cov_") and key not in self:
-            k1, k2 = key[4:].split("__")
-            key = f"cov_{k2}__{k1}"
-
-        if key not in self:
-            raise ValueError(f"{key} is not available in the output data")
-
-        return self[self.alias.get(key, key)]
-
-    @classmethod
-    def from_input_settings(
-        cls,
-        input: ImpactZInput,
-        workdir: pathlib.Path,
-        load_fields: bool = False,
-        load_particles: bool = False,
-        smear: bool = True,
-    ) -> ImpactZOutput:
-        """
-        Load ImpactZ output based on the configured input settings.
-
-        Parameters
-        ----------
-        load_fields : bool, default=False
-            After execution, load all field files.
-        load_particles : bool, default=False
-            After execution, load all particle files.
-        smear : bool, default=True
-            If set, for particles, this will smear the phase over the sample
-            (skipped) slices, preserving the modulus.
-
-        Returns
-        -------
-        ImpactZOutput
-            The output data.
-        """
-
-        stats = OutputStats.from_stats_files(
-            workdir,
-            reference_kinetic_energy=input.reference_kinetic_energy,
-            reference_particle_mass=input.reference_particle_mass,
-        )
-
-        units = stats.units.copy()
-        particles_raw = {}
-        particles = {}
-        slices = {}
-
-        z_start = 0.0
-        z_end = 0.0
-
-        for ele in input.lattice:
-            z_start = z_end
-            z_end += ele.length
-            z_end_idx = np.argmin(np.abs(stats.z - z_start))
-
-            if isinstance(ele, WriteSliceInfo):
-                key = _get_dict_key(slices, ele.file_id, ele.name)
-                slices[ele.file_id] = ImpactZSlices.from_file(
-                    workdir / f"fort.{ele.file_id}"
-                )
-            elif ele.class_information().has_output_file and isinstance(
-                ele, HasOutputFile
-            ):
-                raw = ImpactZParticles.from_file(workdir / f"fort.{ele.file_id}")
-
-                key = _get_dict_key(particles_raw, ele.file_id, ele.name)
-                particles_raw[key] = raw
-                phase_ref = stats.phase_ref[z_end_idx]
-                kinetic_energy = stats.kinetic_energy_ref[z_end_idx]
-                particles[key] = raw.to_particle_group(
-                    reference_kinetic_energy=kinetic_energy,
-                    reference_frequency=input.reference_frequency,
-                    phase_reference=phase_ref,
-                )
-
-        return ImpactZOutput(
-            stats=stats,
-            key_to_unit=units,
-            particles=particles,
-            particles_raw=particles_raw,
-            slices=slices,
-        )
-
-    def plot(
-        self,
-        y: str | Sequence[str] = ("sigma_x", "sigma_y"),
-        x: str = "mean_z",
-        xlim=None,
-        ylim=None,
-        ylim2=None,
-        y2=[],
-        nice=True,
-        include_layout=True,
-        include_labels=False,
-        include_markers=True,
-        include_particles=True,
-        include_field=True,
-        field_t=0,
-        include_legend=True,
-        return_figure=False,
-        tex=True,
-        **kwargs,
-    ):
-        """ """
-        from ..plot import plot_stats_with_layout
-
-        if not self.stats:
-            # Just plot fieldmaps if there are no stats
-            raise NotImplementedError()
-            # return plot_layout(
-            #     self,
-            #     xlim=xlim,
-            #     include_markers=include_markers,
-            #     include_labels=include_labels,
-            #     include_field=include_field,
-            #     field_t=field_t,
-            #     return_figure=return_figure,
-            #     **kwargs,
-            # )
-
-        return plot_stats_with_layout(
-            self,
-            ykeys=y,
-            ykeys2=y2,
-            xkey=x,
-            xlim=xlim,
-            ylim=ylim,
-            ylim2=ylim2,
-            nice=nice,
-            tex=tex,
-            include_layout=False,  # include_layout,
-            include_labels=include_labels,
-            include_field=include_field,
-            field_t=field_t,
-            include_markers=include_markers,
-            include_particles=include_particles,
-            include_legend=include_legend,
-            return_figure=return_figure,
-            **kwargs,
-        )
-
-    def debug_plot_all(self, figsize=(12, 64)):
-        keys = list(self)
-        fig, axs = plt.subplot_mosaic(
-            list(list(pair) for pair in zip(keys[::2], keys[1::2])),
-            figsize=figsize,
-        )
-
-        for key in keys:
-            try:
-                self.plot(key, ax=axs[key])
-            except Exception as ex:
-                logger.error(f"Failed to plot key: {key} {ex.__class__.__name__} {ex}")
-
-        fig.tight_layout()
-        return fig, axs
 
 
 file_number_to_cls: dict[int, type[FortranOutputFileData]] = {}
@@ -895,7 +661,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     mean_z : float
         centroid location (m)
     sigma_z : float
-        RMS size (m)
+        RMS phase in degrees.
     neg_delta_mean_energy : float
         Negative delta mean energy, used to convert to mean energy [eV]
         where `neg_delta_mean_energy = (kinetic_energy_ref - mean_energy) + reference_particle_mass `
@@ -916,7 +682,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
 
     z: Meters
     mean_z: Meters
-    sigma_z: Meters
+    sigma_z: Degrees
     neg_delta_mean_energy: MeV
     sigma_gammabeta_z: MeV
     twiss_alpha: Unitless
@@ -1086,3 +852,278 @@ class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
 
     z: Meters
     charge_state_n_particle: Unitless
+
+
+class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
+    """
+    IMPACT-Z command output.
+
+    Attributes
+    ----------
+    run : RunInfo
+        Execution information - e.g., how long did it take and what was
+        the output from Impact-Z.
+    alias : dict[str, str]
+        Dictionary of aliased data keys.
+    """
+
+    run: RunInfo = pydantic.Field(
+        default_factory=RunInfo,
+        description="Run-related information - output text and timing.",
+    )
+    stats: OutputStats = OutputStats()
+    alias: dict[str, str] = pydantic.Field(
+        default={
+            "-cov_x__gammabeta_x": "neg_cov_x__gammabeta_x",
+        },
+    )
+    particles_raw: dict[str | int, ImpactZParticles] = pydantic.Field(
+        default={},
+        repr=False,
+    )
+    particles: dict[str | int, PydanticParticleGroup] = pydantic.Field(
+        default={},
+        repr=False,
+    )
+    slices: dict[int, ImpactZSlices] = pydantic.Field(
+        default={},
+        repr=False,
+    )
+    key_to_unit: dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
+
+    @override
+    def __eq__(self, other: Any) -> bool:
+        return BaseModel.__eq__(self, other)
+
+    @override
+    def __ne__(self, other: Any) -> bool:
+        return BaseModel.__ne__(self, other)
+
+    @override
+    def __getitem__(self, key: str) -> Any:
+        """Support for Mapping -> easy access to data."""
+        # _check_for_unsupported_key(key)
+
+        # parent, array_attr = self._split_parent_and_attr(key)
+        # return getattr(parent, array_attr)
+        key = self.alias.get(key, key)
+        try:
+            return getattr(self.stats, key)
+        except AttributeError:
+            raise KeyError(key)
+
+    @override
+    def __iter__(self) -> Generator[str]:
+        """Support for Mapping -> easy access to data."""
+        yield from self.stats
+
+    @override
+    def __len__(self) -> int:
+        """Support for Mapping -> easy access to data."""
+        return len(self.stats)
+
+    def units(self, key: str) -> pmd_unit:
+        return self.key_to_unit[self.alias.get(key, key)]
+
+    def stat(self, key: str):
+        """
+        Array from .output['stats'][key]
+
+        Additional keys are avalable:
+            'mean_energy': mean energy
+            'Ez': z component of the electric field at the centroid particle
+            'Bz'  z component of the magnetic field at the centroid particle
+            'cov_{a}__{b}': any symmetric covariance matrix term
+        """
+        if key in ("Ez", "Bz"):
+            raise NotImplementedError()
+            # return self.centroid_field(component=key[0:2])
+
+        # Allow flipping covariance keys
+        if key.startswith("cov_") and key not in self:
+            k1, k2 = key[4:].split("__")
+            key = f"cov_{k2}__{k1}"
+
+        if key not in self:
+            raise ValueError(f"{key} is not available in the output data")
+
+        return self[self.alias.get(key, key)]
+
+    @classmethod
+    def from_input_settings(
+        cls,
+        input: ImpactZInput,
+        workdir: pathlib.Path,
+        load_fields: bool = False,
+        load_particles: bool = False,
+        smear: bool = True,
+    ) -> ImpactZOutput:
+        """
+        Load ImpactZ output based on the configured input settings.
+
+        Parameters
+        ----------
+        load_fields : bool, default=False
+            After execution, load all field files.
+        load_particles : bool, default=False
+            After execution, load all particle files.
+        smear : bool, default=True
+            If set, for particles, this will smear the phase over the sample
+            (skipped) slices, preserving the modulus.
+
+        Returns
+        -------
+        ImpactZOutput
+            The output data.
+        """
+
+        stats = OutputStats.from_stats_files(
+            workdir,
+            reference_kinetic_energy=input.reference_kinetic_energy,
+            reference_particle_mass=input.reference_particle_mass,
+            reference_frequency=input.reference_frequency,
+        )
+
+        units = stats.units.copy()
+        particles_raw = {}
+        particles = {}
+        slices = {}
+
+        z_start = 0.0
+        z_end = 0.0
+
+        for ele in input.lattice:
+            z_start = z_end
+            z_end += ele.length
+            z_end_idx = np.argmin(np.abs(stats.z - z_start))
+
+            if isinstance(ele, WriteSliceInfo):
+                key = _get_dict_key(slices, ele.file_id, ele.name)
+                slices[ele.file_id] = ImpactZSlices.from_file(
+                    workdir / f"fort.{ele.file_id}"
+                )
+            elif ele.class_information().has_output_file and isinstance(
+                ele, HasOutputFile
+            ):
+                raw = ImpactZParticles.from_file(workdir / f"fort.{ele.file_id}")
+
+                key = _get_dict_key(particles_raw, ele.file_id, ele.name)
+                particles_raw[key] = raw
+                phase_ref = stats.phase_ref[z_end_idx]
+                kinetic_energy = stats.kinetic_energy_ref[z_end_idx]
+                particles[key] = raw.to_particle_group(
+                    reference_kinetic_energy=kinetic_energy,
+                    reference_frequency=input.reference_frequency,
+                    phase_reference=phase_ref,
+                )
+
+        return ImpactZOutput(
+            stats=stats,
+            key_to_unit=units,
+            particles=particles,
+            particles_raw=particles_raw,
+            slices=slices,
+        )
+
+    def plot(
+        self,
+        y: str | Sequence[str] = ("sigma_x", "sigma_y"),
+        x: str = "mean_z",
+        xlim=None,
+        ylim=None,
+        ylim2=None,
+        y2=[],
+        nice=True,
+        include_layout=True,
+        include_labels=False,
+        include_markers=True,
+        include_particles=True,
+        include_field=True,
+        field_t=0,
+        include_legend=True,
+        return_figure=False,
+        tex=True,
+        **kwargs,
+    ):
+        """ """
+        from ..plot import plot_stats_with_layout
+
+        if not self.stats:
+            # Just plot fieldmaps if there are no stats
+            raise NotImplementedError()
+            # return plot_layout(
+            #     self,
+            #     xlim=xlim,
+            #     include_markers=include_markers,
+            #     include_labels=include_labels,
+            #     include_field=include_field,
+            #     field_t=field_t,
+            #     return_figure=return_figure,
+            #     **kwargs,
+            # )
+
+        return plot_stats_with_layout(
+            self,
+            ykeys=y,
+            ykeys2=y2,
+            xkey=x,
+            xlim=xlim,
+            ylim=ylim,
+            ylim2=ylim2,
+            nice=nice,
+            tex=tex,
+            include_layout=False,  # include_layout,
+            include_labels=include_labels,
+            include_field=include_field,
+            field_t=field_t,
+            include_markers=include_markers,
+            include_particles=include_particles,
+            include_legend=include_legend,
+            return_figure=return_figure,
+            **kwargs,
+        )
+
+    def debug_plot_all(self, figsize=(12, 64)):
+        keys = list(self)
+        fig, axs = plt.subplot_mosaic(
+            list(list(pair) for pair in zip(keys[::2], keys[1::2])),
+            figsize=figsize,
+        )
+
+        for key in keys:
+            try:
+                self.plot(key, ax=axs[key])
+            except Exception as ex:
+                logger.error(f"Failed to plot key: {key} {ex.__class__.__name__} {ex}")
+
+        fig.tight_layout()
+        return fig, axs
+
+    def archive(self, h5: h5py.Group) -> None:
+        """
+        Dump outputs into the given HDF5 group.
+
+        Parameters
+        ----------
+        h5 : h5py.Group
+            The HDF5 file in which to write the information.
+        """
+        _archive.store_in_hdf5_file(h5, self)
+
+    @classmethod
+    def from_archive(cls, h5: h5py.Group) -> ImpactZOutput:
+        """
+        Loads output from the given HDF5 group.
+
+        Parameters
+        ----------
+        h5 : str or h5py.File
+            The key to use when restoring the data.
+        """
+        loaded = _archive.restore_from_hdf5_file(h5)
+        if not isinstance(loaded, ImpactZOutput):
+            raise ValueError(
+                f"Loaded {loaded.__class__.__name__} instead of a "
+                f"ImpactZOutput instance.  Was the HDF group correct?"
+            )
+        return loaded

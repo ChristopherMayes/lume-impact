@@ -80,10 +80,10 @@ def _check_equality(obj1: Any, obj2: Any) -> bool:
     if isinstance(obj1, np.ndarray):
         if not obj1.shape and not obj2.shape:
             return True
-        return np.allclose(obj1, obj2)
+        return np.allclose(obj1, obj2, equal_nan=True)
 
     if isinstance(obj1, float):
-        return np.allclose(obj1, obj2)
+        return np.allclose(obj1, obj2, equal_nan=True)
 
     return bool(obj1 == obj2)
 
