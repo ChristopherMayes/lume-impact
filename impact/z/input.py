@@ -68,6 +68,7 @@ class InputElement(BaseModel):
     _impactz_metadata_: ClassVar[InputElementMetadata]
     _impactz_fields_: ClassVar[tuple[str, ...]]
     name: str = ""
+    metadata: dict[str, int | float | str | bool | NDArray] = {}
 
     def __init_subclass__(
         cls,

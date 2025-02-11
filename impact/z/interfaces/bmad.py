@@ -63,6 +63,20 @@ def ele_head(tao: Tao, ele: str | int, which: str = "model") -> TaoInfoDict:
     return cast(TaoInfoDict, tao.ele_head(ele, which=which))
 
 
+def ele_csr_enabled(
+    ele_methods_info: TaoInfoDict,
+    global_csr_flag: bool = False,
+) -> bool:
+    if not global_csr_flag:
+        return False
+
+    csr_method = ele_methods_info.get("csr_method", "")
+    if not csr_method:
+        return False
+
+    return str(csr_method).lower() == "1_dim"
+
+
 def get_element_index(
     tao: Tao,
     ele: str | int,
@@ -269,6 +283,7 @@ def single_element_from_tao_info(
     rotation_error_z = -float(info.get("TILT_TOT", 0.0))
     num_steps = int(info.get("NUM_STEPS", 10))
     radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
+    csr = ele_csr_enabled(ele_methods_info, global_csr_flag)
 
     if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
         offset_x = (
@@ -290,6 +305,7 @@ def single_element_from_tao_info(
             steps=num_steps,
             map_steps=num_steps,
             radius=1.0,  # no such thing in bmad, right?
+            metadata={"bmad_csr": csr},
         ), None
 
     if key == "sbend":
@@ -303,8 +319,6 @@ def single_element_from_tao_info(
                 f"Impact-Z, this should be 'Full'"
             )
 
-        element_csr_flag = str(ele_methods_info["csr_method"]).lower() == "1_dim"
-        csr = global_csr_flag or element_csr_flag
         return Dipole(
             name=name,
             length=length,
@@ -770,6 +784,9 @@ class ConversionState:
                 lattice.extend(z_elems)
                 tao_id_to_elems[ele_id] = z_elems
 
+                for ele in z_elems:
+                    ele.metadata["bmad_id"] = int(ele_id)
+
                 if elem_data:
                     for key, value in elem_data.items():
                         file_data[key] = value
@@ -781,14 +798,25 @@ class ConversionState:
                         pass
                     else:
                         lattice.append(
-                            WriteFull(name=f"WRITE_{name}", file_id=output_file_id)
+                            WriteFull(
+                                name=f"WRITE_{name}",
+                                file_id=output_file_id,
+                                metadata={"bmad_id": int(ele_id)},
+                            )
                         )
                         output_file_id += 1
 
-        for ele, next_ele in zip(lattice, lattice[1:]):
-            if isinstance(ele, Dipole):
-                if ele.csr_enabled and isinstance(next_ele, Drift):
-                    ele.set_csr(enabled=True, following_drift=True)
+        for dipole, drift in zip(lattice, lattice[1:]):
+            if isinstance(dipole, Dipole) and isinstance(drift, Drift):
+                drift_csr_enabled = cast(bool, drift.metadata["bmad_csr"])
+                if dipole.csr_enabled and drift_csr_enabled:
+                    dipole.set_csr(enabled=True, following_drift=True)
+                elif dipole.csr_enabled and not drift_csr_enabled:
+                    dipole.set_csr(enabled=True, following_drift=False)
+                elif not dipole.csr_enabled and drift_csr_enabled:
+                    raise NotImplementedError(
+                        "Dipole without CSR -> Drift with CSR is not supported in Impact-Z"
+                    )
 
         lattice.append(
             WriteFull(name="final_particles", file_id=final_particles_file_id)
