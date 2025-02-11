@@ -166,11 +166,9 @@ def _hdf5_store_dict(group: h5py.Group, data, encoding: str, depth=0) -> None:
                 depth=depth + 1,
                 encoding=encoding,
             )
-        elif isinstance(value, bytes):
-            group.attrs[h5_key] = np.bytes_(value)
         elif isinstance(value, (str, int, float, bool)):
             group.attrs[h5_key] = value
-        elif isinstance(value, (np.ndarray,)):
+        elif isinstance(value, (np.ndarray, bytes)):
             group.create_dataset(h5_key, data=value)
         else:
             raise NotImplementedError(type(value))
