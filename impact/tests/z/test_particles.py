@@ -1,6 +1,7 @@
 from __future__ import annotations
 import pathlib
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
 from pmd_beamphysics import ParticleGroup
@@ -138,3 +139,74 @@ def test_round_trip_to_file(tmp_path: pathlib.Path):
         phase_reference=0.0,
     )
     assert P1 == P2
+
+
+def test_read_empty_file() -> None:
+    P = ImpactZParticles.from_contents("")
+    assert len(P.impactz_x) == 0
+
+
+@pytest.mark.parametrize(
+    "raw_contents",
+    [
+        pytest.param(
+            """\
+ 2
+ 1 2 3 4 5 6 7 8 9
+ 11 12 13 14 15 16 17 18 19
+""",
+            id="leading_spaces_and_header",
+        ),
+        pytest.param(
+            """\
+ 1 2 3 4 5 6 7 8 9
+ 11 12 13 14 15 16 17 18 19
+""",
+            id="leading_spaces_no_header",
+        ),
+        pytest.param(
+            """\
+2
+1 2 3 4 5 6 7 8 9
+11 12 13 14 15 16 17 18 19
+""",
+            id="no_spaces_and_header",
+        ),
+        pytest.param(
+            """\
+1 2 3 4 5 6 7 8 9
+11 12 13 14 15 16 17 18 19
+""",
+            id="no_spaces_no_header",
+        ),
+    ],
+)
+def test_read_leading_spaces_and_header(raw_contents: str) -> None:
+    P = ImpactZParticles.from_contents(raw_contents)
+
+    expected_raw_particles = [
+        [
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0,
+        ],
+        [
+            11.0,
+            12.0,
+            13.0,
+            14.0,
+            15.0,
+            16.0,
+            17.0,
+            18.0,
+            19.0,
+        ],
+    ]
+
+    assert list(P.by_row(unwrap_numpy=True)) == expected_raw_particles

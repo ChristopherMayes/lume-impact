@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import io
 import logging
 import pathlib
 from typing import Generator, NamedTuple
 
 import numpy as np
 from pmd_beamphysics import ParticleGroup
+import polars as pl
 from pydantic import Field
 
 from pmd_beamphysics.particles import c_light
@@ -52,9 +54,28 @@ class ImpactZParticles(BaseModel):
     impactz_id: NDArray
     filename: pathlib.Path | None = Field(default=None, exclude=True)
 
+    @staticmethod
+    def empty(filename: str | pathlib.Path | None = None):
+        empty = np.zeros(0)
+        return ImpactZParticles(
+            impactz_x=empty,
+            impactz_px=empty,
+            impactz_y=empty,
+            impactz_py=empty,
+            impactz_phase=empty,
+            impactz_pz=empty,
+            impactz_charge_to_mass_ratio=empty,
+            impactz_weight=empty,
+            impactz_id=empty,
+            filename=pathlib.Path(filename) if filename else None,
+        )
+
     @classmethod
     def from_contents(
-        cls, contents: str, filename: AnyPath | None = None
+        cls,
+        contents: str,
+        filename: AnyPath | None = None,
+        apply_exponent_fix: bool = False,
     ) -> ImpactZParticles:
         """
         Load main input from its file contents.
@@ -71,55 +92,54 @@ class ImpactZParticles(BaseModel):
         ImpactZParticles
         """
 
-        contents = fix_line(contents.strip())
-        dtype = np.dtype(
-            {
-                "names": (
-                    "impactz_x",
-                    "impactz_px",
-                    "impactz_y",
-                    "impactz_py",
-                    "impactz_phase",
-                    "impactz_pz",
-                    "impactz_charge_to_mass_ratio",
-                    "impactz_weight",
-                    "impactz_id",
-                ),
-                "formats": [np.float64] * 9,
-            }
-        )
+        if apply_exponent_fix:
+            contents = fix_line(contents.strip())
 
-        lines = contents.splitlines()
-        if not lines:
-            # raise ValueError("No particle data")
-            empty = np.zeros(0)
-            return ImpactZParticles(
-                impactz_x=empty,
-                impactz_px=empty,
-                impactz_y=empty,
-                impactz_py=empty,
-                impactz_phase=empty,
-                impactz_pz=empty,
-                impactz_charge_to_mass_ratio=empty,
-                impactz_weight=empty,
-                impactz_id=empty,
-                filename=pathlib.Path(filename) if filename else None,
-            )
+        if not contents:
+            return cls.empty(filename)
 
         num_cols = 9
-        if len(lines[0].split()) < num_cols:
-            # The first line may be the number of particles (with maybe another
-            # couple unknown values after - because why not), depending on if
-            # it's an input file or an output file
-            lines = lines[1:]
+        schema = dict.fromkeys([str(col) for col in range(num_cols + 1)], pl.Float64)
+        with io.StringIO(contents) as fp:
+            while True:
+                first_line = fp.readline()
+                if first_line is None:
+                    return cls.empty(filename)
 
-        (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id) = np.loadtxt(
-            lines,
-            unpack=True,
-            dtype=dtype,
-            usecols=range(num_cols),
-            ndmin=1,
-        )
+                if first_line.strip():
+                    break
+
+            second_line = fp.readline()
+            fp.seek(0)
+
+            if len(first_line.strip().split()) < num_cols:
+                # The first line may be the number of particles (with maybe another
+                # couple unknown values after - because why not), depending on if
+                # it's an input file or an output file
+                skip_rows = 1
+                have_leading_spaces = second_line.startswith(" ")
+            else:
+                skip_rows = 0
+                have_leading_spaces = first_line.startswith(" ")
+
+            values = (
+                pl.read_csv(
+                    fp,
+                    separator=" ",
+                    has_header=False,
+                    skip_rows=skip_rows,
+                    schema=schema,
+                )
+                .to_numpy()
+                .T
+            )
+
+        first_col = values[0]
+        if have_leading_spaces and np.all(np.isnan(first_col)):
+            (_, x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id) = values
+        else:
+            (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id, *_) = values
+
         return ImpactZParticles(
             impactz_x=x,
             impactz_px=px,
@@ -132,6 +152,25 @@ class ImpactZParticles(BaseModel):
             impactz_id=np.asarray(id, dtype=int),  # may be stored as float?
             filename=pathlib.Path(filename) if filename else None,
         )
+
+    def by_row(self, *, unwrap_numpy: bool = True):
+        arrays = [
+            self.impactz_x,
+            self.impactz_px,
+            self.impactz_y,
+            self.impactz_py,
+            self.impactz_phase,
+            self.impactz_pz,
+            self.impactz_charge_to_mass_ratio,
+            self.impactz_weight,
+            self.impactz_id,
+        ]
+        if unwrap_numpy:
+            for item in zip(*arrays):
+                yield [float(v) for v in item]
+        else:
+            for item in zip(*arrays):
+                yield item
 
     @classmethod
     def from_file(cls, filename: AnyPath) -> ImpactZParticles:

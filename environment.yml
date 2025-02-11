@@ -14,13 +14,14 @@ dependencies:
   - lume-base
   - matplotlib
   - openpmd-beamphysics
-  - pip
-  - psutil
+  - polars
   - prettytable
+  - psutil
   - pydantic
   - pydantic-settings
   - rich
   - tqdm
+  - pip
   # Developer
   - bmad
   - pytao
