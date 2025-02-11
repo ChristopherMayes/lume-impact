@@ -249,7 +249,6 @@ def single_element_from_tao_info(
     ele_methods_info: TaoInfoDict,
     multipole_info: MultipoleInfo | None,
     name: str = "",
-    default_map_steps: int = 10,
     global_csr_flag: bool = False,
     species: str = "electron",
     integrator_type: IntegratorType = IntegratorType.linear_map,
@@ -289,7 +288,7 @@ def single_element_from_tao_info(
             length=length,
             name=name,
             steps=num_steps,
-            map_steps=default_map_steps,
+            map_steps=num_steps,
             radius=1.0,  # no such thing in bmad, right?
         ), None
 
@@ -310,7 +309,7 @@ def single_element_from_tao_info(
             name=name,
             length=length,
             steps=num_steps,
-            map_steps=default_map_steps,
+            map_steps=num_steps,
             angle=float(info["ANGLE"]),  # rad
             k1=float(info["K1"]),
             input_switch=201.0 if csr else 0.0,
@@ -360,7 +359,7 @@ def single_element_from_tao_info(
             name=name,
             length=length,
             steps=num_steps,
-            map_steps=default_map_steps,
+            map_steps=num_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             multipole_type=multipole_type,
             field_strength=field_strength,
@@ -389,7 +388,7 @@ def single_element_from_tao_info(
             name=name,
             length=length,
             steps=num_steps,
-            map_steps=default_map_steps,
+            map_steps=num_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             k1=k1,
             # file_id : float
@@ -415,7 +414,7 @@ def single_element_from_tao_info(
             name=name,
             length=length,
             steps=num_steps,
-            map_steps=default_map_steps,
+            map_steps=num_steps,
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             Bz0=float(info["BS_FIELD"]),
             file_id=-1,  # TODO?
@@ -449,7 +448,7 @@ def single_element_from_tao_info(
                 name=name,
                 length=length,
                 steps=num_steps,
-                map_steps=default_map_steps,
+                map_steps=num_steps,
                 file_id=-1.0,  # TODO: same for all cavity types?
                 rf_frequency=float(info["RF_FREQUENCY"]),
                 phase_deg=float(info["PHI0"]) * 360.0,
@@ -493,7 +492,7 @@ def single_element_from_tao_info(
                 name=name,
                 length=length,
                 steps=int((length / rf_wavelength) * 180.0),
-                map_steps=default_map_steps,
+                map_steps=num_steps,
                 file_id=1.0,
                 rf_frequency=rf_frequency,
                 phase_deg=(phi0 + phi0_autoscale - phi0_ref + 0.25 + phi0_pad) * 360.0,
@@ -572,7 +571,6 @@ def element_from_tao(
     ele_id: str | int,
     which: Which = "model",
     name: str = "",
-    default_map_steps: int = 10,
     global_csr_flag: bool = False,
     species: str = "electron",
     verbose: bool = False,
@@ -607,7 +605,6 @@ def element_from_tao(
         multipole_info=multipole_info,
         ele_methods_info=ele_methods_info,
         name=name,
-        default_map_steps=default_map_steps,
         global_csr_flag=global_csr_flag,
         species=species,
         integrator_type=integrator_type,
