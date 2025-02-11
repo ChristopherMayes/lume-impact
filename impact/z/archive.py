@@ -168,7 +168,9 @@ def _hdf5_store_dict(group: h5py.Group, data, encoding: str, depth=0) -> None:
             )
         elif isinstance(value, (str, int, float, bool)):
             group.attrs[h5_key] = value
-        elif isinstance(value, (np.ndarray, bytes)):
+        elif isinstance(value, bytes):
+            group.create_dataset(h5_key, data=np.bytes_(value))
+        elif isinstance(value, np.ndarray):
             group.create_dataset(h5_key, data=value)
         else:
             raise NotImplementedError(type(value))
@@ -236,7 +238,9 @@ def _hdf5_restore_dict(
         return None
 
     if python_class_name == "bytes":
-        return item.attrs["value"]
+        if "value" in item.attrs:
+            return item.attrs["value"]
+        return bytes(item["value"][()])
 
     if python_class_name == "ParticleGroup":
         return ParticleGroup(
