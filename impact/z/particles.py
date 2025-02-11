@@ -71,7 +71,7 @@ class ImpactZParticles(BaseModel):
         ImpactZParticles
         """
 
-        contents = fix_line(contents)
+        contents = fix_line(contents.strip())
         dtype = np.dtype(
             {
                 "names": (

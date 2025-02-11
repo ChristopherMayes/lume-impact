@@ -105,10 +105,6 @@ class RunInfo(BaseModel):
         return not self.error
 
 
-# def _empty_ndarray():
-#     return np.zeros(0)
-
-
 def load_stat_files_from_path(
     workdir: pathlib.Path,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
@@ -302,7 +298,7 @@ def _split_extra(cls: type[BaseModel], dct: dict) -> dict[str, Any]:
     return {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
 
 
-class OutputStats(BaseModel, arbitrary_types_allowed=False):
+class OutputStats(BaseModel):
     beta_ref: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Beta of the reference particle."
     )
@@ -854,7 +850,7 @@ class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
     charge_state_n_particle: Unitless
 
 
-class ImpactZOutput(Mapping, BaseModel, arbitrary_types_allowed=True):
+class ImpactZOutput(Mapping, BaseModel):
     """
     IMPACT-Z command output.
 

@@ -12,6 +12,7 @@ from .constants import (
     ElementID,
 )
 from .input import (
+    AnyInputElement,
     ImpactZInput,
     Drift,
     Quadrupole,
@@ -53,6 +54,7 @@ from .particles import ImpactZParticles
 from .run import ImpactZ
 
 __all__ = [
+    "AnyInputElement",
     "BeamEnergySpread",
     "BeamKickerByRFNonlinearity",
     "BeamShift",

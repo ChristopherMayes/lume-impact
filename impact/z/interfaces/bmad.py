@@ -15,7 +15,7 @@ from pmd_beamphysics.species import charge_state, mass_of
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal
 
-from impact.z.constants import (
+from ..constants import (
     BoundaryType,
     DiagnosticType,
     DistributionZType,

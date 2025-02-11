@@ -205,7 +205,7 @@ class _PydanticNDArray:
         raise ValueError(f"No conversion from {value!r} to numpy ndarray")
 
 
-class ParticleData(TypedDict):
+class ParticleDictData(TypedDict):
     """
     ParticleGroup raw data as a dictionary.
 
@@ -243,15 +243,49 @@ class ParticleData(TypedDict):
     id: NotRequired[NDArray]
 
 
+class ParticleData(BaseModel):
+    """
+    ParticleGroup raw data as a Pydantic model.
+
+    Used internally for serialization of ParticleGroup to JSON.
+    """
+
+    # `x`, `y`, `z` are positions in units of [m]
+    x: NDArray = np.zeros(0)
+    y: NDArray = np.zeros(0)
+    z: NDArray = np.zeros(0)
+
+    # `px`, `py`, `pz` are momenta in units of [eV/c]
+    px: NDArray = np.zeros(0)
+    py: NDArray = np.zeros(0)
+    pz: NDArray = np.zeros(0)
+
+    # `t` is time in [s]
+    t: NDArray = np.zeros(0)
+    status: NDArray = np.zeros(0)
+
+    # `weight` is the macro-charge weight in [C], used for all statistical
+    # calculations.
+    weight: NDArray = np.zeros(0)
+
+    # `species` is a proper species name: `'electron'`, etc.
+    species: str = "electron"
+    id: NDArray = np.zeros(0)
+
+
 class _PydanticParticleGroup:
-    data: ParticleData
+    data: ParticleDictData
 
     @staticmethod
-    def _from_dict(data: ParticleData) -> ParticleGroup:
-        return ParticleGroup(data=data)
+    def _from_dict(data: ParticleDictData) -> ParticleGroup:
+        dat = dict(data)
+        id_ = dat.get("id", None)
+        if id_ is not None and len(id_) == 0:
+            dat.pop("id")
+        return ParticleGroup(data=dat)
 
-    def _as_dict(self) -> ParticleData:
-        return self.data
+    def _to_model(self):
+        return ParticleData(**self.data)
 
     @classmethod
     def __get_pydantic_core_schema__(
@@ -262,13 +296,17 @@ class _PydanticParticleGroup:
         return pydantic_core.core_schema.no_info_plain_validator_function(
             cls._pydantic_validate,
             serialization=pydantic_core.core_schema.plain_serializer_function_ser_schema(
-                cls._as_dict, when_used="json-unless-none"
+                cls._to_model, when_used="json-unless-none"
             ),
         )
 
     @classmethod
-    def _pydantic_validate(cls, value: ParticleData | ParticleGroup) -> ParticleGroup:
+    def _pydantic_validate(
+        cls, value: ParticleData | ParticleDictData | ParticleGroup
+    ) -> ParticleGroup:
         if isinstance(value, ParticleGroup):
+            return value
+        if isinstance(value, ParticleData):
             return value
         if isinstance(value, dict):
             return cls._from_dict(value)

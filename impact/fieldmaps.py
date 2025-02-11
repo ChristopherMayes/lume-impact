@@ -1,8 +1,8 @@
 import numpy as np
 from numpy import cos, pi
 import os
-from impact.tools import safe_loadtxt
-from impact.control import ControlGroup
+from .tools import safe_loadtxt
+from .control import ControlGroup
 from subprocess import Popen, PIPE
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import warnings

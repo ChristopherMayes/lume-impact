@@ -16,6 +16,7 @@ from collections.abc import Sequence
 import h5py
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
+from .particles import ImpactZParticles
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
@@ -175,7 +176,7 @@ class ImpactZ(CommandWrapper):
         use_temp_dir: bool = True,
         verbose: bool = tools.global_display_options.verbose >= 1,
         timeout: float | None = None,
-        initial_particles: ParticleGroup | None = None,
+        initial_particles: ParticleGroup | ImpactZParticles | None = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -204,11 +205,14 @@ class ImpactZ(CommandWrapper):
         else:
             raise ValueError(f"Unsupported 'input' type: {type(input).__name__}")
 
+        self._input = input
+        self.output = output
+
         if (
             input.initial_particles is not initial_particles
             and initial_particles is not None
         ):
-            input.initial_particles = initial_particles
+            self.initial_particles = initial_particles
 
         if workdir is None:
             workdir = pathlib.Path(".")
@@ -217,9 +221,6 @@ class ImpactZ(CommandWrapper):
 
         if pathlib.Path(workdir).exists() and not pathlib.Path(workdir).is_dir():
             raise ValueError(f"`workdir` exists and is not a directory: {workdir}")
-
-        self._input = input
-        self.output = output
 
         # Internal
         self._units = dict(units or units_mod.known_unit)
@@ -551,8 +552,15 @@ class ImpactZ(CommandWrapper):
     @initial_particles.setter
     def initial_particles(
         self,
-        value: ParticleGroup | None,
+        value: ParticleGroup | ImpactZParticles | None,
     ) -> None:
+        if isinstance(value, ImpactZParticles):
+            value = value.to_particle_group(
+                species="electron",  # TODO: only supported option for now
+                reference_frequency=self.input.reference_frequency,
+                reference_kinetic_energy=self.input.reference_kinetic_energy,
+                phase_reference=self.input.initial_phase_ref,
+            )
         self.input.initial_particles = value
 
     def _archive(self, h5: h5py.Group):

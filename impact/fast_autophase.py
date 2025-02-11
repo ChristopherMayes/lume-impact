@@ -6,7 +6,7 @@ from pmd_beamphysics.fields.analysis import (
 )
 from scipy.optimize import brent
 
-from impact.fieldmaps import ele_field
+from .fieldmaps import ele_field
 from pmd_beamphysics.units import mec2
 from scipy.constants import c
 from scipy.constants import e as e_charge

@@ -1,7 +1,7 @@
 from pmd_beamphysics.species import mass_of
 from . import tools, fieldmaps
 from .particles import identify_species
-from impact.tools import parse_float
+from .tools import parse_float
 from pmd_beamphysics.units import unit, multiply_units
 
 import warnings
