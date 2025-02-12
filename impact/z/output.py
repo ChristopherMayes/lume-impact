@@ -134,6 +134,7 @@ def load_stat_files_from_path(
         stats["sigma_px"] = stats["sigma_px_over_p0"] * stats["p0c"]
         stats["sigma_py"] = stats["sigma_py_over_p0"] * stats["p0c"]
         stats["sigma_t"] = stats["sigma_phase_deg"] / 360.0 / reference_frequency
+        stats["mean_t"] = stats["mean_phase_deg"] / 360.0 / reference_frequency
     except KeyError as ex:
         logger.exception(f"Some expected statistics unavailable? Missing: {ex}")
 
@@ -373,9 +374,9 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Centroid location in the y-direction (meters).",
     )
-    mean_z: MetersArray = pydantic.Field(
+    mean_phase_deg: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Centroid location in the z-direction (meters).",
+        description="Mean phase (degrees)",
     )
     moment3_energy_deviation: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -509,6 +510,10 @@ class OutputStats(BaseModel):
     mean_py: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Mean py (eV) (computed)",
+    )
+    mean_t: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Mean time (s) (computed)",
     )
     sigma_px: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -687,8 +692,8 @@ class RmsZ(FortranOutputFileData, file_id=26):
     ----------
     z : float
         z distance (m)
-    mean_z : float
-        centroid location (m)
+    mean_phase_deg : float
+        Mean phase (degrees)
     sigma_phase_deg : float
         RMS phase in degrees.
     neg_delta_mean_energy : float
@@ -710,7 +715,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     """
 
     z: Meters
-    mean_z: Meters
+    mean_phase_deg: Degrees
     sigma_phase_deg: Degrees
     neg_delta_mean_energy: MeV
     sigma_energy: MeV
