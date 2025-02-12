@@ -18,9 +18,9 @@ parameter[e_tot] = 5000e6
 ! Geometry
 
 ZB.angle0 = 0  ! Any extra angle on outer bends
-ZB.angle1 = - pi/180 * 2.77 
-ZB.Lp_bend  = 0.5 ! m 
-ZB.Lp_drift = 5 ! m 
+ZB.angle1 = - pi/180 * 2.77
+ZB.Lp_bend  = 0.5 ! m
+ZB.Lp_drift = 5 ! m
 ZB.Lp_mid = 1 ! m
 ZB_Lp_final = 1 ! m
 
@@ -35,7 +35,7 @@ ZB.Mar.END: marker
 ! Pipes
 
 
-ZB.Pip01: pipe 
+ZB.Pip01: pipe
 ZB.Pip02: pipe, L = ZB.Lp_mid
 ZB.Pip03: pipe
 ZB.Pip04: pipe, L = ZB_Lp_final
@@ -70,11 +70,11 @@ ZB.Ben02[g] = -sin(ZB.angle1)/ZB.Lp_bend
 ZB.Ben02[L] = ZB.Lp_bend/sinc(ZB.angle1)
 ZB.Ben02[e1] = -ZB.angle1
 
-ZB.Ben03[g] = -sin(ZB.angle1)/ZB.Lp_bend 
+ZB.Ben03[g] = -sin(ZB.angle1)/ZB.Lp_bend
 ZB.Ben03[L] = ZB.Lp_bend/sinc(ZB.angle1)
 ZB.Ben03[e2] = -ZB.angle1
 
-ZB.Ben04[g] = sin(ZB.angle1)/ZB.Lp_bend 
+ZB.Ben04[g] = sin(ZB.angle1)/ZB.Lp_bend
 ZB.Ben04[L] = ZB.Lp_bend/sinc(ZB.angle1)
 ZB.Ben04[e1] = ZB.angle1
 
@@ -82,7 +82,7 @@ ZB.Ben04[e1] = ZB.angle1
 ! Lines
 
 
-ZB: line = (  ZB.TAYLOR, 
+ZB: line = (  ZB.TAYLOR,
     ZB.Mar.BEG,
     ZB.Ben01, ZB.Pip01,
     ZB.Ben02, ZB.Pip02,
@@ -95,26 +95,24 @@ ZB: line = (  ZB.TAYLOR,
 ! Overlays
 
 O_ZB.chicane: overlay={
-  ZB.Ben01[g]:sin(theta)/Lp, 
+  ZB.Ben01[g]:sin(theta)/Lp,
   ZB.Ben01[L]:Lp/sinc(theta),
-  ZB.Ben01[e2]:theta, 
+  ZB.Ben01[e2]:theta,
 
   ZB.Pip01[L]: Lp_drift/cos(theta),
   ZB.Pip03[L]: Lp_drift/cos(theta),
 
-  ZB.Ben02[g]:-sin(theta)/Lp, 
+  ZB.Ben02[g]:-sin(theta)/Lp,
   ZB.Ben02[L]:Lp/sinc(theta),
   ZB.Ben02[e1]:-theta,
 
-  ZB.Ben03[g]:-sin(theta)/Lp, 
+  ZB.Ben03[g]:-sin(theta)/Lp,
   ZB.Ben03[L]:Lp/sinc(theta),
   ZB.Ben03[e2]:-theta,
 
-  ZB.Ben04[g]:sin(theta)/Lp, 
+  ZB.Ben04[g]:sin(theta)/Lp,
   ZB.Ben04[L]:Lp/sinc(theta),
   ZB.Ben04[e1]:theta}, var = {theta, Lp, Lp_drift}, theta=ZB.angle1, Lp=ZB.Lp_bend, Lp_drift=ZB.Lp_drift
 
 
 use, ZB
-
-
