@@ -128,7 +128,7 @@ def load_stat_files_from_path(
         stats["energy_ref"] = stats["kinetic_energy_ref"] + reference_particle_mass
         stats["p0c"] = np.sqrt(stats["energy_ref"] ** 2.0 - reference_particle_mass**2)
 
-        stats["mean_energy"] = stats["energy_ref"] - stats["neg_delta_mean_energy"]
+        stats["mean_energy"] = stats["energy_ref"] - stats["neg_mean_rel_energy"]
         stats["mean_px"] = stats["mean_px_over_p0"] * stats["p0c"]
         stats["mean_py"] = stats["mean_py_over_p0"] * stats["p0c"]
         stats["sigma_px"] = stats["sigma_px_over_p0"] * stats["p0c"]
@@ -436,7 +436,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Total number of particles in the bunch.",
     )
-    neg_delta_mean_energy: MeVArray = pydantic.Field(
+    neg_mean_rel_energy: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Negative delta mean energy (eV).",
         repr=False,
@@ -710,9 +710,9 @@ class RmsZ(FortranOutputFileData, file_id=26):
         Mean phase (degrees)
     sigma_phase_deg : float
         RMS phase in degrees.
-    neg_delta_mean_energy : float
+    neg_mean_rel_energy : float
         Negative delta mean energy, used to convert to mean energy [eV]
-        where `neg_delta_mean_energy = (kinetic_energy_ref - mean_energy) + reference_particle_mass `
+        where `neg_mean_rel_energy = (kinetic_energy_ref - mean_energy) + reference_particle_mass `
         In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
     sigma_energy : float
         RMS momentum [eV]
@@ -731,7 +731,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     z: Meters
     mean_phase_deg: Degrees
     sigma_phase_deg: Degrees
-    neg_delta_mean_energy: MeV
+    neg_mean_rel_energy: MeV
     sigma_energy: MeV
     twiss_alpha_z: Unitless
     norm_emit_z: Meters
