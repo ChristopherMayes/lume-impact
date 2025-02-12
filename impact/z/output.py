@@ -12,7 +12,6 @@ import numpy as np
 import pydantic
 import pydantic.alias_generators
 
-from pmd_beamphysics.particles import c_light
 from .particles import ImpactZParticles
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
@@ -107,6 +106,8 @@ class RunInfo(BaseModel):
 
 def load_stat_files_from_path(
     workdir: pathlib.Path,
+    reference_particle_mass: float,
+    reference_frequency: float,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
     units = {}
@@ -122,6 +123,19 @@ def load_stat_files_from_path(
                     stats[key] *= 1e6
 
                 units[key] = field_units
+
+    try:
+        stats["energy_ref"] = stats["kinetic_energy_ref"] + reference_particle_mass
+        stats["p0c"] = np.sqrt(stats["energy_ref"] ** 2 - reference_particle_mass**2)
+
+        stats["mean_energy"] = stats["energy_ref"] - stats["neg_delta_mean_energy"]
+        stats["mean_px"] = stats["mean_px_over_p0"] * stats["p0c"]
+        stats["mean_py"] = stats["mean_py_over_p0"] * stats["p0c"]
+        stats["sigma_px"] = stats["sigma_px_over_p0"] * stats["p0c"]
+        stats["sigma_py"] = stats["sigma_py_over_p0"] * stats["p0c"]
+        stats["sigma_t"] = stats["sigma_phase_deg"] / 360.0 / reference_frequency
+    except KeyError as ex:
+        logger.exception(f"Some expected statistics unavailable? Missing: {ex}")
 
     return stats, units
 
@@ -467,9 +481,9 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="RMS size in the y-direction (meters).",
     )
-    sigma_z: MetersArray = pydantic.Field(
+    sigma_phase_deg: DegreesArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="RMS size in the z-direction (meters).",
+        description="Sigma phase (degrees).",
     )
     z: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Z position (meters)"
@@ -478,31 +492,35 @@ class OutputStats(BaseModel):
     # Calculated stats
     energy_ref: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Energy reference (eV) (calculated)",
+        description="Energy reference (eV) (computed)",
     )
     mean_energy: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Mean energy (eV) (calculated)",
+        description="Mean energy (eV) (computed)",
     )
     p0c: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Momentum reference (eV) (calculated)",
+        description="Momentum reference (eV) (computed)",
     )
     mean_px: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Mean px (eV) (calculated)",
+        description="Mean px (eV) (computed)",
     )
     mean_py: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Mean py (eV) (calculated)",
+        description="Mean py (eV) (computed)",
     )
     sigma_px: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Sigma px (eV) (calculated)",
+        description="Sigma px (eV) (computed)",
     )
     sigma_py: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Sigma py (eV) (calculated)",
+        description="Sigma py (eV) (computed)",
+    )
+    sigma_t: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="RMS size in time (rad) (computed)",
     )
 
     units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -518,33 +536,17 @@ class OutputStats(BaseModel):
     def from_stats_files(
         cls,
         workdir: pathlib.Path,
-        reference_kinetic_energy: float,
         reference_particle_mass: float,
         reference_frequency: float,
     ) -> OutputStats:
-        stats, units = load_stat_files_from_path(workdir)
-
-        extra = _split_extra(cls, stats)
-        res = OutputStats(
-            units=units,
-            extra=extra,
-            **stats,
+        stats, units = load_stat_files_from_path(
+            workdir,
+            reference_particle_mass=reference_particle_mass,
+            reference_frequency=reference_frequency,
         )
 
-        # NOTE: sigma_z starts off as RMS phase in degrees
-        k = 2 * np.pi * reference_frequency / c_light
-        res.sigma_z *= np.pi / 180.0 / k
-
-        # NOTE: sigma_z is technically zero
-
-        res.energy_ref = res.kinetic_energy_ref + reference_particle_mass
-        res.mean_energy = res.energy_ref - res.neg_delta_mean_energy
-        res.p0c = np.sqrt(res.energy_ref**2 - reference_particle_mass**2)
-        res.mean_px = res.mean_px_over_p0 * res.p0c
-        res.mean_py = res.mean_py_over_p0 * res.p0c
-        res.sigma_px = res.sigma_px_over_p0 * res.p0c
-        res.sigma_py = res.sigma_py_over_p0 * res.p0c
-        return res
+        extra = _split_extra(cls, stats)
+        return OutputStats(units=units, extra=extra, **stats)
 
 
 file_number_to_cls: dict[int, type[FortranOutputFileData]] = {}
@@ -687,7 +689,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
         z distance (m)
     mean_z : float
         centroid location (m)
-    sigma_z : float
+    sigma_phase_deg : float
         RMS phase in degrees.
     neg_delta_mean_energy : float
         Negative delta mean energy, used to convert to mean energy [eV]
@@ -709,7 +711,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
 
     z: Meters
     mean_z: Meters
-    sigma_z: Degrees
+    sigma_phase_deg: Degrees
     neg_delta_mean_energy: MeV
     sigma_energy: MeV
     twiss_alpha: Unitless
@@ -1006,7 +1008,7 @@ class ImpactZOutput(Mapping, BaseModel):
 
         stats = OutputStats.from_stats_files(
             workdir,
-            reference_kinetic_energy=input.reference_kinetic_energy,
+            # reference_kinetic_energy=input.reference_kinetic_energy,
             reference_particle_mass=input.reference_particle_mass,
             reference_frequency=input.reference_frequency,
         )
