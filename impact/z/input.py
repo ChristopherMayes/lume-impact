@@ -159,7 +159,7 @@ class Drift(InputElement, element_id=0):
     """
     Drift element.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -190,7 +190,7 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
     """
     A quadrupole element.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -254,7 +254,7 @@ class ConstantFocusing(InputElement, element_id=2):
     """
     3D constant focusing.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -292,7 +292,7 @@ class Solenoid(InputElement, element_id=3, has_input_file=True):
     """
     Solenoid used in beam dynamics simulations.
 
-    Parameters
+    Attributes
     ----------
     length : float
         The effective length of the solenoid in meters, including two linear
@@ -340,7 +340,7 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     """
     Represents a dipole element used in beam simulations.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -449,7 +449,7 @@ class Multipole(InputElement, element_id=5, has_input_file=True):
     """
     Represents a multipole element used in beam simulations.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -499,7 +499,7 @@ class DTL(InputElement, element_id=101, has_input_file=True):
     """
     Discrete-Transmission-Line element with specified parameters.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -745,7 +745,7 @@ class SolenoidWithRFCavity(InputElement, element_id=105, has_input_file=True):
     """
     A solenoid with an RF cavity.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -894,7 +894,7 @@ class UserDefinedRFCavity(InputElement, element_id=110, has_input_file=True):
 
     EMfld in IMPACT-Z.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Length of the element in meters.
@@ -983,7 +983,7 @@ class WriteFull(InputElement, element_id=-2, has_output_file=True):
     """
     Write the particle distribution into a fort.N file.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Unused.
@@ -1257,7 +1257,7 @@ class ScaleMismatchParticle6DCoordinates(InputElement, element_id=-10):
     """
     Scale/mismatch the particle 6D coordinates.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Unused.
@@ -1377,7 +1377,7 @@ class BeamShift(InputElement, element_id=-19):
     """
     BeamShift shifts the beam longitudinally to the bunch centroid.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Unused.
@@ -1531,7 +1531,7 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     """
     Class representing the read-in RF cavity structure wakefield.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Unused.
@@ -1591,7 +1591,7 @@ class KickBeamUsingMultipole(InputElement, element_id=-55):
     """
     Kick the beam using thin lens multipole.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Unused.
@@ -1637,7 +1637,7 @@ class HaltExecution(InputElement, element_id=-99):
     This is useful if you have a big file and want to run part-way through it
     without deleting a lot of lines.
 
-    Parameters
+    Attributes
     ----------
     length : float
         Unused.

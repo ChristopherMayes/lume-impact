@@ -596,7 +596,7 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
     """
     Reference particle information from an output file.
 
-    Parameters
+    Attributes
     ----------
     z : float
         Distance in meters (1st column).
@@ -741,7 +741,7 @@ class MaxAmplitude(FortranOutputFileData, file_id=27):
     """
     File fort.27: maximum amplitude information
 
-    Parameters
+    Attributes
     ----------
     z : float
         z distance (m)
@@ -974,18 +974,8 @@ class ImpactZOutput(Mapping, BaseModel):
 
     def stat(self, key: str):
         """
-        Array from .output['stats'][key]
-
-        Additional keys are avalable:
-            'mean_energy': mean energy
-            'Ez': z component of the electric field at the centroid particle
-            'Bz'  z component of the magnetic field at the centroid particle
-            'cov_{a}__{b}': any symmetric covariance matrix term
+        Statistics array from `.stats`.
         """
-        if key in ("Ez", "Bz"):
-            raise NotImplementedError()
-            # return self.centroid_field(component=key[0:2])
-
         # Allow flipping covariance keys
         if key.startswith("cov_") and key not in self:
             k1, k2 = key[4:].split("__")

@@ -287,7 +287,7 @@ class Impact(CommandWrapper):
 
     def stat(self, key):
         """
-        Array from .output['stats'][key]
+        Array from `.output['stats'][key]`
 
         Additional keys are avalable:
             'mean_energy': mean energy
