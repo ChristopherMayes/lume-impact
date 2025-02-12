@@ -148,6 +148,12 @@ def detailed_html_repr(obj, theme: str = "solarized_light") -> str:
         return rich_html_repr(obj)
     without_defaults = rich_html_model_repr(obj, include_defaults=False, theme=theme)
     with_defaults = rich_html_model_repr(obj, include_defaults=True, theme=theme)
+
+    if without_defaults == with_defaults or len(without_defaults) >= 0.9 * len(
+        with_defaults
+    ):
+        return without_defaults
+
     return f"""
         {without_defaults}
         <details>
