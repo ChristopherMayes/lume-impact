@@ -33,4 +33,4 @@ repos:
         stages: [pre-commit]
         language: system
         entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace
-        # exclude: "^.*().ipynb$"
+        exclude: "^.*(autophase|awa_|devel_|elements/dipole|movie).*\\.ipynb$"
