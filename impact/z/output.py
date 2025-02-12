@@ -343,17 +343,15 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Maximum radius (Rmax) in meters, measured from the axis of the pipe.",
     )
-    mean_gammabeta_x: RadiansArray = pydantic.Field(
+    mean_px_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Centroid momentum in the x-direction (rad).",
+        description="Mean $px / p0$ (rad).",
+        validation_alias=pydantic.AliasChoices("mean_px_over_p0", "mean_gammabeta_x"),
     )
-    mean_gammabeta_y: RadiansArray = pydantic.Field(
+    mean_py_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Centroid momentum in the y-direction (rad).",
-    )
-    mean_energy: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray,
-        description="Centroid momentum in the z-direction (eV).",
+        description="Mean $py / p0$ (rad).",
+        validation_alias=pydantic.AliasChoices("mean_py_over_p0", "mean_gammabeta_y"),
     )
     mean_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -450,13 +448,15 @@ class OutputStats(BaseModel):
     phase_ref: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Absolute phase in radians."
     )
-    sigma_gammabeta_x: RadiansArray = pydantic.Field(
+    sigma_px_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="RMS momentum in the x-direction (rad).",
+        description="Sigma $px / p0$ (rad).",
+        validation_alias=pydantic.AliasChoices("sigma_px_over_p0", "sigma_gammabeta_x"),
     )
-    sigma_gammabeta_y: RadiansArray = pydantic.Field(
+    sigma_py_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="RMS momentum in the y-direction (rad).",
+        description="Sigma $py / p0$ (rad).",
+        validation_alias=pydantic.AliasChoices("sigma_py_over_p0", "sigma_gammabeta_y"),
     )
     sigma_gammabeta_z: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -476,6 +476,36 @@ class OutputStats(BaseModel):
     )
     z: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Z position (meters)"
+    )
+
+    # Calculated stats
+    energy_ref: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Energy reference (eV) (calculated)",
+    )
+    mean_energy: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Mean energy (eV) (calculated)",
+    )
+    p0c: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Momentum reference (eV) (calculated)",
+    )
+    mean_px: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Mean px (eV) (calculated)",
+    )
+    mean_py: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Mean py (eV) (calculated)",
+    )
+    sigma_px: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Sigma px (eV) (calculated)",
+    )
+    sigma_py: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Sigma py (eV) (calculated)",
     )
 
     units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -510,9 +540,13 @@ class OutputStats(BaseModel):
 
         # NOTE: sigma_z is technically zero
 
-        res.mean_energy = (
-            res.kinetic_energy_ref + reference_particle_mass - res.neg_delta_mean_energy
-        )
+        res.energy_ref = res.kinetic_energy_ref + reference_particle_mass
+        res.mean_energy = res.energy_ref - res.neg_delta_mean_energy
+        res.p0c = np.sqrt(res.energy_ref**2 - reference_particle_mass**2)
+        res.mean_px = res.mean_px_over_p0 * res.p0c
+        res.mean_py = res.mean_py_over_p0 * res.p0c
+        res.sigma_px = res.sigma_px_over_p0 * res.p0c
+        res.sigma_py = res.sigma_py_over_p0 * res.p0c
         return res
 
 
@@ -586,10 +620,10 @@ class RmsX(FortranOutputFileData, file_id=24):
         Centroid location (m)
     sigma_x : float
         RMS size (m)
-    mean_gammabeta_x : float
-        Centroid momentum [rad]
-    sigma_gammabeta_x : float
-        RMS momentum [rad]
+    mean_px_over_p0 : float
+        Mean $px / p0$ (rad)
+    sigma_px_over_p0 : float
+        Sigma $px / p0$ (rad)
     neg_cov_x__gammabeta_x : float
         Twiss parameter, alpha
     norm_emit_x : float
@@ -604,8 +638,8 @@ class RmsX(FortranOutputFileData, file_id=24):
     z: Meters
     mean_x: Meters
     sigma_x: Meters
-    mean_gammabeta_x: Radians
-    sigma_gammabeta_x: Radians
+    mean_px_over_p0: Radians
+    sigma_px_over_p0: Radians
     neg_cov_x__gammabeta_x: Meters
     norm_emit_x: Meters  # m-rad
 
@@ -622,10 +656,10 @@ class RmsY(FortranOutputFileData, file_id=25):
         centroid location (m)
     sigma_y : float
         RMS size (m)
-    mean_gammabeta_y : float
-        Centroid momentum [rad]
-    sigma_gammabeta_y : float
-        RMS momentum [rad]
+    mean_py_over_p0 : float
+        Mean $py / p0$ [rad]
+    sigma_py_over_p0 : float
+        $py / p0$ [rad]
     neg_cov_y__gammabeta_y : float
         Twiss parameter, alpha
     norm_emit_y : float
@@ -640,8 +674,8 @@ class RmsY(FortranOutputFileData, file_id=25):
     z: Meters
     mean_y: Meters
     sigma_y: Meters
-    mean_gammabeta_y: Radians
-    sigma_gammabeta_y: Radians
+    mean_py_over_p0: Radians
+    sigma_py_over_p0: Radians
     neg_cov_y__gammabeta_y: Meters
     norm_emit_y: Meters  # m-rad
 
