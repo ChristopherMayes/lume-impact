@@ -369,11 +369,11 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Third-order central moment for energy deviation (eV).",
     )
-    moment3_gammabeta_x: RadiansArray = pydantic.Field(
+    moment3_px_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Third-order central moment for Px (rad).",
     )
-    moment3_gammabeta_y: RadiansArray = pydantic.Field(
+    moment3_py_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Third-order central moment for Py (rad).",
     )
@@ -393,11 +393,11 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Fourth-order central moment for energy deviation (eV).",
     )
-    moment4_gammabeta_x: RadiansArray = pydantic.Field(
+    moment4_px_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Fourth-order central moment for Px (rad).",
     )
-    moment4_gammabeta_y: RadiansArray = pydantic.Field(
+    moment4_py_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Fourth-order central moment for Py (rad).",
     )
@@ -794,11 +794,11 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
         z distance (m)
     moment3_x : float
         X (m)
-    moment3_gammabeta_x : float
+    moment3_px_over_p0 : float
         Px (rad)
     moment3_y : float
         Y (m)
-    moment3_gammabeta_y : float
+    moment3_py_over_p0 : float
         Py (rad)
     moment3_phase : float
         phase (degree)
@@ -815,9 +815,9 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
 
     z: Meters
     moment3_x: Meters
-    moment3_gammabeta_x: Radians
+    moment3_px_over_p0: Radians
     moment3_y: Meters
-    moment3_gammabeta_y: Radians
+    moment3_py_over_p0: Radians
     moment3_phase: Degrees
     moment3_energy_deviation: MeV
 
@@ -832,11 +832,11 @@ class BeamDistribution4th(FortranOutputFileData, file_id=30):
         z distance (m)
     moment4_x : float
         X (m)
-    moment4_gammabeta_x : float
+    moment4_px_over_p0 : float
         Px (rad)
     moment4_y : float
         Y (m)
-    moment4_gammabeta_y : float
+    moment4_py_over_p0 : float
         Py (rad)
     moment4_phase : float
         Phase (degree)
@@ -853,9 +853,9 @@ class BeamDistribution4th(FortranOutputFileData, file_id=30):
 
     z: Meters
     moment4_x: Meters
-    moment4_gammabeta_x: Radians
+    moment4_px_over_p0: Radians
     moment4_y: Meters
-    moment4_gammabeta_y: Radians
+    moment4_py_over_p0: Radians
     moment4_phase: Degrees
     moment4_energy_deviation: MeV
 
