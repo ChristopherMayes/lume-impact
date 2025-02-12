@@ -1,0 +1,115 @@
+from __future__ import annotations
+import pathlib
+import numpy as np
+import pytest
+
+from ... import z as IZ
+from pmd_beamphysics import single_particle
+from pmd_beamphysics.units import mec2
+
+
+@pytest.mark.parametrize(
+    "output_type",
+    [
+        pytest.param(IZ.OutputZType.standard, id="standard"),
+        pytest.param(IZ.OutputZType.extended, id="extended"),
+    ],
+)
+def test_output_type(output_type: IZ.OutputZType, tmp_path: pathlib.Path):
+    energy = 10e6
+    pz = np.sqrt(energy**2 - mec2**2)
+    P0 = single_particle(x=1e-3, pz=pz)
+
+    input = IZ.ImpactZInput(
+        initial_particles=P0,
+        ncpu_y=1,
+        ncpu_z=1,
+        seed=-1,
+        n_particle=1,
+        nx=64,
+        ny=64,
+        nz=64,
+        output_type=output_type,
+        distribution=IZ.DistributionZType.read,
+        twiss_beta_x=10.0,
+        twiss_beta_y=10.0,
+        average_current=0.0,
+        reference_kinetic_energy=9489001.05,
+        reference_particle_mass=510998.94999999995,
+        reference_particle_charge=-1.0,
+        reference_frequency=1300000000.0,
+        lattice=[
+            IZ.WriteFull(name="initial_particles", file_id=100),
+            IZ.IntegratorTypeSwitch(integrator_type=IZ.IntegratorType.runge_kutta),
+            IZ.Multipole(
+                name="SEXTUPOLE1",
+                length=0.6,
+                steps=10,
+                map_steps=10,
+                field_strength=-0.0333128309370517,
+                file_id=-1.0,
+                radius=0.03,
+            ),
+            IZ.IntegratorTypeSwitch(),
+            IZ.WriteFull(name="final_particles", file_id=101),
+        ],
+    )
+    I = IZ.ImpactZ(input, workdir=tmp_path, use_temp_dir=False)
+    output = I.run(verbose=False)
+    stats = output.stats
+    should_be_populated = {
+        IZ.OutputZType.standard: [
+            # file 27
+            "max_abs_x",
+            "max_abs_px_over_p0",
+            "max_abs_y",
+            "max_abs_py_over_p0",
+            "max_phase",
+            "max_energy_dev",
+            # file 29
+            "moment3_x",
+            "moment3_px_over_p0",
+            "moment3_y",
+            "moment3_py_over_p0",
+            "moment3_phase",
+            "moment3_energy",
+            # file 30
+            "moment4_x",
+            "moment4_px_over_p0",
+            "moment4_y",
+            "moment4_py_over_p0",
+            "moment4_phase",
+            "moment4_energy",
+        ],
+        IZ.OutputZType.extended: [
+            # file 24
+            "norm_emit_x_90percent",
+            "norm_emit_x_95percent",
+            "norm_emit_x_99percent",
+            # file 25
+            "norm_emit_y_90percent",
+            "norm_emit_y_95percent",
+            "norm_emit_y_99percent",
+            # file 26
+            "norm_emit_z_90percent",
+            "norm_emit_z_95percent",
+            "norm_emit_z_99percent",
+            # file 27
+            "max_abs_x",
+            "max_abs_gammabeta_x",
+            "max_abs_y",
+            "max_abs_gammabeta_y",
+            "max_phase",
+            "max_abs_gamma",
+            # file 29
+            "mean_r",
+            "sigma_r",
+            "mean_r_90percent",
+            "mean_r_95percent",
+            "mean_r_99percent",
+            "max_r",
+        ],
+    }
+    for attr in should_be_populated[output_type]:
+        arr = getattr(stats, attr)
+        assert arr.shape == stats.z.shape, f"{attr} not populated?"

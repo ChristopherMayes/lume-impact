@@ -1924,7 +1924,7 @@ class ImpactZInput(BaseModel):
     integrator_type: IntegratorType = IntegratorType.linear_map
     err: int = 1
     diagnostic_type: DiagnosticType = DiagnosticType.at_given_time
-    output_z: OutputZType = OutputZType.extended
+    output_type: OutputZType = OutputZType.extended
 
     # Line 3
     nx: int = 0
@@ -2273,7 +2273,7 @@ class ImpactZInput(BaseModel):
             res.n_particle,
             res.integrator_type,
             res.err,
-            res.output_z,
+            res.output_type,
         ) = cast(
             tuple[int, int, IntegratorType, int, OutputZType], indexed_lines[1].data[:5]
         )
@@ -2374,8 +2374,8 @@ class ImpactZInput(BaseModel):
 {full_header}
 ! ncpu_y ncpu_z
 {self.ncpu_y} {self.ncpu_z}{gpu}
-! seed n_particle integrator_type={self.integrator_type.name} err output_z={self.output_z.name}
-{self.seed} {self.n_particle} {int(self.integrator_type)} {self.err} {int(self.output_z)}
+! seed n_particle integrator_type={self.integrator_type.name} err output_type={self.output_type.name}
+{self.seed} {self.n_particle} {int(self.integrator_type)} {self.err} {int(self.output_type)}
 ! nx ny nz boundary_type={self.boundary_type.name} radius_x radius_y z_period_size
 {self.nx} {self.ny} {self.nz} {self.boundary_type} {self.radius_x:.20g} {self.radius_y:.20g} {self.z_period_size:.20g}
 ! distribution={self.distribution.name} restart subcycle nbunch

@@ -12,10 +12,12 @@ import numpy as np
 import pydantic
 import pydantic.alias_generators
 
+
 from .particles import ImpactZParticles
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
+from .constants import OutputZType
 from . import archive as _archive, parsers
 from .input import HasOutputFile, ImpactZInput, WriteSliceInfo
 from .types import (
@@ -30,6 +32,8 @@ from .units import (
     AmperesArray,
     Degrees,
     DegreesArray,
+    Meter_Rad,
+    Meter_RadArray,
     eVArray,
     MeVArray,
     Meters,
@@ -52,6 +56,8 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+file_number_to_cls: dict[OutputZType, dict[int, type[FortranOutputFileData]]] = {}
+T = TypeVar("T", bound="FortranOutputFileData")
 
 
 class RunInfo(BaseModel):
@@ -108,10 +114,11 @@ def load_stat_files_from_path(
     workdir: pathlib.Path,
     reference_particle_mass: float,
     reference_frequency: float,
+    output_type: OutputZType,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
     units = {}
-    for fnum, cls in file_number_to_cls.items():
+    for fnum, cls in file_number_to_cls[output_type].items():
         fn = workdir / f"fort.{fnum}"
         if fn.exists():
             stats.update(cls.from_file(fn))
@@ -120,6 +127,9 @@ def load_stat_files_from_path(
 
                 if field_units == "MeV":
                     field_units = known_unit["eV"]
+                    stats[key] *= 1e6
+                elif field_units == "degree-MeV":
+                    field_units = known_unit["degree"] * known_unit["eV"]
                     stats[key] *= 1e6
 
                 units[key] = field_units
@@ -384,7 +394,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Centroid location in the y-direction (meters).",
     )
-    moment3_energy_deviation: MeVArray = pydantic.Field(
+    moment3_energy: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Third-order central moment for energy deviation (eV).",
     )
@@ -408,7 +418,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Third-order central moment for y (meters).",
     )
-    moment4_energy_deviation: MeVArray = pydantic.Field(
+    moment4_energy: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Fourth-order central moment for energy deviation (eV).",
     )
@@ -496,6 +506,115 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray, description="Z position (meters)"
     )
 
+    # Max amplitude standard
+    max_abs_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum horizontal displacement from the beam axis: $\max(|x|)$ (meters)",
+    )
+    max_abs_px_over_p0: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum $x$-plane transverse momentum $\max(|p_x/p_0|)$ (rad)",
+    )
+    max_abs_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum vertical displacement from the beam axis: $\max(|y|)$ (meters)",
+    )
+    max_abs_py_over_p0: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum $y$-plane transverse momentum $\max(|p_y/p_0|)$ (rad)",
+    )
+    max_phase: DegreesArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Maximum deviation in phase (deg)",
+    )
+    max_energy_dev: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Maximum deviation in particle energy (eV)",
+    )
+
+    # File 29 - beam dist 3rd extended
+    mean_r: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Mean radius (meters)"
+    )
+    sigma_r: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="RMS radius (meters)"
+    )
+    mean_r_90percent: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="90 percent mean radius (meters)"
+    )
+    mean_r_95percent: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="95 percent mean radius (meters)"
+    )
+    mean_r_99percent: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="99 percent mean radius (meters)"
+    )
+    max_r: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Maximum radius (meters)"
+    )
+
+    # Max amplitude extended
+    max_abs_x: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum horizontal displacement from the beam axis  $\max(|x|)$ (meters)",
+    )
+    max_abs_gammabeta_x: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum $x$-plane transverse momentum $\max(|\gamma\beta_x|)$ (dimensionless)",
+    )
+    max_abs_y: MetersArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum vertical displacement from the beam axis $\max(|y|)$ (meters)",
+    )
+    max_abs_gammabeta_y: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum $x$-plane transverse momentum $\max(|\gamma\beta_y|)$ (dimensionless)",
+    )
+    max_phase: DegreesArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Maximum deviation in phase (degrees)",
+    )
+    max_abs_gamma: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Maximum deviation in relativistic gamma $\max(|\gamma - \gamma_0)|)$ (dimensionless)",
+    )
+
+    norm_emit_x_90percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_x_95percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_x_99percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_y_90percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_y_95percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_y_99percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_z_90percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_z_95percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+    norm_emit_z_99percent: Meter_RadArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="90% normalied RMS emittance (meter-rad)",
+    )
+
     # Calculated stats
     energy_ref: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -557,28 +676,49 @@ class OutputStats(BaseModel):
         workdir: pathlib.Path,
         reference_particle_mass: float,
         reference_frequency: float,
+        output_type: OutputZType,
     ) -> OutputStats:
         stats, units = load_stat_files_from_path(
             workdir,
             reference_particle_mass=reference_particle_mass,
             reference_frequency=reference_frequency,
+            output_type=output_type,
         )
 
         extra = _split_extra(cls, stats)
         return OutputStats(units=units, extra=extra, **stats)
 
 
-file_number_to_cls: dict[int, type[FortranOutputFileData]] = {}
-T = TypeVar("T", bound="FortranOutputFileData")
-
-
 class FortranOutputFileData(SequenceBaseModel):
-    def __init_subclass__(cls, file_id: int, **kwargs):
+    """
+    Base class for representing a single row of file data from `fort.{file_id}`.
+
+    Subclasses of this are used to:
+    1. Match output file IDs with the type of data they contain
+    2. Give names to each column
+    3. Track units (by way of annotated attributes)
+    """
+
+    def __init_subclass__(
+        cls,
+        file_id: int,
+        output_types: tuple[OutputZType, ...] | OutputZType = (
+            OutputZType.standard,
+            OutputZType.extended,
+        ),
+        **kwargs,
+    ):
         super().__init_subclass__(**kwargs)
 
         assert isinstance(file_id, int)
         assert file_id not in file_number_to_cls, f"Duplicate element ID {file_id}"
-        file_number_to_cls[file_id] = cls
+
+        if isinstance(output_types, OutputZType):
+            output_types = (output_types,)
+
+        for output_type in output_types:
+            file_number_to_cls.setdefault(output_type, {})
+            file_number_to_cls[output_type][file_id] = cls
 
     @classmethod
     def from_file(cls: type[T], filename: AnyPath) -> dict[str, np.ndarray]:
@@ -611,11 +751,6 @@ class ReferenceParticles(FortranOutputFileData, file_id=18):
         Beta (5th column).
     max_r : float
         Rmax in meters, measured from the axis of pipe (6th column).
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(18,99)z,this%refptcl(5),gam,energy,bet,sqrt(glrmax)*xl
     """
 
     z: Meters
@@ -646,11 +781,15 @@ class RmsX(FortranOutputFileData, file_id=24):
         Twiss parameter, alpha
     norm_emit_x : float
         normalized RMS emittance [m-rad]
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(24,100)z,x0*xl,xrms*xl,px0/gambet,pxrms/gambet,-xpx/epx,epx*xl
+    norm_emit_x_90percent : float
+        90% normalized RMS horizontal emittance (meter-rad)
+        Only available in `output_types=extended` mode.
+    norm_emit_x_95percent : float
+        95% normalized RMS horizontal emittance (meter-rad)
+        Only available in `output_types=extended` mode.
+    norm_emit_x_99percent : float
+        99% normalized RMS horizontal emittance (meter-rad)
+        Only available in `output_types=extended` mode.
     """
 
     z: Meters
@@ -660,6 +799,11 @@ class RmsX(FortranOutputFileData, file_id=24):
     sigma_px_over_p0: Radians
     twiss_alpha_x: Meters
     norm_emit_x: Meters  # m-rad
+
+    # Available in 'extended' output_type output:
+    norm_emit_x_90percent: Meter_Rad = 0.0
+    norm_emit_x_95percent: Meter_Rad = 0.0
+    norm_emit_x_99percent: Meter_Rad = 0.0
 
 
 class RmsY(FortranOutputFileData, file_id=25):
@@ -682,11 +826,15 @@ class RmsY(FortranOutputFileData, file_id=25):
         Twiss parameter, alpha
     norm_emit_y : float
         normalized RMS emittance [m-rad]
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(25,100)z,y0*xl,yrms*xl,py0/gambet,pyrms/gambet,-ypy/epy,epy*xl
+    norm_emit_y_90percent : float
+        90% normalized RMS vertical emittance (meter-rad)
+        Only available in `output_type=extended` mode.
+    norm_emit_y_95percent : float
+        95% normalized RMS vertical emittance (meter-rad)
+        Only available in `output_type=extended` mode.
+    norm_emit_y_99percent : float
+        99% normalized RMS vertical emittance (meter-rad)
+        Only available in `output_type=extended` mode.
     """
 
     z: Meters
@@ -696,6 +844,11 @@ class RmsY(FortranOutputFileData, file_id=25):
     sigma_py_over_p0: Radians
     twiss_alpha_y: Meters
     norm_emit_y: Meters  # m-rad
+
+    # Available in 'extended' output_type output:
+    norm_emit_y_90percent: Meter_Rad = 0.0
+    norm_emit_y_95percent: Meter_Rad = 0.0
+    norm_emit_y_99percent: Meter_Rad = 0.0
 
 
 class RmsZ(FortranOutputFileData, file_id=26):
@@ -721,11 +874,15 @@ class RmsZ(FortranOutputFileData, file_id=26):
         Twiss parameter, alpha
     norm_emit_z : float
         normalized RMS emittance [degree-MeV]
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(26,100)z,z0*xt,zrms*xt,pz0*qmc,pzrms*qmc,-zpz/epz,epz*qmc*xt
+    norm_emit_z_90percent : float
+        90% normalized RMS longitudinal emittance (degree-MeV)
+        Only available in `output_type=extended` mode.
+    norm_emit_z_95percent : float
+        95% normalized RMS longitudinal emittance (degree-MeV)
+        Only available in `output_type=extended` mode.
+    norm_emit_z_99percent : float
+        99% normalized RMS longitudinal emittance (degree-MeV)
+        Only available in `output_type=extended` mode.
     """
 
     z: Meters
@@ -736,43 +893,80 @@ class RmsZ(FortranOutputFileData, file_id=26):
     twiss_alpha_z: Unitless
     norm_emit_z: Meters
 
+    # Available in 'extended' output_type output:
+    norm_emit_z_90percent: Meter_Rad = 0.0
+    norm_emit_z_95percent: Meter_Rad = 0.0
+    norm_emit_z_99percent: Meter_Rad = 0.0
 
-class MaxAmplitude(FortranOutputFileData, file_id=27):
-    """
-    File fort.27: maximum amplitude information
+
+class MaxAmplitudeStandard(
+    FortranOutputFileData,
+    file_id=27,
+    output_types=OutputZType.standard,
+):
+    r"""
+    File fort.27: maximum amplitude information (standard)
 
     Attributes
     ----------
     z : float
-        z distance (m)
-    max_amplitude_x : float
-        Maximum X (m)
-    max_amplitude_gammabeta_x : float
-        Maximum Px (rad)
-    max_amplitude_y : float
-        Maximum Y (m)
-    max_amplitude_gammabeta_y : float
-        Maximum Py (rad)
-    max_amplitude_phase : float
-        Maximum Phase (degree)
-    max_amplitude_energy_dev : float
-        Maximum Energy deviation [eV]
-        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(27,100)z,glmax(1)*xl,glmax(2)/gambet,glmax(3)*xl,&
-                 glmax(4)/gambet,glmax(5)*xt,glmax(6)*qmc
+        Longitudinal position along the beamline (meters)
+    max_abs_x : float
+        Maximum horizontal displacement from the beam axis: $\max(|x|)$ (meters)
+    max_abs_px_over_p0 : float
+        Maximum $x$-plane transverse momentum $\max(|p_x/p_0|)$ (rad)
+    max_abs_y : float
+        Maximum vertical displacement from the beam axis: $\max(|y|)$ (meters)
+    max_abs_py_over_p0 : float
+        Maximum $y$-plane transverse momentum $\max(|p_y/p_0|)$ (rad)
+    max_phase : float
+        Maximum deviation in phase (deg)
+    max_energy_dev : float
+        Maximum deviation in particle energy (MeV)
     """
 
     z: Meters
-    max_amplitude_x: Meters
-    max_amplitude_gammabeta_x: Radians
-    max_amplitude_y: Meters
-    max_amplitude_gammabeta_y: Radians
-    max_amplitude_phase: Degrees  # really?
-    max_amplitude_energy_dev: MeV
+    max_abs_x: Meters
+    max_abs_px_over_p0: Radians
+    max_abs_y: Meters
+    max_abs_py_over_p0: Radians
+    max_phase: Degrees
+    max_energy_dev: MeV
+
+
+class MaxAmplitudeExtended(
+    FortranOutputFileData,
+    file_id=27,
+    output_types=OutputZType.extended,
+):
+    r"""
+    File fort.27: maximum amplitude information (extended)
+
+    Attributes
+    ----------
+    z : float
+        longitudinal position along the beamline (meters)
+    max_abs_x : float
+         Maximum horizontal displacement from the beam axis  $\max(|x|)$ (meters)
+    max_abs_gammabeta_x : float
+         Maximum $x$-plane transverse momentum $\max(|\gamma\beta_x|)$ (dimensionless)
+    max_abs_y : float
+         Maximum vertical displacement from the beam axis $\max(|y|)$ (meters)
+    max_abs_gammabeta_y : float
+         Maximum $x$-plane transverse momentum $\max(|\gamma\beta_y|)$ (dimensionless)
+    max_phase : float
+         Maximum deviation in phase (deg???)
+    max_abs_gamma : float
+        Maximum deviation in relativistic gamma $\max(|\gamma - \gamma_0)|)$ (dimensionless)
+    """
+
+    z: Meters
+    max_abs_x: Meters
+    max_abs_gammabeta_x: Unitless
+    max_abs_y: Meters
+    max_abs_gammabeta_y: Unitless
+    max_phase: Degrees  # really?
+    max_abs_gamma: Unitless
 
 
 class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
@@ -789,11 +983,6 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
         Maximum number of particles on a PE
     n_particle : float
         Total number of particles in the bunch
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(28,101)z,npctmin,npctmax,nptot
     """
 
     z: Meters
@@ -802,8 +991,12 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
     n_particle: Unitless
 
 
-class BeamDistribution3rd(FortranOutputFileData, file_id=29):
-    """
+class BeamDistribution3rdStandard(
+    FortranOutputFileData,
+    file_id=29,
+    output_types=OutputZType.standard,
+):
+    r"""
     File fort.29: cubic root of 3rd moments of the beam distribution
 
     Attributes
@@ -811,23 +1004,18 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
     z : float
         z distance (m)
     moment3_x : float
-        X (m)
+        Cubic root of the third moment of the horizontal position $M_3(x)$ (meters)
     moment3_px_over_p0 : float
-        Px (rad)
+        Cubic root of the third moment of the horizontal momentum $M_3(p_x/p_0)$ (rad)
     moment3_y : float
-        Y (m)
+        Cubic root of the third moment of the vertical position $M_3(y)$ (meters)
     moment3_py_over_p0 : float
-        Py (rad)
+        Cubic root of the third moment of the vertical momentum $M_3(p_y/p_0)$ (rad)
     moment3_phase : float
-        phase (degree)
-    moment3_energy_deviation : float
-        Energy deviation [eV]
+        Cubic root of the third moment of the phase $M_3(\phi)$ (deg)
+    moment3_energy : float
+        Cubic root of the energy $M_3(E)$ (MeV)
         In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(29,102)z,ravg*xl,rrms*xl,r90*xl,r95*xl,r99*xl,sqrt(rrmax)*xl
     """
 
     z: Meters
@@ -836,36 +1024,73 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
     moment3_y: Meters
     moment3_py_over_p0: Radians
     moment3_phase: Degrees
-    moment3_energy_deviation: MeV
+    moment3_energy: MeV
 
 
-class BeamDistribution4th(FortranOutputFileData, file_id=30):
+class BeamDistribution3rdExtended(
+    FortranOutputFileData,
+    file_id=29,
+    output_types=OutputZType.extended,
+):
     """
-    File fort.30: square root, square root of 4th moments of the beam distribution
+    File fort.29: contains radius moments of the beam distribution.
 
     Attributes
     ----------
     z : float
         z distance (m)
-    moment4_x : float
-        X (m)
-    moment4_px_over_p0 : float
-        Px (rad)
-    moment4_y : float
-        Y (m)
-    moment4_py_over_p0 : float
-        Py (rad)
-    moment4_phase : float
-        Phase (degree)
-    moment4_energy_deviation : float
-        Energy deviation [eV]
-        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
+    mean_r : float
+        Mean radius (meters)
+    sigma_r : float
+        RMS radius (meters)
+    mean_r_90percent : float
+        90 percent mean radius (meters)
+    mean_r_95percent : float
+        95 percent mean radius (meters)
+    mean_r_99percent : float
+        99 percent mean radius (meters)
+    max_r : float
+        Maximum radius (meters)
+    """
 
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(30,100)z,x04*xl,px04/gambet,y04*xl,py04/gambet,z04*xt,&
-                 pz04*qmc
+    z: Meters
+    mean_r: Meters
+    sigma_r: Meters
+    mean_r_90percent: Meters
+    mean_r_95percent: Meters
+    mean_r_99percent: Meters
+    max_r: Meters
+
+
+class BeamDistribution4th(
+    FortranOutputFileData,
+    output_types=OutputZType.standard,
+    file_id=30,
+):
+    r"""
+    File fort.30 with output_type=1 contains the cubic root of the third moments
+    of the beam distribution.
+
+    Here $ M_4(x) \equiv\left< (x-\left< x \right>)^4 \right>^{1/4} $,
+    averaging over all particles.
+
+    Attributes
+    ----------
+    z : float
+        Longitudinal position along the beamline (meters)
+    moment4_x : float
+        Fourth root of the third moment of the horizontal position $M_4(x)$ (meters)
+    moment4_px_over_p0 : float
+        Fourth root of the third moment of the horizontal momentum $M_4(p_x/p_0)$ (rad)
+    moment4_y : float
+        Fourth root of the third moment of the vertical position $M_4(y)$ (meters)
+    moment4_py_over_p0 : float
+        Fourth root of the third moment of the vertical momentum $M_4(p_y/p_0)$ (rad)
+    moment4_phase : float
+        Fourth root of the third moment of the phase $M_4(\phi)$ (deg)
+    moment4_energy : float
+        Fourth root of the energy $M_4(E)$ (MeV)
+        In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
     """
 
     z: Meters
@@ -873,8 +1098,8 @@ class BeamDistribution4th(FortranOutputFileData, file_id=30):
     moment4_px_over_p0: Radians
     moment4_y: Meters
     moment4_py_over_p0: Radians
-    moment4_phase: Degrees
-    moment4_energy_deviation: MeV
+    moment4_phase: Degrees  # ?
+    moment4_energy: MeV
 
 
 class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
@@ -890,11 +1115,6 @@ class ParticlesAtChargedState(FortranOutputFileData, file_id=32):
         The z distance in meters.
     charge_state_n_particle : int
         The number of particles for each charge state.
-
-    Notes
-    -----
-    Data is written using the following Fortran code:
-    write(32,*)z,nptlist(1:nchrg)
     """
 
     z: Meters
@@ -991,22 +1211,12 @@ class ImpactZOutput(Mapping, BaseModel):
         cls,
         input: ImpactZInput,
         workdir: pathlib.Path,
-        load_fields: bool = False,
-        load_particles: bool = False,
-        smear: bool = True,
     ) -> ImpactZOutput:
         """
         Load ImpactZ output based on the configured input settings.
 
         Parameters
         ----------
-        load_fields : bool, default=False
-            After execution, load all field files.
-        load_particles : bool, default=False
-            After execution, load all particle files.
-        smear : bool, default=True
-            If set, for particles, this will smear the phase over the sample
-            (skipped) slices, preserving the modulus.
 
         Returns
         -------
@@ -1019,6 +1229,7 @@ class ImpactZOutput(Mapping, BaseModel):
             # reference_kinetic_energy=input.reference_kinetic_energy,
             reference_particle_mass=input.reference_particle_mass,
             reference_frequency=input.reference_frequency,
+            output_type=input.output_type,
         )
 
         units = stats.units.copy()

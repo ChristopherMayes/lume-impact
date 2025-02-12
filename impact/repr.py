@@ -123,6 +123,12 @@ def rich_html_repr(obj, theme: str = "default") -> str:
     return console.export_html(theme=_rich_terminal_themes[theme])
 
 
+def rich_format(obj):
+    console = _internal_rich_console()
+    console.print(obj)
+    return console.export_text()
+
+
 def rich_html_model_repr(
     obj, include_defaults: bool = False, theme: str = "default"
 ) -> str:

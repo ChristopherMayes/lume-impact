@@ -74,14 +74,19 @@ def _pydantic_enum(enum_cls: type[E]) -> type[E]:
     return enum_cls
 
 
+class IntEnum(enum.IntEnum):
+    def __repr__(self):
+        return f"IZ.{type(self).__name__}.{self.name}"
+
+
 @_pydantic_enum
-class GPUFlag(enum.IntEnum):
+class GPUFlag(IntEnum):
     disabled = 0
     enabled = 5
 
 
 @_pydantic_enum
-class DistributionTType(enum.IntEnum):
+class DistributionTType(IntEnum):
     """
     Impact-T distribution types.
 
@@ -113,7 +118,7 @@ class DistributionTType(enum.IntEnum):
 
 
 @_pydantic_enum
-class DistributionZType(enum.IntEnum):
+class DistributionZType(IntEnum):
     """Impact-Z distribution types."""
 
     uniform = 1
@@ -127,21 +132,21 @@ class DistributionZType(enum.IntEnum):
 
 
 @_pydantic_enum
-class DiagnosticType(enum.IntEnum):
+class DiagnosticType(IntEnum):
     at_given_time = 1
     at_bunch_centroid = 2
     no_output = 3
 
 
 @_pydantic_enum
-class OutputZType(enum.IntEnum):
+class OutputZType(IntEnum):
     none = 0
     standard = 1
     extended = 2
 
 
 @_pydantic_enum
-class BoundaryType(enum.IntEnum):
+class BoundaryType(IntEnum):
     trans_open_longi_open = 1
     trans_open_longi_period = 2
     trans_round_longi_open = 3
@@ -151,33 +156,33 @@ class BoundaryType(enum.IntEnum):
 
 
 @_pydantic_enum
-class IntegratorType(enum.IntEnum):
+class IntegratorType(IntEnum):
     linear_map = 1
     runge_kutta = 2
 
 
 @_pydantic_enum
-class MultipoleType(enum.IntEnum):
+class MultipoleType(IntEnum):
     sextupole = 2
     octupole = 3
     decapole = 4
 
 
 @_pydantic_enum
-class RFCavityDataMode(enum.IntEnum):
+class RFCavityDataMode(IntEnum):
     discrete = 1
     both = 2  # analytical + discrete
     analytical = 3  # other
 
 
 @_pydantic_enum
-class RFCavityCoordinateType(enum.IntEnum):
+class RFCavityCoordinateType(IntEnum):
     cartesian = 2
     cylindrical = 1
 
 
 @_pydantic_enum
-class ElementID(enum.IntEnum):
+class ElementID(IntEnum):
     drift = 0
     quad = 1
     bend = 4

@@ -9,6 +9,9 @@
 ## Internal / Raw file data classes
 
 ::: impact.z.output.FortranOutputFileData
+
+### Raw file data classes
+
 ::: impact.z.output.ReferenceParticles
 ::: impact.z.output.RmsX
 ::: impact.z.output.RmsY

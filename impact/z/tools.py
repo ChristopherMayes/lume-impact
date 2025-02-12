@@ -19,7 +19,7 @@ from collections.abc import Mapping, Sequence
 import prettytable
 import pydantic
 import pydantic_settings
-import rich
+from ..repr import rich_format
 
 try:
     from typing import Literal
@@ -462,7 +462,9 @@ def html_table_repr(
             f"</tr>"
         )
 
-    copy_to_clipboard = _copy_to_clipboard_html(rich.format(obj))
+    raw = rich_format(obj)
+    copy_to_clipboard = _copy_to_clipboard_html(raw)
+
     return "\n".join(
         [
             copy_to_clipboard,

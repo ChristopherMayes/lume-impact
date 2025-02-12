@@ -849,7 +849,7 @@ class ConversionState:
             err=1,
             # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
             diagnostic_type=DiagnosticType.at_given_time,
-            output_z=OutputZType.extended,
+            output_type=OutputZType.extended,
             # Line 3
             nx=nx,
             ny=ny,
