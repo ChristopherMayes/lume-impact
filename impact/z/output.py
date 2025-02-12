@@ -346,12 +346,10 @@ class OutputStats(BaseModel):
     mean_px_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Mean $px / p0$ (rad).",
-        validation_alias=pydantic.AliasChoices("mean_px_over_p0", "mean_gammabeta_x"),
     )
     mean_py_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Mean $py / p0$ (rad).",
-        validation_alias=pydantic.AliasChoices("mean_py_over_p0", "mean_gammabeta_y"),
     )
     mean_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -420,12 +418,13 @@ class OutputStats(BaseModel):
     neg_delta_mean_energy: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Negative delta mean energy (eV).",
+        repr=False,
     )
-    neg_cov_x__gammabeta_x: MetersArray = pydantic.Field(
+    twiss_alpha_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Twiss parameter alpha for x-direction.",
     )
-    neg_cov_y__gammabeta_y: MetersArray = pydantic.Field(
+    twiss_alpha_y: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Twiss parameter alpha for y-direction.",
     )
@@ -451,12 +450,10 @@ class OutputStats(BaseModel):
     sigma_px_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Sigma $px / p0$ (rad).",
-        validation_alias=pydantic.AliasChoices("sigma_px_over_p0", "sigma_gammabeta_x"),
     )
     sigma_py_over_p0: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Sigma $py / p0$ (rad).",
-        validation_alias=pydantic.AliasChoices("sigma_py_over_p0", "sigma_gammabeta_y"),
     )
     sigma_energy: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -624,7 +621,7 @@ class RmsX(FortranOutputFileData, file_id=24):
         Mean $px / p0$ (rad)
     sigma_px_over_p0 : float
         Sigma $px / p0$ (rad)
-    neg_cov_x__gammabeta_x : float
+    twiss_alpha_x : float
         Twiss parameter, alpha
     norm_emit_x : float
         normalized RMS emittance [m-rad]
@@ -640,7 +637,7 @@ class RmsX(FortranOutputFileData, file_id=24):
     sigma_x: Meters
     mean_px_over_p0: Radians
     sigma_px_over_p0: Radians
-    neg_cov_x__gammabeta_x: Meters
+    twiss_alpha_x: Meters
     norm_emit_x: Meters  # m-rad
 
 
@@ -660,7 +657,7 @@ class RmsY(FortranOutputFileData, file_id=25):
         Mean $py / p0$ [rad]
     sigma_py_over_p0 : float
         $py / p0$ [rad]
-    neg_cov_y__gammabeta_y : float
+    twiss_alpha_y : float
         Twiss parameter, alpha
     norm_emit_y : float
         normalized RMS emittance [m-rad]
@@ -676,7 +673,7 @@ class RmsY(FortranOutputFileData, file_id=25):
     sigma_y: Meters
     mean_py_over_p0: Radians
     sigma_py_over_p0: Radians
-    neg_cov_y__gammabeta_y: Meters
+    twiss_alpha_y: Meters
     norm_emit_y: Meters  # m-rad
 
 
@@ -904,7 +901,7 @@ class ImpactZOutput(Mapping, BaseModel):
     stats: OutputStats = OutputStats()
     alias: dict[str, str] = pydantic.Field(
         default={
-            "-cov_x__gammabeta_x": "neg_cov_x__gammabeta_x",
+            "-cov_x__gammabeta_x": "twiss_alpha_x",
         },
     )
     particles_raw: dict[str | int, ImpactZParticles] = pydantic.Field(
