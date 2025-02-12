@@ -9,7 +9,9 @@ from pmd_beamphysics import ParticleGroup, single_particle
 from pmd_beamphysics.units import mec2
 from pytao import SubprocessTao as Tao
 
-from ...z import ImpactZ, ImpactZInput
+import impact.z as IZ
+
+from ...z import ImpactZ, ImpactZInput, ImpactZParticles
 from ...z.constants import IntegratorType
 from .conftest import z_tests
 
@@ -169,3 +171,57 @@ def test_compare_sxy(
     plt.show()
     np.testing.assert_allclose(actual=x, desired=x_tao_interp, atol=1e-4)
     np.testing.assert_allclose(actual=y, desired=y_tao_interp, atol=1e-4)
+
+
+def test_check_initial_particles(tmp_path: pathlib.Path) -> None:
+    x0 = 0.001
+    y0 = 0.002
+    z0 = 0
+    t0 = 0.003
+    px0 = 1e6
+    py0 = 2e6
+    energy0 = 10e6
+    pz0 = np.sqrt(energy0**2 - px0**2 - py0**2 - mec2**2)
+
+    P0 = single_particle(px=px0, py=py0, pz=pz0, x=x0, y=y0, z=z0, t=t0)
+
+    tao = Tao(lattice_file=lattice_root / "drift.bmad", plot="mpl")
+
+    P0.write(tmp_path / "p0.h5")
+    tao.cmds(
+        [
+            f"set beam_init position_file = {tmp_path}/p0.h5",
+            f"set beam_init n_particle = {len(P0)}",
+            f"set beam_init bunch_charge = {P0.charge}",
+            "set beam_init saved_at = beginning d",
+            "set global track_type = single",
+            "set global track_type = beam",
+        ]
+    )
+
+    tao.plot("beta", include_layout=False)
+    plt.show()
+
+    input = IZ.ImpactZInput.from_tao(tao)
+
+    assert input.initial_particles == P0
+
+    input.space_charge_off()
+
+    I = IZ.ImpactZ(input, use_temp_dir=False, workdir=tmp_path, initial_particles=P0)
+
+    output = I.run(verbose=True)
+
+    assert output is not None
+    assert I.output is output
+
+    Pin = output.particles["initial_particles"]
+
+    P0_z_written = ImpactZParticles.from_file(tmp_path / "particle.in")
+    P0_written = P0_z_written.to_particle_group(
+        reference_frequency=I.input.reference_frequency,
+        reference_kinetic_energy=I.input.reference_kinetic_energy,
+        phase_reference=I.input.initial_phase_ref,
+    )
+    assert P0 == Pin
+    assert P0_written == Pin
