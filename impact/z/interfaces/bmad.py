@@ -18,11 +18,11 @@ from typing_extensions import Literal
 from ..constants import (
     BoundaryType,
     DiagnosticType,
-    DistributionZType,
+    DistributionType,
     GPUFlag,
     IntegratorType,
     MultipoleType,
-    OutputZType,
+    OutputType,
 )
 
 from ...interfaces.bmad import ele_info, tao_unique_names
@@ -849,7 +849,7 @@ class ConversionState:
             err=1,
             # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
             diagnostic_type=DiagnosticType.at_given_time,
-            output_type=OutputZType.extended,
+            output_type=OutputType.extended,
             # Line 3
             nx=nx,
             ny=ny,
@@ -860,9 +860,9 @@ class ConversionState:
             z_period_size=0.0,
             # Line 4
             distribution=(
-                DistributionZType.read
+                DistributionType.read
                 if self.initial_particles
-                else DistributionZType.gauss
+                else DistributionType.gauss
             ),
             restart=0,
             subcycle=0,

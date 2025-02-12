@@ -24,11 +24,11 @@ from . import archive as _archive, parsers
 from .constants import (
     BoundaryType,
     DiagnosticType,
-    DistributionZType,
+    DistributionType,
     GPUFlag,
     IntegratorType,
     MultipoleType,
-    OutputZType,
+    OutputType,
     RFCavityCoordinateType,
     RFCavityDataMode,
 )
@@ -1924,7 +1924,7 @@ class ImpactZInput(BaseModel):
     integrator_type: IntegratorType = IntegratorType.linear_map
     err: int = 1
     diagnostic_type: DiagnosticType = DiagnosticType.at_given_time
-    output_type: OutputZType = OutputZType.extended
+    output_type: OutputType = OutputType.extended
 
     # Line 3
     nx: int = 0
@@ -1936,7 +1936,7 @@ class ImpactZInput(BaseModel):
     z_period_size: float = 0.0
 
     # Line 4
-    distribution: DistributionZType = DistributionZType.uniform
+    distribution: DistributionType = DistributionType.uniform
     restart: int = 0
     subcycle: int = 0
     nbunch: int = 0
@@ -2275,7 +2275,7 @@ class ImpactZInput(BaseModel):
             res.err,
             res.output_type,
         ) = cast(
-            tuple[int, int, IntegratorType, int, OutputZType], indexed_lines[1].data[:5]
+            tuple[int, int, IntegratorType, int, OutputType], indexed_lines[1].data[:5]
         )
         (
             res.nx,
@@ -2294,7 +2294,7 @@ class ImpactZInput(BaseModel):
             res.restart,
             res.subcycle,
             res.nbunch,
-        ) = cast(tuple[DistributionZType, int, int, int], indexed_lines[3].data[:4])
+        ) = cast(tuple[DistributionType, int, int, int], indexed_lines[3].data[:4])
 
         res.particle_list = [int(v) for v in indexed_lines[4].data]
         res.current_list = [float(v) for v in indexed_lines[5].data]
@@ -2494,17 +2494,17 @@ class ImpactZInput(BaseModel):
 
     def check(self):
         if self.initial_particles is not None:
-            if self.distribution != DistributionZType.read:
-                self.distribution = DistributionZType.read
+            if self.distribution != DistributionType.read:
+                self.distribution = DistributionType.read
                 # f'In order to use initial particles, set `distribution="read"`'
             if self.n_particle == 0 or self.n_particle > len(self.initial_particles):
                 self.n_particle = len(self.initial_particles)
-        elif self.distribution == DistributionZType.read:
+        elif self.distribution == DistributionType.read:
             # No particles and 'read' mode may not work:
             raise ValueError(
                 "Initial particles unset, yet distribution='read'. "
                 "To have IMPACT-Z generate particles, use distribution='uniform' or "
-                "one of the supported values (in `DistributionZType`)"
+                "one of the supported values (in `DistributionType`)"
             )
 
     def write_run_script(

@@ -11,11 +11,11 @@ from pmd_beamphysics.units import mec2
 @pytest.mark.parametrize(
     "output_type",
     [
-        pytest.param(IZ.OutputZType.standard, id="standard"),
-        pytest.param(IZ.OutputZType.extended, id="extended"),
+        pytest.param(IZ.OutputType.standard, id="standard"),
+        pytest.param(IZ.OutputType.extended, id="extended"),
     ],
 )
-def test_output_type(output_type: IZ.OutputZType, tmp_path: pathlib.Path):
+def test_output_type(output_type: IZ.OutputType, tmp_path: pathlib.Path):
     energy = 10e6
     pz = np.sqrt(energy**2 - mec2**2)
     P0 = single_particle(x=1e-3, pz=pz)
@@ -30,7 +30,7 @@ def test_output_type(output_type: IZ.OutputZType, tmp_path: pathlib.Path):
         ny=64,
         nz=64,
         output_type=output_type,
-        distribution=IZ.DistributionZType.read,
+        distribution=IZ.DistributionType.read,
         twiss_beta_x=10.0,
         twiss_beta_y=10.0,
         average_current=0.0,
@@ -58,7 +58,7 @@ def test_output_type(output_type: IZ.OutputZType, tmp_path: pathlib.Path):
     output = I.run(verbose=False)
     stats = output.stats
     should_be_populated = {
-        IZ.OutputZType.standard: [
+        IZ.OutputType.standard: [
             # file 27
             "max_abs_x",
             "max_abs_px_over_p0",
@@ -81,7 +81,7 @@ def test_output_type(output_type: IZ.OutputZType, tmp_path: pathlib.Path):
             "moment4_phase",
             "moment4_energy",
         ],
-        IZ.OutputZType.extended: [
+        IZ.OutputType.extended: [
             # file 24
             "norm_emit_x_90percent",
             "norm_emit_x_95percent",

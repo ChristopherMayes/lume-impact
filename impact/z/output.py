@@ -17,7 +17,7 @@ from .particles import ImpactZParticles
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
-from .constants import OutputZType
+from .constants import OutputType
 from . import archive as _archive, parsers
 from .input import HasOutputFile, ImpactZInput, WriteSliceInfo
 from .types import (
@@ -56,7 +56,7 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-file_number_to_cls: dict[OutputZType, dict[int, type[FortranOutputFileData]]] = {}
+file_number_to_cls: dict[OutputType, dict[int, type[FortranOutputFileData]]] = {}
 T = TypeVar("T", bound="FortranOutputFileData")
 
 
@@ -114,7 +114,7 @@ def load_stat_files_from_path(
     workdir: pathlib.Path,
     reference_particle_mass: float,
     reference_frequency: float,
-    output_type: OutputZType,
+    output_type: OutputType,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
     units = {}
@@ -676,7 +676,7 @@ class OutputStats(BaseModel):
         workdir: pathlib.Path,
         reference_particle_mass: float,
         reference_frequency: float,
-        output_type: OutputZType,
+        output_type: OutputType,
     ) -> OutputStats:
         stats, units = load_stat_files_from_path(
             workdir,
@@ -702,9 +702,9 @@ class FortranOutputFileData(SequenceBaseModel):
     def __init_subclass__(
         cls,
         file_id: int,
-        output_types: tuple[OutputZType, ...] | OutputZType = (
-            OutputZType.standard,
-            OutputZType.extended,
+        output_types: tuple[OutputType, ...] | OutputType = (
+            OutputType.standard,
+            OutputType.extended,
         ),
         **kwargs,
     ):
@@ -713,7 +713,7 @@ class FortranOutputFileData(SequenceBaseModel):
         assert isinstance(file_id, int)
         assert file_id not in file_number_to_cls, f"Duplicate element ID {file_id}"
 
-        if isinstance(output_types, OutputZType):
+        if isinstance(output_types, OutputType):
             output_types = (output_types,)
 
         for output_type in output_types:
@@ -902,7 +902,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
 class MaxAmplitudeStandard(
     FortranOutputFileData,
     file_id=27,
-    output_types=OutputZType.standard,
+    output_types=OutputType.standard,
 ):
     r"""
     File fort.27: maximum amplitude information (standard)
@@ -937,7 +937,7 @@ class MaxAmplitudeStandard(
 class MaxAmplitudeExtended(
     FortranOutputFileData,
     file_id=27,
-    output_types=OutputZType.extended,
+    output_types=OutputType.extended,
 ):
     r"""
     File fort.27: maximum amplitude information (extended)
@@ -994,7 +994,7 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
 class BeamDistribution3rdStandard(
     FortranOutputFileData,
     file_id=29,
-    output_types=OutputZType.standard,
+    output_types=OutputType.standard,
 ):
     r"""
     File fort.29: cubic root of 3rd moments of the beam distribution
@@ -1030,7 +1030,7 @@ class BeamDistribution3rdStandard(
 class BeamDistribution3rdExtended(
     FortranOutputFileData,
     file_id=29,
-    output_types=OutputZType.extended,
+    output_types=OutputType.extended,
 ):
     """
     File fort.29: contains radius moments of the beam distribution.
@@ -1064,7 +1064,7 @@ class BeamDistribution3rdExtended(
 
 class BeamDistribution4th(
     FortranOutputFileData,
-    output_types=OutputZType.standard,
+    output_types=OutputType.standard,
     file_id=30,
 ):
     r"""

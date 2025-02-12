@@ -86,39 +86,7 @@ class GPUFlag(IntEnum):
 
 
 @_pydantic_enum
-class DistributionTType(IntEnum):
-    """
-    Impact-T distribution types.
-
-    1 Uniform - 6d uniform distribution
-    2 Gauss3 - 6d Gaussian distribution
-    3 Waterbag - 6d Waterbag distribution
-    4 Semigauss - 3d Waterbag distribution in spatial and 3d Gaussian
-    distribution in momentum space
-    5 KV3d - transverse KV distribution and longitudinal uniform distribution
-    10 ParobGauss - transverse parabolic and longitudinal Gaussian distribution
-    15 SemicirGauss - transverse semi-circle and longitudinal Gaussian distribution
-    16 Read - read in an initial particle distribution from file `particle.in`
-    24 readParmela - read in Parmela particle format
-    25 readElegant - read in Elegant particle format
-    27 CylcoldZSob
-    """
-
-    uniform = 1
-    gauss = 2
-    waterbag = 3
-    semigauss = 4
-    KV = 5
-    parabolic_gaussian = 10
-    semicircular_gaussian = 15
-    read = 16
-    read_parmela = 24
-    read_elegant = 25
-    cylcold_zsob = 27
-
-
-@_pydantic_enum
-class DistributionZType(IntEnum):
+class DistributionType(IntEnum):
     """Impact-Z distribution types."""
 
     uniform = 1
@@ -139,7 +107,7 @@ class DiagnosticType(IntEnum):
 
 
 @_pydantic_enum
-class OutputZType(IntEnum):
+class OutputType(IntEnum):
     none = 0
     standard = 1
     extended = 2
@@ -190,13 +158,3 @@ class ElementID(IntEnum):
     write_full = -2
     restart = -7
     halt = -99
-
-
-# PLOTTYPE = {
-#     "Centriod location": 2,
-#     "Rms size": 3,
-#     "Centriod momentum": 4,
-#     "Rms momentum": 5,
-#     "Twiss": 6,
-#     "Emittance": 7,
-# }
