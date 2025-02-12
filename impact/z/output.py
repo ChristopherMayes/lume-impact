@@ -458,9 +458,9 @@ class OutputStats(BaseModel):
         description="Sigma $py / p0$ (rad).",
         validation_alias=pydantic.AliasChoices("sigma_py_over_p0", "sigma_gammabeta_y"),
     )
-    sigma_gammabeta_z: MeVArray = pydantic.Field(
+    sigma_energy: MeVArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="RMS momentum in the z-direction (eV).",
+        description="Sigma energy (eV).",
     )
     sigma_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -696,7 +696,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
         Negative delta mean energy, used to convert to mean energy [eV]
         where `neg_delta_mean_energy = (kinetic_energy_ref - mean_energy) + reference_particle_mass `
         In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
-    sigma_gammabeta_z : float
+    sigma_energy : float
         RMS momentum [eV]
         In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
     twiss_alpha : float
@@ -714,7 +714,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     mean_z: Meters
     sigma_z: Degrees
     neg_delta_mean_energy: MeV
-    sigma_gammabeta_z: MeV
+    sigma_energy: MeV
     twiss_alpha: Unitless
     norm_emit_z: Meters
 
