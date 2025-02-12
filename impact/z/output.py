@@ -443,7 +443,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Twiss parameter alpha for y-direction.",
     )
-    twiss_alpha: UnitlessArray = pydantic.Field(
+    twiss_alpha_z: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Twiss parameter alpha for z-direction.",
     )
@@ -703,7 +703,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     sigma_energy : float
         RMS momentum [eV]
         In the file, this is stored as MeV and LUME-Impact converts to eV automatically.
-    twiss_alpha : float
+    twiss_alpha_z : float
         Twiss parameter, alpha
     norm_emit_z : float
         normalized RMS emittance [degree-MeV]
@@ -719,7 +719,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     sigma_phase_deg: Degrees
     neg_delta_mean_energy: MeV
     sigma_energy: MeV
-    twiss_alpha: Unitless
+    twiss_alpha_z: Unitless
     norm_emit_z: Meters
 
 
