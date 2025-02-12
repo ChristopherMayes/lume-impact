@@ -126,7 +126,7 @@ def load_stat_files_from_path(
 
     try:
         stats["energy_ref"] = stats["kinetic_energy_ref"] + reference_particle_mass
-        stats["p0c"] = np.sqrt(stats["energy_ref"] ** 2 - reference_particle_mass**2)
+        stats["p0c"] = np.sqrt(stats["energy_ref"] ** 2.0 - reference_particle_mass**2)
 
         stats["mean_energy"] = stats["energy_ref"] - stats["neg_delta_mean_energy"]
         stats["mean_px"] = stats["mean_px_over_p0"] * stats["p0c"]
@@ -134,9 +134,12 @@ def load_stat_files_from_path(
         stats["sigma_px"] = stats["sigma_px_over_p0"] * stats["p0c"]
         stats["sigma_py"] = stats["sigma_py_over_p0"] * stats["p0c"]
         stats["sigma_t"] = stats["sigma_phase_deg"] / 360.0 / reference_frequency
-        stats["mean_t"] = stats["mean_phase_deg"] / 360.0 / reference_frequency
+
+        stats["t_ref"] = stats["phase_ref"] / (2.0 * np.pi * reference_frequency)
+        stats["mean_t_rel"] = stats["mean_phase_deg"] / 360.0 / reference_frequency
+        stats["mean_t"] = stats["mean_t_rel"] + stats["t_ref"]
     except KeyError as ex:
-        logger.exception(f"Some expected statistics unavailable? Missing: {ex}")
+        logger.warning(f"Some expected statistics unavailable? Missing: {ex}")
 
     return stats, units
 
@@ -515,6 +518,10 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Mean time (s) (computed)",
     )
+    mean_t_rel: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Mean time relative (s) (computed)",
+    )
     sigma_px: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Sigma px (eV) (computed)",
@@ -526,6 +533,10 @@ class OutputStats(BaseModel):
     sigma_t: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="RMS size in time (rad) (computed)",
+    )
+    t_ref: RadiansArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Reference time (sec) (computed)",
     )
 
     units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
