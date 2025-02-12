@@ -808,8 +808,7 @@ class BeamDistribution3rd(FortranOutputFileData, file_id=29):
     Notes
     -----
     Data is written using the following Fortran code:
-    write(29,100)z,x03*xl,px03/gambet,y03*xl,py03/gambet,z03*xt,&
-                 pz03*qmc
+    write(29,102)z,ravg*xl,rrms*xl,r90*xl,r95*xl,r99*xl,sqrt(rrmax)*xl
     """
 
     z: Meters

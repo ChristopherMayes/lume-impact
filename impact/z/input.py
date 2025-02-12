@@ -38,6 +38,7 @@ from .types import AnyPath, BaseModel, NonzeroFloat, NDArray, PydanticParticleGr
 
 if typing.TYPE_CHECKING:
     from pytao import Tao
+    from .interfaces.bmad import Which as TaoWhich
 
 
 input_element_by_id: dict[int, type[InputElement]] = {}
@@ -2126,7 +2127,26 @@ class ImpactZInput(BaseModel):
         tao: Tao,
         track_start: str | None = None,
         track_end: str | None = None,
-        **kwargs,
+        *,
+        radius_x: float = 0.0,
+        radius_y: float = 0.0,
+        ncpu_y: int = 1,
+        ncpu_z: int = 1,
+        nx: int = 64,
+        ny: int = 64,
+        nz: int = 64,
+        which: TaoWhich = "model",
+        ix_uni: int = 1,
+        ix_branch: int = 0,
+        reference_frequency: float = 1300000000.0,
+        verbose: bool = False,
+        initial_particles_file_id: int = 100,
+        final_particles_file_id: int = 101,
+        initial_rfdata_file_id: int = 500,
+        initial_write_full_id: int = 200,
+        write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
+        include_collimation: bool = False,
+        integrator_type: IntegratorType = IntegratorType.linear_map,
     ) -> ImpactZInput:
         """
         Create an ImpactZInput object from a Tao instance's lattice.
@@ -2192,14 +2212,43 @@ class ImpactZInput(BaseModel):
         -------
         ImpactZInput
         """
-        from .interfaces.bmad import input_from_tao
+        from .interfaces.bmad import ConversionState
 
-        return input_from_tao(
-            tao,
+        state = ConversionState.from_tao(
+            tao=tao,
             track_start=track_start,
             track_end=track_end,
-            **kwargs,
+            reference_frequency=reference_frequency,
+            ix_uni=ix_uni,
+            ix_branch=ix_branch,
+            which=which,
+            integrator_type=integrator_type,
         )
+
+        lattice, file_data = state.convert_lattice(
+            tao=tao,
+            verbose=verbose,
+            initial_particles_file_id=initial_particles_file_id,
+            final_particles_file_id=final_particles_file_id,
+            initial_rfdata_file_id=initial_rfdata_file_id,
+            initial_write_full_id=initial_write_full_id,
+            write_beam_eles=write_beam_eles,
+            include_collimation=include_collimation,
+        )
+
+        input = state.to_input(
+            # tao=tao,
+            lattice=lattice,
+            file_data=file_data,
+            radius_x=radius_x,
+            radius_y=radius_y,
+            ncpu_y=ncpu_y,
+            ncpu_z=ncpu_z,
+            nx=nx,
+            ny=ny,
+            nz=nz,
+        )
+        return input
 
     @classmethod
     def _from_parsed_lines(

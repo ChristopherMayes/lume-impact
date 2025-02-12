@@ -9,6 +9,7 @@ import re
 import shlex
 import shutil
 import traceback
+import typing
 from time import monotonic
 from typing import Any, ClassVar, NamedTuple
 from collections.abc import Sequence
@@ -16,6 +17,8 @@ from collections.abc import Sequence
 import h5py
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
+
+from impact.z.constants import IntegratorType
 from .particles import ImpactZParticles
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
@@ -28,6 +31,10 @@ from .input import ImpactZInput
 from .output import ImpactZOutput, RunInfo
 from .tools import is_jupyter, read_if_path
 from .types import AnyPath
+
+
+if typing.TYPE_CHECKING:
+    from .interfaces.bmad import Tao, Which as TaoWhich
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +113,17 @@ def _maybe_progress_bar(enable: bool, **kwargs):
             yield pbar
     else:
         yield None
+
+
+@contextmanager
+def _verbosity_context(I: ImpactZ, verbose: bool | None):
+    if verbose is None:
+        yield
+    else:
+        orig_verbose = I.verbose
+        I.verbose = verbose
+        yield
+        I.verbose = orig_verbose
 
 
 class ImpactZ(CommandWrapper):
@@ -190,7 +208,6 @@ class ImpactZ(CommandWrapper):
             timeout=timeout,
             **kwargs,
         )
-
         if input is None:
             input = ImpactZInput()
         elif isinstance(input, AnyPath):
@@ -298,25 +315,8 @@ class ImpactZ(CommandWrapper):
         ImpactZOutput
             The output data.  This is also accessible as ``.output``.
         """
-        if verbose is not None:
-            self.verbose = verbose
 
-        if not self.configured:
-            self.configure()
-
-        if self.path is None:
-            raise ValueError("Path (base_path) not yet set")
-
-        self.finished = False
-
-        runscript = self.get_run_script()
-
-        start_time = monotonic()
-        mpi = "with MPI " if self.use_mpi else ""
-        self.vprint(f"Running Impact-Z {mpi}in {self.path}")
-        self.vprint(runscript)
-
-        self.write_input()
+        by_z = self.input.by_z
 
         def update_progress_bar(line: str):
             assert pbar is not None
@@ -339,13 +339,7 @@ class ImpactZ(CommandWrapper):
             pbar.n = update.element_index
             pbar.refresh()
 
-        with _maybe_progress_bar(
-            progress_bar,
-            total=len(self.input.lattice),
-            leave=False,
-        ) as pbar:
-            by_z = self.input.by_z
-
+        def run():
             if self.timeout:
                 self.vprint(
                     f"Timeout of {self.timeout} is being used; output will be "
@@ -357,73 +351,100 @@ class ImpactZ(CommandWrapper):
                     cwd=self.path,
                 )
                 self.vprint(execute_result["log"])
-            else:
-                log = []
-                try:
-                    for line in tools.execute(shlex.split(runscript), cwd=self.path):
-                        if pbar is not None:
-                            update_progress_bar(line)
+                return execute_result
 
-                        self.vprint(line, end="")
-                        log.append(line)
-                except Exception as ex:
-                    log.append(f"IMPACT-Z exited with an error: {ex}")
-                    self.vprint(log[-1])
-                    execute_result = {
-                        "log": "".join(log),
-                        "error": True,
-                        "why_error": "error",
-                    }
+            log = []
+            try:
+                for line in tools.execute(shlex.split(runscript), cwd=self.path):
                     if pbar is not None:
-                        try:
-                            pbar.leave = True
-                        except Exception:
-                            logger.debug("Failed to set pbar.leave", exc_info=True)
-                else:
-                    execute_result = {
-                        "log": "".join(log),
-                        "error": False,
-                        "why_error": "",
-                    }
+                        update_progress_bar(line)
 
-        end_time = monotonic()
+                    self.vprint(line, end="")
+                    log.append(line)
+            except Exception as ex:
+                log.append(f"IMPACT-Z exited with an error: {ex}")
+                self.vprint(log[-1])
+                if pbar is not None:
+                    try:
+                        pbar.leave = True
+                    except Exception:
+                        logger.debug("Failed to set pbar.leave", exc_info=True)
+                return {
+                    "log": "".join(log),
+                    "error": True,
+                    "why_error": "error",
+                }
+            return {
+                "log": "".join(log),
+                "error": False,
+                "why_error": "",
+            }
 
-        self.finished = True
-        run_info = RunInfo(
-            run_script=runscript,
-            error=execute_result["error"],
-            error_reason=execute_result["why_error"],
-            start_time=start_time,
-            end_time=end_time,
-            run_time=end_time - start_time,
-            output_log=execute_result["log"].replace("\x00", ""),
-        )
+        with _verbosity_context(self, verbose):
+            if not self.configured:
+                self.configure()
 
-        success_or_failure = "Success" if not execute_result["error"] else "Failure"
-        self.vprint(f"{success_or_failure} - execution took {run_info.run_time:0.2f}s.")
+            if self.path is None:
+                raise ValueError("Path (base_path) not yet set")
 
-        try:
-            self.output = self.load_output()
-        except Exception as ex:
-            stack = traceback.format_exc()
-            run_info.error = True
-            run_info.error_reason = (
-                f"Failed to load output file. {ex.__class__.__name__}: {ex}\n{stack}"
+            self.finished = False
+
+            runscript = self.get_run_script()
+
+            start_time = monotonic()
+            mpi = "with MPI " if self.use_mpi else ""
+            self.vprint(f"Running Impact-Z {mpi}in {self.path}")
+            self.vprint(runscript)
+
+            self.write_input()
+
+            with _maybe_progress_bar(
+                progress_bar,
+                total=len(self.input.lattice),
+                leave=False,
+            ) as pbar:
+                execute_result = run()
+
+            end_time = monotonic()
+
+            self.finished = True
+            run_info = RunInfo(
+                run_script=runscript,
+                error=execute_result["error"],
+                error_reason=execute_result["why_error"],
+                start_time=start_time,
+                end_time=end_time,
+                run_time=end_time - start_time,
+                output_log=execute_result["log"].replace("\x00", ""),
             )
-            self.output = ImpactZOutput(run=run_info)
-            if hasattr(ex, "add_note"):
-                # Python 3.11+
-                ex.add_note(
-                    f"\nIMPACT-Z output was:\n\n{execute_result['log']}\n(End of IMPACT-Z output)"
+
+            success_or_failure = "Success" if not execute_result["error"] else "Failure"
+            self.vprint(
+                f"{success_or_failure} - execution took {run_info.run_time:0.2f}s."
+            )
+
+            try:
+                self.output = self.load_output()
+            except Exception as ex:
+                stack = traceback.format_exc()
+                run_info.error = True
+                run_info.error_reason = f"Failed to load output file. {ex.__class__.__name__}: {ex}\n{stack}"
+                self.output = ImpactZOutput(run=run_info)
+                if hasattr(ex, "add_note"):
+                    # Python 3.11+
+                    ex.add_note(
+                        f"\nIMPACT-Z output was:\n\n{execute_result['log']}\n(End of IMPACT-Z output)"
+                    )
+                if raise_on_error:
+                    raise
+
+            self.output.run = run_info
+            if run_info.error and raise_on_error:
+                raise ImpactRunFailure(
+                    f"IMPACT-Z failed to run: {run_info.error_reason}"
                 )
-            if raise_on_error:
-                raise
 
-        self.output.run = run_info
-        if run_info.error and raise_on_error:
-            raise ImpactRunFailure(f"IMPACT-Z failed to run: {run_info.error_reason}")
-
-        return self.output
+            return self.output
 
     def get_executable(self):
         """
@@ -798,3 +819,169 @@ class ImpactZ(CommandWrapper):
         if not isinstance(other, ImpactZ):
             return False
         return self.input != other.input or self.output != other.output
+
+    @classmethod
+    def from_tao(
+        cls,
+        tao: Tao,
+        track_start: str | None = None,
+        track_end: str | None = None,
+        *,
+        radius_x: float = 0.0,
+        radius_y: float = 0.0,
+        ncpu_y: int = 1,
+        ncpu_z: int = 1,
+        nx: int = 64,
+        ny: int = 64,
+        nz: int = 64,
+        which: TaoWhich = "model",
+        ix_uni: int = 1,
+        ix_branch: int = 0,
+        reference_frequency: float = 1300000000.0,
+        verbose: bool = False,
+        initial_particles_file_id: int = 100,
+        final_particles_file_id: int = 101,
+        initial_rfdata_file_id: int = 500,
+        initial_write_full_id: int = 200,
+        write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
+        include_collimation: bool = False,
+        integrator_type: IntegratorType = IntegratorType.linear_map,
+        workdir: str | pathlib.Path | None = None,
+        output: Any | None = None,  # TODO
+        alias: dict[str, str] | None = None,
+        units: dict[str, pmd_unit] | None = None,
+        command: str | None = None,
+        command_mpi: str | None = None,
+        use_mpi: bool = False,
+        mpi_run: str = "",
+        use_temp_dir: bool = True,
+        timeout: float | None = None,
+        initial_particles: ParticleGroup | ImpactZParticles | None = None,
+    ):
+        """
+        Create an ImpactZ object from a Tao instance's lattice.
+
+        This function converts a Tao model into an ImpactZInput by extracting the
+        relevant lattice and particle information, and packages it into a structure
+        suitable for running IMPACT-Z simulations.
+
+        Standard `ImpactZ` arguments (aside from the auto-generated `input`)
+        will be passed to the new instance.
+
+        Parameters
+        ----------
+        tao : Tao
+            The Tao instance.
+        track_start : str or None, optional
+            Name of the element in the Tao model where tracking begins.
+            If None, defaults to the first element.
+        track_end : str or None, optional
+            Name of the element in the Tao model where tracking ends.
+            If None, defaults to the last element.
+        radius_x : float, optional
+            The transverse aperture radius in the x-dimension.
+        radius_y : float, optional
+            The transverse aperture radius in the y-dimension.
+        ncpu_y : int, optional
+            Number of processor divisions along the y-axis.
+        ncpu_z : int, optional
+            Number of processor divisions along the z-axis.
+        nx : int, optional
+            Space charge grid mesh points along the x-axis.
+        ny : int, optional
+            Space charge grid mesh points along the y-axis.
+        nz : int, optional
+            Space charge grid mesh points along the z-axis.
+        which : "model", "base", or "design", optional
+            Specifies the source of lattice data used from Tao.
+        ix_uni : int, optional
+            The universe index.
+        ix_branch : int, optional
+            The branch index.
+        reference_frequency : float, optional
+            The reference frequency for IMPACT-Z.
+        verbose : bool, optional
+            If True, prints additional diagnostic information.
+        initial_particles_file_id : int, optional
+            File ID for the initial particle distribution.
+        final_particles_file_id : int, optional
+            File ID for the final particle distribution.
+        initial_rfdata_file_id : int, optional
+            File ID for the first RF data file.
+        initial_write_full_id : int, optional
+            File ID for the first WriteFull instance.
+        write_beam_eles : str or Sequence[str], optional
+            Element(s) by name or Tao-supported match to use at which to write
+            particle data via `WriteFull`.
+        include_collimation : bool, optional
+            If True, includes collimation elements in the lattice conversion.
+            Defaults to False as this doesn't work quite yet.
+        integrator_type : IntegratorType, optional
+            The integrator scheme to be used in the lattice conversion.
+            Defaults to 'linear_map', but this may be switched automatically to
+            Runge-Kutta depending on IMPACT-Z run requirements.
+
+        command : str, default="ImpactZexe"
+            The command to run to execute IMPACT-Z.
+        command_mpi : str, default="ImpactZexe-mpi"
+            The IMPACT-Z executable to run under MPI.
+        use_mpi : bool, default=False
+            Enable parallel processing with MPI.
+        mpi_run : str, default=""
+            The template for invoking ``mpirun``. If not specified, the class
+            attribute ``MPI_RUN`` is used. This is expected to be a formated string
+            taking as parameters the number of processors (``nproc``) and the
+            command to be executed (``command_mpi``).
+        use_temp_dir : bool, default=True
+            Whether or not to use a temporary directory to run the process.
+        workdir : path-like, default=None
+            The work directory to be used.
+        timeout : float, default=None
+            The timeout in seconds to be used when running IMPACT-Z.
+        initial_particles : ParticleGroup, optional
+            Initial particles to use in the simulation, using the
+            OpenPMD-beamphysics standard.
+
+        Returns
+        -------
+        ImpactZInput
+        """
+        input = ImpactZInput.from_tao(
+            tao=tao,
+            track_start=track_start,
+            track_end=track_end,
+            radius_x=radius_x,
+            radius_y=radius_y,
+            ncpu_y=ncpu_y,
+            ncpu_z=ncpu_z,
+            nx=nx,
+            ny=ny,
+            nz=nz,
+            which=which,
+            ix_uni=ix_uni,
+            ix_branch=ix_branch,
+            reference_frequency=reference_frequency,
+            verbose=verbose,
+            initial_particles_file_id=initial_particles_file_id,
+            final_particles_file_id=final_particles_file_id,
+            initial_rfdata_file_id=initial_rfdata_file_id,
+            initial_write_full_id=initial_write_full_id,
+            write_beam_eles=write_beam_eles,
+            include_collimation=include_collimation,
+            integrator_type=integrator_type,
+        )
+        return cls(
+            input=input,
+            workdir=workdir,
+            output=output,
+            alias=alias,
+            units=units,
+            command=command,
+            command_mpi=command_mpi,
+            use_mpi=use_mpi,
+            mpi_run=mpi_run,
+            use_temp_dir=use_temp_dir,
+            verbose=verbose,
+            timeout=timeout,
+            initial_particles=initial_particles,
+        )
