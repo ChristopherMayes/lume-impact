@@ -80,10 +80,11 @@ class InputElement(BaseModel):
     ):
         super().__init_subclass__(**kwargs)
 
-        assert isinstance(element_id, int)
-        assert (
-            element_id not in input_element_by_id
-        ), f"Duplicate element ID {element_id}"
+        if not isinstance(element_id, int):
+            raise ValueError(f"element_id expected to be int, got: {type(element_id)}")
+        if element_id in input_element_by_id:
+            raise RuntimeError(f"Duplicate element {element_id}")
+
         input_element_by_id[element_id] = cls
         cls._impactz_metadata_ = InputElementMetadata(
             element_id=element_id,
