@@ -100,7 +100,7 @@ def test_diagnostic_type(diagnostic_type: IZ.DiagnosticType, tmp_path: pathlib.P
             # "max_abs_y",  (common)
             "max_abs_gammabeta_y",
             # "max_phase",  (common)
-            "max_abs_gamma",
+            "max_gamma_rel",
             # file 29
             "mean_r",
             "sigma_r",

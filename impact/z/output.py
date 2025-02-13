@@ -573,7 +573,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Maximum deviation in phase (degrees)",
     )
-    max_abs_gamma: UnitlessArray = pydantic.Field(
+    max_gamma_rel: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description=r"Maximum deviation in relativistic gamma $\max(|\gamma - \gamma_0)|)$ (dimensionless)",
     )
@@ -956,7 +956,7 @@ class MaxAmplitudeExtended(
          Maximum $x$-plane transverse momentum $\max(|\gamma\beta_y|)$ (dimensionless)
     max_phase : float
          Maximum deviation in phase (deg???)
-    max_abs_gamma : float
+    max_gamma_rel : float
         Maximum deviation in relativistic gamma $\max(|\gamma - \gamma_0)|)$ (dimensionless)
     """
 
@@ -966,7 +966,7 @@ class MaxAmplitudeExtended(
     max_abs_y: Meters
     max_abs_gammabeta_y: Unitless
     max_phase: Degrees  # really?
-    max_abs_gamma: Unitless
+    max_gamma_rel: Unitless
 
 
 class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
