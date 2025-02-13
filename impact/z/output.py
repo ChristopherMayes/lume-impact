@@ -548,7 +548,7 @@ class OutputStats(BaseModel):
     mean_r_99percent: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray, description="99 percent mean radius (meters)"
     )
-    max_dist_r: MetersArray = pydantic.Field(
+    max_r_rel: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Maximum radius (meters)"
     )
 
@@ -1049,7 +1049,7 @@ class BeamDistribution3rdExtended(
         95 percent mean radius (meters)
     mean_r_99percent : float
         99 percent mean radius (meters)
-    max_dist_r : float
+    max_r_rel : float
         Maximum radius (meters)
     """
 
@@ -1059,7 +1059,7 @@ class BeamDistribution3rdExtended(
     mean_r_90percent: Meters
     mean_r_95percent: Meters
     mean_r_99percent: Meters
-    max_dist_r: Meters
+    max_r_rel: Meters
 
 
 class BeamDistribution4th(

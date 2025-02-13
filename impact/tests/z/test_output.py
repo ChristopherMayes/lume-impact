@@ -107,7 +107,7 @@ def test_diagnostic_type(diagnostic_type: IZ.DiagnosticType, tmp_path: pathlib.P
             "mean_r_90percent",
             "mean_r_95percent",
             "mean_r_99percent",
-            "max_dist_r",
+            "max_r_rel",
         ],
     }
     for attr in should_be_populated[diagnostic_type]:
