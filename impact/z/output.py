@@ -702,7 +702,7 @@ class FortranOutputFileData(SequenceBaseModel):
     def __init_subclass__(
         cls,
         file_id: int,
-        output_types: tuple[DiagnosticType, ...] | DiagnosticType = (
+        diagnostic_types: tuple[DiagnosticType, ...] | DiagnosticType = (
             DiagnosticType.standard,
             DiagnosticType.extended,
         ),
@@ -713,10 +713,10 @@ class FortranOutputFileData(SequenceBaseModel):
         assert isinstance(file_id, int)
         assert file_id not in file_number_to_cls, f"Duplicate element ID {file_id}"
 
-        if isinstance(output_types, DiagnosticType):
-            output_types = (output_types,)
+        if isinstance(diagnostic_types, DiagnosticType):
+            diagnostic_types = (diagnostic_types,)
 
-        for diagnostic_type in output_types:
+        for diagnostic_type in diagnostic_types:
             file_number_to_cls.setdefault(diagnostic_type, {})
             file_number_to_cls[diagnostic_type][file_id] = cls
 
@@ -783,13 +783,13 @@ class RmsX(FortranOutputFileData, file_id=24):
         normalized RMS emittance [m-rad]
     norm_emit_x_90percent : float
         90% normalized RMS horizontal emittance (meter-rad)
-        Only available in `output_types=extended` mode.
+        Only available in `diagnostic_types=extended` mode.
     norm_emit_x_95percent : float
         95% normalized RMS horizontal emittance (meter-rad)
-        Only available in `output_types=extended` mode.
+        Only available in `diagnostic_types=extended` mode.
     norm_emit_x_99percent : float
         99% normalized RMS horizontal emittance (meter-rad)
-        Only available in `output_types=extended` mode.
+        Only available in `diagnostic_types=extended` mode.
     """
 
     z: Meters
@@ -902,7 +902,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
 class MaxAmplitudeStandard(
     FortranOutputFileData,
     file_id=27,
-    output_types=DiagnosticType.standard,
+    diagnostic_types=DiagnosticType.standard,
 ):
     r"""
     File fort.27: maximum amplitude information (standard)
@@ -937,7 +937,7 @@ class MaxAmplitudeStandard(
 class MaxAmplitudeExtended(
     FortranOutputFileData,
     file_id=27,
-    output_types=DiagnosticType.extended,
+    diagnostic_types=DiagnosticType.extended,
 ):
     r"""
     File fort.27: maximum amplitude information (extended)
@@ -994,7 +994,7 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
 class BeamDistribution3rdStandard(
     FortranOutputFileData,
     file_id=29,
-    output_types=DiagnosticType.standard,
+    diagnostic_types=DiagnosticType.standard,
 ):
     r"""
     File fort.29: cubic root of 3rd moments of the beam distribution
@@ -1030,7 +1030,7 @@ class BeamDistribution3rdStandard(
 class BeamDistribution3rdExtended(
     FortranOutputFileData,
     file_id=29,
-    output_types=DiagnosticType.extended,
+    diagnostic_types=DiagnosticType.extended,
 ):
     """
     File fort.29: contains radius moments of the beam distribution.
@@ -1064,7 +1064,7 @@ class BeamDistribution3rdExtended(
 
 class BeamDistribution4th(
     FortranOutputFileData,
-    output_types=DiagnosticType.standard,
+    diagnostic_types=DiagnosticType.standard,
     file_id=30,
 ):
     r"""
