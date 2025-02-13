@@ -17,7 +17,7 @@ from .particles import ImpactZParticles
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
-from .constants import OutputType
+from .constants import DiagnosticType
 from . import archive as _archive, parsers
 from .input import HasOutputFile, ImpactZInput, WriteSliceInfo
 from .types import (
@@ -56,7 +56,7 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-file_number_to_cls: dict[OutputType, dict[int, type[FortranOutputFileData]]] = {}
+file_number_to_cls: dict[DiagnosticType, dict[int, type[FortranOutputFileData]]] = {}
 T = TypeVar("T", bound="FortranOutputFileData")
 
 
@@ -114,11 +114,11 @@ def load_stat_files_from_path(
     workdir: pathlib.Path,
     reference_particle_mass: float,
     reference_frequency: float,
-    output_type: OutputType,
+    diagnostic_type: DiagnosticType,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
     units = {}
-    for fnum, cls in file_number_to_cls[output_type].items():
+    for fnum, cls in file_number_to_cls[diagnostic_type].items():
         fn = workdir / f"fort.{fnum}"
         if fn.exists():
             stats.update(cls.from_file(fn))
@@ -548,15 +548,15 @@ class OutputStats(BaseModel):
     mean_r_99percent: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray, description="99 percent mean radius (meters)"
     )
-    max_r: MetersArray = pydantic.Field(
+    max_dist_r: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Maximum radius (meters)"
     )
 
     # Max amplitude extended
-    max_abs_x: MetersArray = pydantic.Field(
-        default_factory=_empty_ndarray,
-        description=r"Maximum horizontal displacement from the beam axis  $\max(|x|)$ (meters)",
-    )
+    # max_abs_x: MetersArray = pydantic.Field(
+    #     default_factory=_empty_ndarray,
+    #     description=r"Maximum horizontal displacement from the beam axis  $\max(|x|)$ (meters)",
+    # )
     max_abs_gammabeta_x: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description=r"Maximum $x$-plane transverse momentum $\max(|\gamma\beta_x|)$ (dimensionless)",
@@ -676,13 +676,13 @@ class OutputStats(BaseModel):
         workdir: pathlib.Path,
         reference_particle_mass: float,
         reference_frequency: float,
-        output_type: OutputType,
+        diagnostic_type: DiagnosticType,
     ) -> OutputStats:
         stats, units = load_stat_files_from_path(
             workdir,
             reference_particle_mass=reference_particle_mass,
             reference_frequency=reference_frequency,
-            output_type=output_type,
+            diagnostic_type=diagnostic_type,
         )
 
         extra = _split_extra(cls, stats)
@@ -702,9 +702,9 @@ class FortranOutputFileData(SequenceBaseModel):
     def __init_subclass__(
         cls,
         file_id: int,
-        output_types: tuple[OutputType, ...] | OutputType = (
-            OutputType.standard,
-            OutputType.extended,
+        output_types: tuple[DiagnosticType, ...] | DiagnosticType = (
+            DiagnosticType.standard,
+            DiagnosticType.extended,
         ),
         **kwargs,
     ):
@@ -713,12 +713,12 @@ class FortranOutputFileData(SequenceBaseModel):
         assert isinstance(file_id, int)
         assert file_id not in file_number_to_cls, f"Duplicate element ID {file_id}"
 
-        if isinstance(output_types, OutputType):
+        if isinstance(output_types, DiagnosticType):
             output_types = (output_types,)
 
-        for output_type in output_types:
-            file_number_to_cls.setdefault(output_type, {})
-            file_number_to_cls[output_type][file_id] = cls
+        for diagnostic_type in output_types:
+            file_number_to_cls.setdefault(diagnostic_type, {})
+            file_number_to_cls[diagnostic_type][file_id] = cls
 
     @classmethod
     def from_file(cls: type[T], filename: AnyPath) -> dict[str, np.ndarray]:
@@ -800,7 +800,7 @@ class RmsX(FortranOutputFileData, file_id=24):
     twiss_alpha_x: Meters
     norm_emit_x: Meters  # m-rad
 
-    # Available in 'extended' output_type output:
+    # Available in 'extended' diagnostic_type output:
     norm_emit_x_90percent: Meter_Rad = 0.0
     norm_emit_x_95percent: Meter_Rad = 0.0
     norm_emit_x_99percent: Meter_Rad = 0.0
@@ -828,13 +828,13 @@ class RmsY(FortranOutputFileData, file_id=25):
         normalized RMS emittance [m-rad]
     norm_emit_y_90percent : float
         90% normalized RMS vertical emittance (meter-rad)
-        Only available in `output_type=extended` mode.
+        Only available in `diagnostic_type=extended` mode.
     norm_emit_y_95percent : float
         95% normalized RMS vertical emittance (meter-rad)
-        Only available in `output_type=extended` mode.
+        Only available in `diagnostic_type=extended` mode.
     norm_emit_y_99percent : float
         99% normalized RMS vertical emittance (meter-rad)
-        Only available in `output_type=extended` mode.
+        Only available in `diagnostic_type=extended` mode.
     """
 
     z: Meters
@@ -845,7 +845,7 @@ class RmsY(FortranOutputFileData, file_id=25):
     twiss_alpha_y: Meters
     norm_emit_y: Meters  # m-rad
 
-    # Available in 'extended' output_type output:
+    # Available in 'extended' diagnostic_type output:
     norm_emit_y_90percent: Meter_Rad = 0.0
     norm_emit_y_95percent: Meter_Rad = 0.0
     norm_emit_y_99percent: Meter_Rad = 0.0
@@ -876,13 +876,13 @@ class RmsZ(FortranOutputFileData, file_id=26):
         normalized RMS emittance [degree-MeV]
     norm_emit_z_90percent : float
         90% normalized RMS longitudinal emittance (degree-MeV)
-        Only available in `output_type=extended` mode.
+        Only available in `diagnostic_type=extended` mode.
     norm_emit_z_95percent : float
         95% normalized RMS longitudinal emittance (degree-MeV)
-        Only available in `output_type=extended` mode.
+        Only available in `diagnostic_type=extended` mode.
     norm_emit_z_99percent : float
         99% normalized RMS longitudinal emittance (degree-MeV)
-        Only available in `output_type=extended` mode.
+        Only available in `diagnostic_type=extended` mode.
     """
 
     z: Meters
@@ -893,7 +893,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
     twiss_alpha_z: Unitless
     norm_emit_z: Meters
 
-    # Available in 'extended' output_type output:
+    # Available in 'extended' diagnostic_type output:
     norm_emit_z_90percent: Meter_Rad = 0.0
     norm_emit_z_95percent: Meter_Rad = 0.0
     norm_emit_z_99percent: Meter_Rad = 0.0
@@ -902,7 +902,7 @@ class RmsZ(FortranOutputFileData, file_id=26):
 class MaxAmplitudeStandard(
     FortranOutputFileData,
     file_id=27,
-    output_types=OutputType.standard,
+    output_types=DiagnosticType.standard,
 ):
     r"""
     File fort.27: maximum amplitude information (standard)
@@ -937,7 +937,7 @@ class MaxAmplitudeStandard(
 class MaxAmplitudeExtended(
     FortranOutputFileData,
     file_id=27,
-    output_types=OutputType.extended,
+    output_types=DiagnosticType.extended,
 ):
     r"""
     File fort.27: maximum amplitude information (extended)
@@ -994,7 +994,7 @@ class LoadBalanceLossDiagnostic(FortranOutputFileData, file_id=28):
 class BeamDistribution3rdStandard(
     FortranOutputFileData,
     file_id=29,
-    output_types=OutputType.standard,
+    output_types=DiagnosticType.standard,
 ):
     r"""
     File fort.29: cubic root of 3rd moments of the beam distribution
@@ -1030,7 +1030,7 @@ class BeamDistribution3rdStandard(
 class BeamDistribution3rdExtended(
     FortranOutputFileData,
     file_id=29,
-    output_types=OutputType.extended,
+    output_types=DiagnosticType.extended,
 ):
     """
     File fort.29: contains radius moments of the beam distribution.
@@ -1049,7 +1049,7 @@ class BeamDistribution3rdExtended(
         95 percent mean radius (meters)
     mean_r_99percent : float
         99 percent mean radius (meters)
-    max_r : float
+    max_dist_r : float
         Maximum radius (meters)
     """
 
@@ -1059,16 +1059,16 @@ class BeamDistribution3rdExtended(
     mean_r_90percent: Meters
     mean_r_95percent: Meters
     mean_r_99percent: Meters
-    max_r: Meters
+    max_dist_r: Meters
 
 
 class BeamDistribution4th(
     FortranOutputFileData,
-    output_types=OutputType.standard,
+    output_types=DiagnosticType.standard,
     file_id=30,
 ):
     r"""
-    File fort.30 with output_type=1 contains the cubic root of the third moments
+    File fort.30 with diagnostic_type=1 contains the cubic root of the third moments
     of the beam distribution.
 
     Here $ M_4(x) \equiv\left< (x-\left< x \right>)^4 \right>^{1/4} $,
@@ -1229,7 +1229,7 @@ class ImpactZOutput(Mapping, BaseModel):
             # reference_kinetic_energy=input.reference_kinetic_energy,
             reference_particle_mass=input.reference_particle_mass,
             reference_frequency=input.reference_frequency,
-            output_type=input.output_type,
+            diagnostic_type=input.diagnostic_type,
         )
 
         units = stats.units.copy()

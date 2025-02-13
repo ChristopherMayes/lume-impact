@@ -17,12 +17,11 @@ from typing_extensions import Literal
 
 from ..constants import (
     BoundaryType,
-    DiagnosticType,
     DistributionType,
     GPUFlag,
     IntegratorType,
     MultipoleType,
-    OutputType,
+    DiagnosticType,
 )
 
 from ...interfaces.bmad import ele_info, tao_unique_names
@@ -847,9 +846,7 @@ class ConversionState:
             n_particle=self.n_particle,
             integrator_type=self.integrator_type,
             err=1,
-            # diagnostic_type=DiagnosticType.at_bunch_centroid,  # DiagnosticType.at_given_time,
-            diagnostic_type=DiagnosticType.at_given_time,
-            output_type=OutputType.extended,
+            diagnostic_type=DiagnosticType.extended,
             # Line 3
             nx=nx,
             ny=ny,

@@ -101,13 +101,6 @@ class DistributionType(IntEnum):
 
 @_pydantic_enum
 class DiagnosticType(IntEnum):
-    at_given_time = 1
-    at_bunch_centroid = 2
-    no_output = 3
-
-
-@_pydantic_enum
-class OutputType(IntEnum):
     none = 0
     standard = 1
     extended = 2

@@ -9,13 +9,13 @@ from pmd_beamphysics.units import mec2
 
 
 @pytest.mark.parametrize(
-    "output_type",
+    "diagnostic_type",
     [
-        pytest.param(IZ.OutputType.standard, id="standard"),
-        pytest.param(IZ.OutputType.extended, id="extended"),
+        pytest.param(IZ.DiagnosticType.standard, id="standard"),
+        pytest.param(IZ.DiagnosticType.extended, id="extended"),
     ],
 )
-def test_output_type(output_type: IZ.OutputType, tmp_path: pathlib.Path):
+def test_diagnostic_type(diagnostic_type: IZ.DiagnosticType, tmp_path: pathlib.Path):
     energy = 10e6
     pz = np.sqrt(energy**2 - mec2**2)
     P0 = single_particle(x=1e-3, pz=pz)
@@ -29,7 +29,7 @@ def test_output_type(output_type: IZ.OutputType, tmp_path: pathlib.Path):
         nx=64,
         ny=64,
         nz=64,
-        output_type=output_type,
+        diagnostic_type=diagnostic_type,
         distribution=IZ.DistributionType.read,
         twiss_beta_x=10.0,
         twiss_beta_y=10.0,
@@ -58,13 +58,13 @@ def test_output_type(output_type: IZ.OutputType, tmp_path: pathlib.Path):
     output = I.run(verbose=False)
     stats = output.stats
     should_be_populated = {
-        IZ.OutputType.standard: [
+        IZ.DiagnosticType.standard: [
             # file 27
-            "max_abs_x",
+            # "max_abs_x",
             "max_abs_px_over_p0",
-            "max_abs_y",
+            # "max_abs_y",  (common)
             "max_abs_py_over_p0",
-            "max_phase",
+            # "max_phase",  (common)
             "max_energy_dev",
             # file 29
             "moment3_x",
@@ -81,7 +81,7 @@ def test_output_type(output_type: IZ.OutputType, tmp_path: pathlib.Path):
             "moment4_phase",
             "moment4_energy",
         ],
-        IZ.OutputType.extended: [
+        IZ.DiagnosticType.extended: [
             # file 24
             "norm_emit_x_90percent",
             "norm_emit_x_95percent",
@@ -95,11 +95,11 @@ def test_output_type(output_type: IZ.OutputType, tmp_path: pathlib.Path):
             "norm_emit_z_95percent",
             "norm_emit_z_99percent",
             # file 27
-            "max_abs_x",
+            # "max_abs_x", (common)
             "max_abs_gammabeta_x",
-            "max_abs_y",
+            # "max_abs_y",  (common)
             "max_abs_gammabeta_y",
-            "max_phase",
+            # "max_phase",  (common)
             "max_abs_gamma",
             # file 29
             "mean_r",
@@ -107,9 +107,17 @@ def test_output_type(output_type: IZ.OutputType, tmp_path: pathlib.Path):
             "mean_r_90percent",
             "mean_r_95percent",
             "mean_r_99percent",
-            "max_r",
+            "max_dist_r",
         ],
     }
-    for attr in should_be_populated[output_type]:
+    for attr in should_be_populated[diagnostic_type]:
         arr = getattr(stats, attr)
         assert arr.shape == stats.z.shape, f"{attr} not populated?"
+
+    other_diagnostic_type = {
+        IZ.DiagnosticType.standard: IZ.DiagnosticType.extended,
+        IZ.DiagnosticType.extended: IZ.DiagnosticType.standard,
+    }[diagnostic_type]
+    for attr in should_be_populated[other_diagnostic_type]:
+        arr = getattr(stats, attr)
+        assert not len(arr), f"{attr} should not be populated?"
