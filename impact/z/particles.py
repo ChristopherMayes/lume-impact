@@ -120,7 +120,7 @@ class ImpactZParticles(BaseModel):
             start_pos = fp.tell()
 
             try:
-                (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id, *_) = (
+                (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id) = (
                     pl.read_csv(
                         fp,
                         separator=" ",
@@ -244,6 +244,7 @@ class ImpactZParticles(BaseModel):
             "weight": weight,
             "species": species,
             "status": np.ones_like(self.impactz_x),
+            "id": self.impactz_id,
         }
         return ParticleGroup(data=data)
 
@@ -290,7 +291,7 @@ class ImpactZParticles(BaseModel):
             impactz_phase=impactz_t,
             impactz_weight=impactz_weight,
             impactz_charge_to_mass_ratio=impactz_charge_to_mass_ratio,
-            impactz_id=np.arange(len(impactz_x)),
+            impactz_id=particle_group.id,
         )
 
     @property
