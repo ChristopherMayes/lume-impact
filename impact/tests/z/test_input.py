@@ -230,7 +230,6 @@ def test_smoke_calculated(filename: pathlib.Path) -> None:
 
 
 @example_filenames
-@pytest.mark.xfail(reason="wip")
 def test_set_twiss_z(filename: pathlib.Path) -> None:
     input = ImpactZInput.from_file(filename)
 
