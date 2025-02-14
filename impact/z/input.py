@@ -2684,6 +2684,51 @@ class ImpactZInput(BaseModel):
 
         return -alpha * emit / (fref * 360) * 1e6 * scale_z * scale_e_z
 
+    def set_twiss_z(
+        self,
+        sigma_t: float,
+        sigma_energy: float,
+        cov_t__energy: float = 0.0,
+    ) -> None:
+        """
+        Sets `twiss_alpha_z`, `twiss_beta_z`, and `twiss_norm_emit_z` from
+        standard physical beam quantities.
+
+        Note
+        ----
+        Requires that `sigma_t * sigma_energy >= abs(cov_t__energy)`.
+
+        Parameters
+        ----------
+        sigma_t : float
+            Initial RMS bunch duration (s)
+        sigma_energy : float
+            Initial RMS energy spread (eV)
+        cov_t__energy : float
+            Initial <t, energy>  (eV*s)
+        """
+
+        if sigma_t * sigma_energy < abs(cov_t__energy):
+            raise ValueError(
+                f"sigma_t * sigma_energy ({sigma_t * sigma_energy} eV*s) must be >= abs(cov_t__energy) ({abs(cov_t__energy)} eV*s)"
+            )
+
+        fref = self.reference_frequency
+        scale_z = self.twiss_mismatch_z
+        scale_e_z = self.twiss_mismatch_e_z
+
+        sig_t = sigma_t / scale_z
+        sig_e = sigma_energy / scale_e_z
+        cov = cov_t__energy / (scale_z * scale_e_z)
+
+        emit = np.sqrt(
+            (fref * sig_t * 360) ** 2 * (sig_e / 1e6) ** 2
+            - (fref * cov / 1e6 * 360) ** 2
+        )
+        self.twiss_norm_emit_z = emit
+        self.twiss_alpha_z = -cov * fref * 360 / 1e6 / emit
+        self.twiss_beta_z = (fref * sig_t * 360) ** 2 / emit
+
     # @property
     # def LOWERs(self) -> ElementListProxy[ELEMENT]:
     #     """List of all ELEMENT instances."""

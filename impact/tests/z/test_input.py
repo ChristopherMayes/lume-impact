@@ -227,3 +227,31 @@ def test_smoke_calculated(filename: pathlib.Path) -> None:
     assert isinstance(loaded.sigma_t, float)
     assert isinstance(loaded.sigma_energy, float)
     assert isinstance(loaded.cov_t__energy, float)
+
+
+@example_filenames
+@pytest.mark.xfail(reason="wip")
+def test_set_twiss_z(filename: pathlib.Path) -> None:
+    input = ImpactZInput.from_file(filename)
+
+    emit0, alpha0, beta0 = (
+        input.twiss_norm_emit_z,
+        input.twiss_alpha_z,
+        input.twiss_beta_z,
+    )
+
+    input.set_twiss_z(
+        sigma_t=input.sigma_t,
+        sigma_energy=input.sigma_energy,
+        cov_t__energy=input.cov_t__energy,
+    )
+
+    emit1, alpha1, beta1 = (
+        input.twiss_norm_emit_z,
+        input.twiss_alpha_z,
+        input.twiss_beta_z,
+    )
+
+    assert np.isclose(emit0, emit1)
+    assert np.isclose(alpha0, alpha1)
+    assert np.isclose(beta0, beta1)
