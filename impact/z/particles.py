@@ -99,46 +99,49 @@ class ImpactZParticles(BaseModel):
             return cls.empty(filename)
 
         num_cols = 9
-        schema = dict.fromkeys([str(col) for col in range(num_cols + 1)], pl.Float64)
+        schema = dict.fromkeys([str(col) for col in range(num_cols)], pl.Float64)
         with io.StringIO(contents) as fp:
             while True:
                 first_line = fp.readline()
-                if first_line is None:
+                if not first_line:
                     return cls.empty(filename)
 
                 if first_line.strip():
                     break
 
-            second_line = fp.readline()
-            fp.seek(0)
-
             if len(first_line.strip().split()) < num_cols:
                 # The first line may be the number of particles (with maybe another
                 # couple unknown values after - because why not), depending on if
                 # it's an input file or an output file
-                skip_rows = 1
-                have_leading_spaces = second_line.startswith(" ")
+                pass
             else:
-                skip_rows = 0
-                have_leading_spaces = first_line.startswith(" ")
+                fp.seek(0)
 
-            values = (
-                pl.read_csv(
-                    fp,
-                    separator=" ",
-                    has_header=False,
-                    skip_rows=skip_rows,
-                    schema=schema,
+            start_pos = fp.tell()
+
+            try:
+                (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id, *_) = (
+                    pl.read_csv(
+                        fp,
+                        separator=" ",
+                        has_header=False,
+                        schema=schema,
+                    )
+                    .to_numpy()
+                    .T
                 )
-                .to_numpy()
-                .T
-            )
-
-        first_col = values[0]
-        if have_leading_spaces and np.all(np.isnan(first_col)):
-            (_, x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id) = values
-        else:
-            (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id, *_) = values
+            except pl.exceptions.ComputeError:
+                fp.seek(start_pos)
+                lines = fp.read().splitlines()
+                (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id) = (
+                    np.loadtxt(
+                        lines,
+                        unpack=True,
+                        dtype=np.float64,
+                        usecols=range(num_cols),
+                        ndmin=1,
+                    )
+                )
 
         return ImpactZParticles(
             impactz_x=x,

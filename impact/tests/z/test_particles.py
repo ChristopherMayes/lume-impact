@@ -210,3 +210,67 @@ def test_read_leading_spaces_and_header(raw_contents: str) -> None:
     ]
 
     assert list(P.by_row(unwrap_numpy=True)) == expected_raw_particles
+
+
+@pytest.mark.parametrize(
+    "raw_contents",
+    [
+        pytest.param(
+            """\
+200 0. 0.
+  0.1117306E-01  0.7051202E-03  0.8310899E-02 -0.4291156E-03 -0.8144438E+00  0.6477521E-03 -0.1064629E-08 -0.9713664E-15  0.8938300E+05
+  0.4550570E-02  0.7720120E-04  0.7668217E-02 -0.3586523E-03 -0.2172263E+01  0.7569714E-03 -0.1064629E-08 -0.9713664E-15  0.8938800E+05
+ -0.1176394E-01 -0.2410100E-03  0.7567829E-02 -0.1866356E-03 -0.7357012E+00  0.6863160E-03 -0.1064629E-08 -0.9713664E-15  0.8938200E+05
+""",
+            id="example1_particle.in",
+        ),
+    ],
+)
+def test_smoke_read_example_particles(raw_contents: str):
+    P = ImpactZParticles.from_contents(raw_contents)
+    rows = list(P.by_row())
+    assert len(rows) == 3
+    np.testing.assert_allclose(
+        rows[0],
+        (
+            0.1117306e-01,
+            0.7051202e-03,
+            0.8310899e-02,
+            -0.4291156e-03,
+            -0.8144438e00,
+            0.6477521e-03,
+            -0.1064629e-08,
+            -0.9713664e-15,
+            0.8938300e05,
+        ),
+    )
+
+    np.testing.assert_allclose(
+        rows[1],
+        (
+            0.4550570e-02,
+            0.7720120e-04,
+            0.7668217e-02,
+            -0.3586523e-03,
+            -0.2172263e01,
+            0.7569714e-03,
+            -0.1064629e-08,
+            -0.9713664e-15,
+            0.8938800e05,
+        ),
+    )
+
+    np.testing.assert_allclose(
+        rows[2],
+        (
+            -0.1176394e-01,
+            -0.2410100e-03,
+            0.7567829e-02,
+            -0.1866356e-03,
+            -0.7357012e00,
+            0.6863160e-03,
+            -0.1064629e-08,
+            -0.9713664e-15,
+            0.8938200e05,
+        ),
+    )
