@@ -5,7 +5,15 @@ import logging
 import pathlib
 import shlex
 import typing
-from typing import Any, ClassVar, Iterable, Literal, NamedTuple, TypeVar, cast
+from typing import (
+    Any,
+    ClassVar,
+    Iterable,
+    Literal,
+    NamedTuple,
+    TypeVar,
+    cast,
+)
 from collections.abc import Sequence
 
 import h5py
@@ -245,7 +253,7 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
         # it's the k-value linear transfer map; if equal to 0, it uses the linear
         # transfer map with the gradient.
         # TODO what does this... mean?
-        if self.file_id < 0:
+        if self.file_id <= 0:
             return None
         return f"rfdata{int(self.file_id)}.in"
 
@@ -1870,10 +1878,7 @@ def load_file_data_from_lattice(
             try:
                 file_data[str(ele_file_id)] = load_rfdata_from_file(ext_data_fn)
             except FileNotFoundError:
-                logger.warning(
-                    f"Referenced file in lattice element {idx} (of type {type(ele).__name__}) "
-                    f"does not exist in: {ext_data_fn}"
-                )
+                pass
     return file_data
 
 
@@ -1897,6 +1902,15 @@ def lattice_from_input_lines(
             ele.name = f"{cls.__name__}_{seen[cls]}"
 
     return lattice
+
+
+class ElementWithData(NamedTuple):
+    """A tuple of an element with file_data information."""
+
+    ele: AnyInputElement
+    file_id: int
+    filename: str
+    data: NDArray | None
 
 
 class ZElement(NamedTuple):
@@ -2107,6 +2121,42 @@ class ImpactZInput(BaseModel):
             self.lattice = new_lattice
             return
         return new_lattice
+
+    @property
+    def elements_with_data(self) -> list[ElementWithData]:
+        eles = []
+        for ele in self.lattice:
+            if not ele.class_information().has_input_file or not isinstance(
+                ele, HasInputFile
+            ):
+                continue
+
+            fn = ele.input_filename
+            if fn is None:
+                continue
+            file_id = int(ele.file_id)
+            logger.info(
+                f"Writing file for element {type(ele).__name__}: {fn} (file id={file_id})"
+            )
+
+            keys = [file_id, ele.name] if ele.name else [file_id]
+
+            data = None
+            for key in keys:
+                try:
+                    data = self.file_data[str(key)]
+                except KeyError:
+                    pass
+
+            eles.append(
+                ElementWithData(
+                    ele=ele,
+                    file_id=file_id,
+                    filename=fn,
+                    data=data,
+                )
+            )
+        return eles
 
     @classmethod
     def from_file(cls, filename: pathlib.Path | str) -> ImpactZInput:
@@ -2419,7 +2469,7 @@ class ImpactZInput(BaseModel):
         check: bool = True,
     ) -> list[pathlib.Path]:
         if check:
-            self.check()
+            self.check(workdir)
 
         contents = self.to_contents()
         workdir = pathlib.Path(workdir)
@@ -2491,7 +2541,7 @@ class ImpactZInput(BaseModel):
             data["n_particle"] = len(initial_particles)
         return data
 
-    def check(self):
+    def check(self, workdir: pathlib.Path = pathlib.Path(".")):
         if self.initial_particles is not None:
             if self.distribution != DistributionType.read:
                 self.distribution = DistributionType.read
@@ -2505,6 +2555,20 @@ class ImpactZInput(BaseModel):
                 "To have IMPACT-Z generate particles, use distribution='uniform' or "
                 "one of the supported values (in `DistributionType`)"
             )
+
+        by_ele = self.by_element
+        for ele in self.elements_with_data:
+            if ele.data is None:
+                cls = type(ele.ele)
+                default_name = f"{cls.__name__} #{by_ele[cls].index(ele.ele) + 1}"
+                name = ele.ele.name or default_name
+
+                path = workdir / ele.filename
+                if not path.exists():
+                    logger.warning(
+                        f"Element {name} may be missing a file. "
+                        f"Set file_data for ID {ele.file_id} or element name {ele.ele.name!r} to fix this. "
+                    )
 
     def write_run_script(
         self,
@@ -2725,6 +2789,9 @@ class ImpactZInput(BaseModel):
             (fref * sig_t * 360) ** 2 * (sig_e / 1e6) ** 2
             - (fref * cov / 1e6 * 360) ** 2
         )
+        if emit <= 0.0:
+            raise ValueError("Calculated `twiss_norm_emit_z` <= 0.0")
+
         self.twiss_norm_emit_z = emit
         self.twiss_alpha_z = -cov * fref * 360 / 1e6 / emit
         self.twiss_beta_z = (fref * sig_t * 360) ** 2 / emit

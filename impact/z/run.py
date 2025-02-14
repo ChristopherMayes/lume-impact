@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 import logging
 import os
 import pathlib
@@ -10,31 +9,32 @@ import shlex
 import shutil
 import traceback
 import typing
+from collections.abc import Sequence
+from contextlib import contextmanager
 from time import monotonic
 from typing import Any, ClassVar, NamedTuple
-from collections.abc import Sequence
 
 import h5py
+import numpy as np
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
-
-from impact.z.constants import IntegratorType
-from .particles import ImpactZParticles
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
 from . import tools
 from . import units as units_mod
+from .constants import IntegratorType
 from .errors import ImpactRunFailure
 from .input import ImpactZInput
 from .output import ImpactZOutput, RunInfo
+from .particles import ImpactZParticles
 from .tools import is_jupyter, read_if_path
 from .types import AnyPath
 
-
 if typing.TYPE_CHECKING:
-    from .interfaces.bmad import Tao, Which as TaoWhich
+    from .interfaces.bmad import Tao
+    from .interfaces.bmad import Which as TaoWhich
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +195,7 @@ class ImpactZ(CommandWrapper):
         verbose: bool = tools.global_display_options.verbose >= 1,
         timeout: float | None = None,
         initial_particles: ParticleGroup | ImpactZParticles | None = None,
+        file_data: dict[str, np.ndarray] | None = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -221,6 +222,8 @@ class ImpactZ(CommandWrapper):
             pass
         else:
             raise ValueError(f"Unsupported 'input' type: {type(input).__name__}")
+
+        input.file_data.update(file_data or {})
 
         self._input = input
         self.output = output

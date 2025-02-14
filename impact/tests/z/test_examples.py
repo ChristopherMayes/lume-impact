@@ -1,7 +1,6 @@
 import pytest
 
-from impact.z.input import ImpactZInput
-from ...z import ImpactZ
+from ...z import ImpactZ, ImpactZInput
 from .conftest import z_example1
 
 
