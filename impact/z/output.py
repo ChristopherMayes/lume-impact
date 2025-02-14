@@ -148,6 +148,13 @@ def load_stat_files_from_path(
         stats["t_ref"] = stats["phase_ref"] / (2.0 * np.pi * reference_frequency)
         stats["mean_t_rel"] = stats["mean_phase_deg"] / 360.0 / reference_frequency
         stats["mean_t"] = stats["mean_t_rel"] + stats["t_ref"]
+
+        stats["twiss_beta_x"] = (
+            stats["sigma_x"] ** 2 * stats["gamma_ref"] / stats["norm_emit_x"]
+        )
+        stats["twiss_beta_y"] = (
+            stats["sigma_y"] ** 2 * stats["gamma_ref"] / stats["norm_emit_y"]
+        )
     except KeyError as ex:
         logger.warning(f"Some expected statistics unavailable? Missing: {ex}")
 
@@ -659,6 +666,14 @@ class OutputStats(BaseModel):
     t_ref: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Reference time (sec) (computed)",
+    )
+    twiss_beta_x: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Twiss beta x (computed)",
+    )
+    twiss_beta_y: UnitlessArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Twiss beta y (computed)",
     )
 
     units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
