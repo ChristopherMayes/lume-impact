@@ -2649,6 +2649,41 @@ class ImpactZInput(BaseModel):
             )
         return loaded
 
+    @property
+    def sigma_t(self) -> float:
+        """Calculated RMS bunch duration (s)."""
+        fref = self.reference_frequency
+
+        scale_z = self.twiss_mismatch_z
+        emit = self.twiss_norm_emit_z
+        beta = self.twiss_beta_z
+
+        return np.sqrt(beta * emit) / (fref * 360) * scale_z
+
+    @property
+    def sigma_energy(self) -> float:
+        """Calculated RMS energy spread (eV)."""
+
+        alpha = self.twiss_alpha_z
+        emit = self.twiss_norm_emit_z
+        beta = self.twiss_beta_z
+        gamma = (1 + alpha**2) / beta
+        scale_e_z = self.twiss_mismatch_e_z
+
+        return np.sqrt(gamma * emit) * 1e6 * scale_e_z
+
+    @property
+    def cov_t__energy(self) -> float:
+        """Calculated <t, energy> (eV*s)."""
+        fref = self.reference_frequency
+        alpha = self.twiss_alpha_z
+        emit = self.twiss_norm_emit_z
+
+        scale_z = self.twiss_mismatch_z
+        scale_e_z = self.twiss_mismatch_e_z
+
+        return -alpha * emit / (fref * 360) * 1e6 * scale_z * scale_e_z
+
     # @property
     # def LOWERs(self) -> ElementListProxy[ELEMENT]:
     #     """List of all ELEMENT instances."""

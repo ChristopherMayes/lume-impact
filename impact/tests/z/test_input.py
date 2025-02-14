@@ -219,3 +219,11 @@ def test_lattice_list_setattr():
     assert input.quadrupoles.length == [3.0, 4.0]
     assert input.quadrupoles[0].length == 3.0
     assert input.quadrupoles[1].length == 4.0
+
+
+@example_filenames
+def test_smoke_calculated(filename: pathlib.Path) -> None:
+    loaded = ImpactZInput.from_file(filename)
+    assert isinstance(loaded.sigma_t, float)
+    assert isinstance(loaded.sigma_energy, float)
+    assert isinstance(loaded.cov_t__energy, float)
