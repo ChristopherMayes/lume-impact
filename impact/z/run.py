@@ -580,7 +580,6 @@ class ImpactZ(CommandWrapper):
     ) -> None:
         if isinstance(value, ImpactZParticles):
             value = value.to_particle_group(
-                species="electron",  # TODO: only supported option for now
                 reference_frequency=self.input.reference_frequency,
                 reference_kinetic_energy=self.input.reference_kinetic_energy,
                 phase_reference=self.input.initial_phase_ref,

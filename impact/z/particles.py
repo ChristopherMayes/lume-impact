@@ -11,7 +11,7 @@ import polars as pl
 from pydantic import Field
 
 from pmd_beamphysics.particles import c_light
-from pmd_beamphysics.species import mass_of
+from pmd_beamphysics.species import MASS_OF, charge_state, mass_of
 
 from .parsers import fix_line
 from .types import AnyPath, BaseModel, NDArray
@@ -31,15 +31,15 @@ class Particle(NamedTuple):
     impactz_weight: float  # col 8
     impactz_id: int  # col 9
 
-    # 1. x: multiply by c_light/omega to get x in  meters
-    # 2 px: multiply by the particle's rest mass (0.511... e6 for electrons) to be momentum px in eV/c
-    # 3. y: (same as 1)
-    # 4. py (same as 2
-    # 5. phase: multiply by -1/omega to get t time in seconds
-    # 6.  we need the reference energy at the element to know how to convert to for pz
-    # 7: Use this mass in 2
-    # 8: this is the weight
-    # 9: cast to int and use as id
+
+def detect_species(charge_to_mass_ratio: float) -> str:
+    deltas: dict[str, float] = {}
+    for species, mass_eV in MASS_OF.items():
+        state = charge_state(species)
+        ratio = state / mass_eV
+        deltas[species] = abs(charge_to_mass_ratio - ratio)
+
+    return min(deltas, key=deltas.get)
 
 
 class ImpactZParticles(BaseModel):
@@ -52,6 +52,7 @@ class ImpactZParticles(BaseModel):
     impactz_charge_to_mass_ratio: NDArray
     impactz_weight: NDArray
     impactz_id: NDArray
+    species: str = "electron"
     filename: pathlib.Path | None = Field(default=None, exclude=True)
 
     @staticmethod
@@ -76,6 +77,7 @@ class ImpactZParticles(BaseModel):
         contents: str,
         filename: AnyPath | None = None,
         apply_exponent_fix: bool = False,
+        species: str | None = None,
     ) -> ImpactZParticles:
         """
         Load main input from its file contents.
@@ -143,6 +145,15 @@ class ImpactZParticles(BaseModel):
                     )
                 )
 
+        if not species:
+            if len(charge_to_mass_ratio):
+                species = detect_species(charge_to_mass_ratio[0])
+                if species != "electron":
+                    logger.warning(f"Detected species: {species}")
+            else:
+                logger.warning("empty")
+                species = "electron"
+
         return ImpactZParticles(
             impactz_x=x,
             impactz_px=px,
@@ -153,6 +164,7 @@ class ImpactZParticles(BaseModel):
             impactz_charge_to_mass_ratio=charge_to_mass_ratio,
             impactz_weight=weight,
             impactz_id=np.asarray(id, dtype=int),  # may be stored as float?
+            species=species,
             filename=pathlib.Path(filename) if filename else None,
         )
 
@@ -176,7 +188,9 @@ class ImpactZParticles(BaseModel):
                 yield item
 
     @classmethod
-    def from_file(cls, filename: AnyPath) -> ImpactZParticles:
+    def from_file(
+        cls, filename: AnyPath, species: str | None = None
+    ) -> ImpactZParticles:
         """
         Load a main input file from disk.
 
@@ -191,31 +205,19 @@ class ImpactZParticles(BaseModel):
         """
         with open(filename) as fp:
             contents = fp.read()
-        return cls.from_contents(contents, filename=filename)
+        return cls.from_contents(contents, filename=filename, species=species)
 
     def to_particle_group(
         self,
         reference_frequency: float,
         reference_kinetic_energy: float,
         phase_reference: float,
-        species: str = "electron",
-        check_species: bool = False,
     ) -> ParticleGroup:
         """
         Convert ImpactZ particles to ParticleGroup.
         """
 
-        species_mass = mass_of(species)
-
-        if check_species:
-            if species == "electron":
-                specified = -1.0 / self.impactz_charge_to_mass_ratio
-                if not np.allclose(specified, species_mass):
-                    raise ValueError(
-                        f"Charge to mass ratio not as expected for electrons: specified={specified} actual={species_mass}"
-                    )
-            else:
-                raise NotImplementedError(species)
+        species_mass = mass_of(self.species)
 
         omega = 2 * np.pi * reference_frequency
 
@@ -242,7 +244,7 @@ class ImpactZParticles(BaseModel):
             "pz": pz,
             "t": t,
             "weight": weight,
-            "species": species,
+            "species": self.species,
             "status": np.ones_like(self.impactz_x),
             "id": self.impactz_id,
         }
