@@ -1167,6 +1167,7 @@ class ImpactZOutput(Mapping, BaseModel):
         default={},
         repr=False,
     )
+    reference_frequency: float = 0.0
     slices: dict[int, ImpactZSlices] = pydantic.Field(
         default={},
         repr=False,
@@ -1285,6 +1286,7 @@ class ImpactZOutput(Mapping, BaseModel):
             key_to_unit=units,
             particles=particles,
             particles_raw=particles_raw,
+            reference_frequency=input.reference_frequency,
             slices=slices,
         )
 
