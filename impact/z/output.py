@@ -14,7 +14,6 @@ import pydantic.alias_generators
 
 from .particles import ImpactZParticles
 from pmd_beamphysics.units import pmd_unit
-from pmd_beamphysics.species import mass_of
 from typing_extensions import override
 
 from .constants import DiagnosticType
@@ -116,7 +115,6 @@ def load_stat_files_from_path(
     reference_particle_mass: float,
     reference_frequency: float,
     diagnostic_type: DiagnosticType,
-    species: str,
 ) -> tuple[dict[str, np.ndarray], dict[str, pmd_unit]]:
     stats = {}
     units = {}
@@ -141,7 +139,7 @@ def load_stat_files_from_path(
         stats["p0c"] = np.sqrt(stats["energy_ref"] ** 2.0 - reference_particle_mass**2)
 
         stats["mean_energy"] = stats["energy_ref"] - stats["neg_mean_rel_energy"]
-        stats["mean_gamma"] = stats["mean_energy"] / mass_of(species)
+        stats["mean_gamma"] = stats["mean_energy"] / reference_particle_mass
 
         stats["mean_px"] = stats["mean_px_over_p0"] * stats["p0c"]
         stats["mean_py"] = stats["mean_py_over_p0"] * stats["p0c"]
@@ -153,12 +151,16 @@ def load_stat_files_from_path(
         stats["mean_t_rel"] = stats["mean_phase_deg"] / 360.0 / reference_frequency
         stats["mean_t"] = stats["mean_t_rel"] + stats["t_ref"]
 
-        stats["twiss_beta_x"] = (
-            stats["sigma_x"] ** 2 * stats["mean_gamma"] / stats["norm_emit_x"]
-        )
-        stats["twiss_beta_y"] = (
-            stats["sigma_y"] ** 2 * stats["mean_gamma"] / stats["norm_emit_y"]
-        )
+        betagamma = np.sqrt(stats["mean_gamma"] ** 2 - 1.0)
+
+        if np.any(stats["norm_emit_x"] != 0.0):
+            stats["twiss_beta_x"] = (
+                stats["sigma_x"] ** 2 * betagamma / stats["norm_emit_x"]
+            )
+        if np.any(stats["norm_emit_y"] != 0.0):
+            stats["twiss_beta_y"] = (
+                stats["sigma_y"] ** 2 * betagamma / stats["norm_emit_y"]
+            )
     except KeyError as ex:
         logger.warning(f"Some expected statistics unavailable? Missing: {ex}")
 
@@ -701,14 +703,12 @@ class OutputStats(BaseModel):
         reference_particle_mass: float,
         reference_frequency: float,
         diagnostic_type: DiagnosticType,
-        species: str = "electron",
     ) -> OutputStats:
         stats, units = load_stat_files_from_path(
             workdir,
-            reference_particle_mass=reference_particle_mass,
             reference_frequency=reference_frequency,
             diagnostic_type=diagnostic_type,
-            species=species,
+            reference_particle_mass=reference_particle_mass,
         )
 
         extra = _split_extra(cls, stats)
@@ -1179,11 +1179,14 @@ class ImpactZOutput(Mapping, BaseModel):
         repr=False,
     )
     reference_frequency: float = 0.0
+    reference_species: str = pydantic.Field(
+        default="",
+        description="Reference particle species",
+    )
     slices: dict[int, ImpactZSlices] = pydantic.Field(
         default={},
         repr=False,
     )
-    species: str = pydantic.Field(default="", description="Particle species")
     key_to_unit: dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
 
     @override
@@ -1252,19 +1255,12 @@ class ImpactZOutput(Mapping, BaseModel):
             The output data.
         """
 
-        if input.initial_particles is not None:
-            species = str(input.initial_particles.species)
-        else:
-            # TODO: how to determine this?
-            species = "electron"
-
+        species = input.reference_species
         stats = OutputStats.from_stats_files(
             workdir,
-            # reference_kinetic_energy=input.reference_kinetic_energy,
-            reference_particle_mass=input.reference_particle_mass,
             reference_frequency=input.reference_frequency,
             diagnostic_type=input.diagnostic_type,
-            species=species,
+            reference_particle_mass=input.reference_particle_mass,
         )
 
         units = stats.units.copy()
@@ -1307,7 +1303,7 @@ class ImpactZOutput(Mapping, BaseModel):
             particles_raw=particles_raw,
             reference_frequency=input.reference_frequency,
             slices=slices,
-            species=species,
+            reference_species=species,
         )
 
     def plot(
