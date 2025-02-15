@@ -697,7 +697,7 @@ class ImpactZ(CommandWrapper):
     def plot(
         self,
         y: str | Sequence[str] = ("sigma_x", "sigma_y"),
-        x: str = "mean_z",
+        x: str = "z",
         xlim=None,
         ylim=None,
         ylim2=None,
