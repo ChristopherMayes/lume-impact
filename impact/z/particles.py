@@ -10,6 +10,8 @@ from pmd_beamphysics import ParticleGroup
 import polars as pl
 from pydantic import Field
 
+from scipy.constants import e
+
 from pmd_beamphysics.particles import c_light
 from pmd_beamphysics.species import MASS_OF, charge_state, mass_of
 
@@ -264,6 +266,7 @@ class ImpactZParticles(BaseModel):
 
         omega = 2 * np.pi * reference_frequency
         species_mass = particle_group.mass
+        species_charge = particle_group.species_charge
 
         impactz_x = particle_group.x * omega / c_light
         impactz_px = particle_group.px / species_mass
@@ -281,9 +284,11 @@ class ImpactZParticles(BaseModel):
         impactz_pz = 1.0 - (E - reference_kinetic_energy) / species_mass
 
         impactz_t = particle_group.t * omega
-        impactz_weight = np.abs(particle_group.weight)
+        impactz_weight = np.abs(particle_group.weight) * np.sign(species_charge)
 
-        impactz_charge_to_mass_ratio = np.ones_like(impactz_x) * (-1.0 / species_mass)
+        impactz_charge_to_mass_ratio = np.ones_like(impactz_x) * (
+            (species_charge / e) / species_mass
+        )
         return cls(
             impactz_x=impactz_x,
             impactz_px=impactz_px,
