@@ -40,7 +40,7 @@ from .constants import (
     RFCavityDataMode,
 )
 from .errors import MultipleElementError, NoSuchElementError
-from .particles import ImpactZParticles
+from .particles import ImpactZParticles, detect_species
 from .types import AnyPath, BaseModel, NonzeroFloat, NDArray, PydanticParticleGroup
 
 if typing.TYPE_CHECKING:
@@ -2649,6 +2649,12 @@ class ImpactZInput(BaseModel):
 
         assert np.abs(current) > 0.0
         self.average_current = current
+
+    @property
+    def reference_species(self) -> str:
+        return detect_species(
+            self.reference_particle_charge / self.reference_particle_mass
+        )
 
     @property
     def total_charge(self) -> float:
