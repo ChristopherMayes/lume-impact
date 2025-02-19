@@ -21,9 +21,7 @@ lattice_markers = {
     "elements.bmad": pytest.mark.xfail(reason="Unsupported elements"),
     # "csr_bench.bmad": pytest.mark.xfail(reason="Additional setup required"),
 }
-comparison_markers = {
-    "optics_matching.bmad": pytest.mark.xfail(reason="Not yet working", strict=True),
-}
+comparison_markers = {}
 lattices = pytest.mark.parametrize(
     "lattice",
     [

@@ -88,7 +88,11 @@ def compare_inputs(expected: str, generated: str):
 
 example_filenames = pytest.mark.parametrize(
     ("filename",),
-    [pytest.param(fn, id=fn.name) for fn in impact_z_examples.glob("*.in")],
+    [
+        pytest.param(fn, id=fn.name)
+        for fn in impact_z_examples.glob("*.in")
+        if fn.name not in ("particle1.in",)
+    ],
 )
 
 

@@ -909,7 +909,7 @@ class Impact(CommandWrapper):
     def plot(
         self,
         y=["sigma_x", "sigma_y"],
-        x="z",
+        x="mean_z",
         xlim=None,
         ylim=None,
         ylim2=None,

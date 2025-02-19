@@ -645,9 +645,7 @@ class ImpactZ(CommandWrapper):
         return inst
 
     @override
-    def load_output(
-        self,
-    ) -> ImpactZOutput:
+    def load_output(self) -> ImpactZOutput:
         """
         Load the IMPACT-Z output files from disk.
 
