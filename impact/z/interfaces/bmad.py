@@ -579,6 +579,17 @@ def ele_has_superpositions(tao: Tao, ele_id: int | str) -> bool:
     )
 
 
+def should_switch_integrator(ele: AnyInputElement) -> bool:
+    if isinstance(ele, Multipole):
+        # all multipoles must use RK integrator
+        return True
+
+    if isinstance(ele, SolenoidWithRFCavity):
+        # standing_wave + runge_kutta/time_runge_kutta -> RK integrator
+        return True
+    return False
+
+
 def element_from_tao(
     tao: Tao,
     ele_id: str | int,
@@ -648,11 +659,7 @@ def element_from_tao(
             inner_ele.file_id = rfdata_file_id
             data[str(rfdata_file_id)] = rfdata
 
-    # if isinstance(inner_ele, SolenoidWithRFCavity):
-    #     # TODO no aperture support here
-    #     return pad_solenoid_with_rf_cavity(inner_ele)
-    #
-    if isinstance(inner_ele, Multipole):
+    if should_switch_integrator(inner_ele):
         leading_elements.append(
             IntegratorTypeSwitch(integrator_type=IntegratorType.runge_kutta)
         )
