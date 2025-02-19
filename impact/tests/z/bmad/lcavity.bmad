@@ -5,13 +5,13 @@ parameter[geometry] = open
 beginning[beta_a]    = 10
 beginning[beta_b]    = 10
 
-
 swcav: lcavity, L = 1,
     rf_frequency = 1300e6,
     voltage = 1e6,
-    phi0=0.1
+    phi0=.3,
+    num_steps = 10
 
-twcav: swcav, cavity_type = traveling_wave, num_steps = 10
+twcav: swcav, cavity_type = traveling_wave
 
 lat: line = (twcav)
 
