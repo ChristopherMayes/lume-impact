@@ -1168,6 +1168,7 @@ class ImpactZOutput(Mapping, BaseModel):
     alias: dict[str, str] = pydantic.Field(
         default={
             "-cov_x__gammabeta_x": "twiss_alpha_x",
+            "mean_z": "z",
         },
     )
     particles_raw: dict[str | int, ImpactZParticles] = pydantic.Field(
@@ -1328,20 +1329,6 @@ class ImpactZOutput(Mapping, BaseModel):
     ):
         """ """
         from ..plot import plot_stats_with_layout
-
-        if not self.stats:
-            # Just plot fieldmaps if there are no stats
-            raise NotImplementedError()
-            # return plot_layout(
-            #     self,
-            #     xlim=xlim,
-            #     include_markers=include_markers,
-            #     include_labels=include_labels,
-            #     include_field=include_field,
-            #     field_t=field_t,
-            #     return_figure=return_figure,
-            #     **kwargs,
-            # )
 
         return plot_stats_with_layout(
             self,
