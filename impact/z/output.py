@@ -19,6 +19,7 @@ from typing_extensions import override
 from .constants import DiagnosticType
 from . import archive as _archive, parsers
 from .input import HasOutputFile, ImpactZInput, WriteSliceInfo
+from .plot import plot_stats_with_layout
 from .types import (
     AnyPath,
     BaseModel,
@@ -51,7 +52,7 @@ except ImportError:
     pass
 
 if typing.TYPE_CHECKING:
-    pass
+    import matplotlib.axes
 
 
 logger = logging.getLogger(__name__)
@@ -1311,24 +1312,31 @@ class ImpactZOutput(Mapping, BaseModel):
         self,
         y: str | Sequence[str] = ("sigma_x", "sigma_y"),
         x: str = "z",
-        xlim=None,
-        ylim=None,
-        ylim2=None,
-        y2=[],
-        nice=True,
-        include_layout=True,
-        include_labels=False,
-        include_markers=True,
-        include_particles=True,
-        include_field=True,
-        field_t=0,
-        include_legend=True,
-        return_figure=False,
-        tex=True,
+        *,
+        y2: str | Sequence[str] = (),
+        input: ImpactZInput | None = None,
+        xlim: tuple[float, float] | None = None,
+        ylim: tuple[float, float] | None = None,
+        ylim2: tuple[float, float] | None = None,
+        nice: bool = True,
+        tex: bool = True,
+        include_layout: bool = True,
+        include_labels: bool = True,
+        include_markers: bool = True,
+        include_particles: bool = True,
+        include_legend: bool = True,
+        return_figure: bool = False,
+        ax: matplotlib.axes.Axes | None = None,
         **kwargs,
     ):
         """ """
-        from ..plot import plot_stats_with_layout
+
+        if "ykeys2" in kwargs:
+            y2 = kwargs.pop("ykeys2")
+
+        if input is None:
+            # Should we warn?
+            include_layout = False
 
         return plot_stats_with_layout(
             self,
@@ -1338,16 +1346,17 @@ class ImpactZOutput(Mapping, BaseModel):
             xlim=xlim,
             ylim=ylim,
             ylim2=ylim2,
+            input=input,
             nice=nice,
             tex=tex,
-            include_layout=False,  # include_layout,
+            include_layout=include_layout,
             include_labels=include_labels,
-            include_field=include_field,
-            field_t=field_t,
+            # include_field=include_field,
             include_markers=include_markers,
             include_particles=include_particles,
             include_legend=include_legend,
             return_figure=return_figure,
+            ax=ax,
             **kwargs,
         )
 

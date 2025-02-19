@@ -672,8 +672,7 @@ class ImpactZ(CommandWrapper):
         include_labels=False,
         include_markers=True,
         include_particles=True,
-        include_field=True,
-        field_t=0,
+        # include_field=True,
         include_legend=True,
         return_figure=False,
         tex=True,
@@ -705,6 +704,7 @@ class ImpactZ(CommandWrapper):
             make the numbers reasonably sized. Default: True
         include_layout : bool
             Whether or not to include a layout plot at the bottom. Default: True
+        include_legend : bool
             Whether or not the plot should include the legend. Default: True
         return_figure : bool
             Whether or not to return the figure object for further manipulation.
@@ -734,13 +734,13 @@ class ImpactZ(CommandWrapper):
             ylim=ylim,
             ylim2=ylim2,
             y2=y2,
+            input=self.input,
             nice=nice,
             include_layout=include_layout,
             include_labels=include_labels,
             include_markers=include_markers,
             include_particles=include_particles,
-            include_field=include_field,
-            field_t=field_t,
+            # include_field=include_field,
             include_legend=include_legend,
             return_figure=return_figure,
             tex=tex,

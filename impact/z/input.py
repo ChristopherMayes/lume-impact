@@ -17,6 +17,8 @@ from typing import (
 from collections.abc import Sequence
 
 import h5py
+import matplotlib.axes
+import matplotlib.pyplot as plt
 import numpy as np
 import pydantic
 import pydantic.alias_generators
@@ -2801,6 +2803,26 @@ class ImpactZInput(BaseModel):
         self.twiss_norm_emit_z = emit
         self.twiss_alpha_z = -cov * fref * 360 / 1e6 / emit
         self.twiss_beta_z = (fref * sig_t * 360) ** 2 / emit
+
+    def plot(
+        self,
+        *,
+        axes: matplotlib.axes.Axes | None = None,
+        bounds: tuple[float, float] | None = None,
+        include_labels: bool = True,
+        # include_field: bool = False,
+        include_markers: bool = True,
+        figsize: tuple[int, int] = (8, 4),
+    ):
+        if axes is None:
+            fig, axes = plt.subplots(1, 1, figsize=figsize)
+        else:
+            fig = axes.get_figure()
+
+        for ele in self.lattice:
+            pass
+
+        return fig, axes
 
     # @property
     # def LOWERs(self) -> ElementListProxy[ELEMENT]:
