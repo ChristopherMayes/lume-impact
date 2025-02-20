@@ -1714,6 +1714,7 @@ AnyInputElement = (
     | WriteSliceInfo
     | ScaleMismatchParticle6DCoordinates
     | CollimateBeamWithRectangularAperture
+    | ToggleSpaceCharge
     | RotateBeamWithRespectToLongitudinalAxis
     | BeamShift
     | BeamEnergySpread
@@ -2837,15 +2838,48 @@ class ImpactZInput(BaseModel):
         ax: matplotlib.axes.Axes | None = None,
         bounds: tuple[float, float] | None = None,
         include_labels: bool = True,
+        include_markers: bool = True,
+        include_marker_labels: bool | None = None,
         figsize: tuple[int, int] = (6, 2),
     ):
+        """
+        Make a matplotlib plot of the lattice layout.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes object on which to draw the layout. If None, a new figure and axes
+            are created.
+        bounds : (float, float), optional
+            Lower and upper bounds for z position. Defaults to None.
+        include_labels : bool, optional
+            Whether to include element labels in the plot. Defaults to True.
+        include_markers : bool, optional
+            If True, include zero length markers in the plot. Default is True.
+        include_marker_labels : bool, optional
+            If True, include labels for markers when `include_markers` is set.
+            Default is `include_labels`.
+        figsize : tuple of int, optional
+            Size of the figure in inches (width, height) when a new figure is created.
+            Defaults to (6, 2).
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes object containing the plotted layout.
+        """
         from .plot import plot_layout
+
+        if include_marker_labels is None:
+            include_marker_labels = include_labels
 
         return plot_layout(
             by_z=self.by_z,
             ax=ax,
             bounds=bounds,
             include_labels=include_labels,
+            include_markers=include_markers,
+            include_marker_labels=include_marker_labels,
             figsize=figsize,
         )
 

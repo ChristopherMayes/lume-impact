@@ -2,6 +2,7 @@ import logging
 import pathlib
 import re
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -264,3 +265,71 @@ def test_set_twiss_z(filename: pathlib.Path) -> None:
     assert np.isclose(emit0, emit1)
     assert np.isclose(alpha0, alpha1)
     assert np.isclose(beta0, beta1)
+
+
+@example_filenames
+def test_plot_layout(filename: pathlib.Path) -> None:
+    input = ImpactZInput.from_file(filename)
+    input.plot(figsize=(20, 3))
+    plt.show()
+
+
+@pytest.mark.parametrize(
+    ("include_labels", "include_markers"),
+    [
+        pytest.param(True, False, id="labels-no-markers"),
+        pytest.param(False, False, id="no-labels-no-markers"),
+        pytest.param(True, True, id="labels-and-markers"),
+        pytest.param(False, True, id="no-labels-and-markers"),
+    ],
+)
+def test_plot_layout_all(include_labels: bool, include_markers: bool) -> None:
+    from ...z import input as IZ
+
+    input = ImpactZInput(
+        lattice=[
+            IZ.Drift(length=1.0),
+            IZ.Quadrupole(length=1.0),
+            IZ.ConstantFocusing(length=1.0),
+            IZ.Solenoid(length=1.0),
+            IZ.Dipole(length=1.0),
+            IZ.Multipole(length=1.0),
+            IZ.DTL(length=1.0),
+            IZ.CCDTL(length=1.0),
+            IZ.CCL(length=1.0),
+            IZ.SuperconductingCavity(length=1.0),
+            IZ.SolenoidWithRFCavity(length=1.0),
+            IZ.TravelingWaveRFCavity(length=1.0),
+            IZ.UserDefinedRFCavity(length=1.0),
+            # Control inputs
+            IZ.ShiftCentroid(length=1.0),
+            IZ.WriteFull(length=0.0),
+            IZ.DensityProfileInput(length=1.0),
+            IZ.DensityProfile(length=0.0),
+            IZ.Projection2D(length=1.0),
+            IZ.Density3D(length=0.0),
+            IZ.WritePhaseSpaceInfo(length=1.0),
+            IZ.WriteSliceInfo(length=1.0),
+            IZ.ScaleMismatchParticle6DCoordinates(length=1.0),
+            IZ.CollimateBeamWithRectangularAperture(length=1.0),
+            IZ.ToggleSpaceCharge(length=1.0),
+            IZ.RotateBeamWithRespectToLongitudinalAxis(length=1.0),
+            IZ.BeamShift(length=1.0),
+            IZ.BeamEnergySpread(length=1.0),
+            IZ.ShiftBeamCentroid(length=1.0),
+            IZ.IntegratorTypeSwitch(length=1.0),
+            IZ.BeamKickerByRFNonlinearity(length=1.0),
+            IZ.RfcavityStructureWakefield(length=1.0),
+            IZ.EnergyModulation(length=1.0),
+            IZ.KickBeamUsingMultipole(length=1.0),
+            IZ.HaltExecution(length=1.0),
+        ]
+    )
+    for ele in input.lattice:
+        ele.name = f"{type(ele).__name__}_0"
+    input.plot(
+        figsize=(20, 3),
+        include_labels=include_labels,
+        include_markers=include_markers,
+    )
+    plt.show()
