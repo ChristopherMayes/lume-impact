@@ -53,7 +53,7 @@ def plot_layout(
     bounds: tuple[float, float] | None = None,
     include_labels: bool = True,
     include_markers: bool = True,
-    include_marker_labels: bool = True,
+    include_marker_labels: bool | None = None,
     figsize: tuple[int, int] = (6, 2),
     line_width_scale: float = 1.0,
     shape_mapper: ElementToShapeFunction | None = None,
@@ -75,7 +75,8 @@ def plot_layout(
     include_markers : bool, optional
         If True, include zero length markers in the plot. Default is True.
     include_marker_labels : bool, optional
-        If True, include labels for markers when `include_markers` is set. Default is True.
+        If True, include labels for markers when `include_markers` is set.
+        Default is `include_labels`.
     figsize : tuple of int, optional
         Size of the figure in inches (width, height) when a new figure is created.
         Defaults to (6, 2).
@@ -85,6 +86,8 @@ def plot_layout(
     matplotlib.axes.Axes
         The axes object containing the plotted layout.
     """
+    if include_marker_labels is None:
+        include_marker_labels = include_labels
     if shape_mapper is None:
         shape_mapper = default_shape_mapper
 
@@ -222,7 +225,7 @@ def plot_stats_with_layout(
     include_layout: bool = True,
     include_labels: bool = True,
     include_markers: bool = True,
-    include_marker_labels: bool = True,
+    include_marker_labels: bool | None = None,
     include_particles: bool = True,
     include_legend: bool = True,
     return_figure: bool = False,
@@ -261,7 +264,8 @@ def plot_stats_with_layout(
     include_markers : bool, optional
         If True, include zero length markers in the plot. Default is True.
     include_marker_labels : bool, optional
-        If True, include labels for markers when `include_markers` is set. Default is True.
+        If True, include labels for markers when `include_markers` is set.
+        Default is `include_labels`.
     include_particles : bool, optional
         If True, include particles in the plot. Default is True.
     include_legend : bool, optional
@@ -279,6 +283,8 @@ def plot_stats_with_layout(
         The figure object if `return_figure` is True, otherwise None.
     """
 
+    if include_marker_labels is None:
+        include_marker_labels = include_labels
     if include_layout:
         fig, all_axis = plt.subplots(2, gridspec_kw={"height_ratios": [4, 1]}, **kwargs)
         ax_plot = [all_axis[0]]
