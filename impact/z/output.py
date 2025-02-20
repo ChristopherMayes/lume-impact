@@ -44,6 +44,7 @@ from .units import (
     Unitless,
     UnitlessArray,
     known_unit,
+    pmd_MeV,
 )
 
 try:
@@ -125,12 +126,8 @@ def load_stat_files_from_path(
             stats.update(cls.from_file(fn))
             for key, field in cls.model_fields.items():
                 field_units = field.metadata[0]["units"]
-
-                if field_units == "MeV":
+                if field_units == pmd_MeV:
                     field_units = known_unit["eV"]
-                    stats[key] *= 1e6
-                elif field_units == "degree-MeV":
-                    field_units = known_unit["degree"] * known_unit["eV"]
                     stats[key] *= 1e6
 
                 units[key] = field_units
@@ -1248,13 +1245,9 @@ class ImpactZOutput(Mapping, BaseModel):
         """
         Load ImpactZ output based on the configured input settings.
 
-        Parameters
-        ----------
-
         Returns
         -------
         ImpactZOutput
-            The output data.
         """
 
         species = input.reference_species
