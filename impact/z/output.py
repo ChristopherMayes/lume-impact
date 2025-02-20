@@ -125,7 +125,7 @@ def load_stat_files_from_path(
         if fn.exists():
             stats.update(cls.from_file(fn))
             for key, field in cls.model_fields.items():
-                field_units = field.metadata[0]["units"]
+                field_units = _units_from_metadata(field.metadata)
                 if field_units == pmd_MeV:
                     field_units = known_unit["eV"]
                     stats[key] *= 1e6
@@ -335,6 +335,15 @@ def _split_extra(cls: type[BaseModel], dct: dict) -> dict[str, Any]:
     for fld in cls.model_computed_fields:
         dct.pop(fld, None)
     return {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
+
+
+def _units_from_metadata(md):
+    if not md:
+        return
+
+    for value in md:
+        if isinstance(value, dict) and "units" in value:
+            return value["units"]
 
 
 class OutputStats(BaseModel):
@@ -1291,7 +1300,12 @@ class ImpactZOutput(Mapping, BaseModel):
                     phase_reference=phase_ref,
                 )
 
-        return ImpactZOutput(
+        for key, fld in OutputStats.model_fields.items():
+            unit = _units_from_metadata(fld.metadata)
+            if unit:
+                units[key] = unit
+
+        return cls(
             stats=stats,
             key_to_unit=units,
             particles=particles,
