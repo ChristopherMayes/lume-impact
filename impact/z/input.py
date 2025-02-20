@@ -2842,7 +2842,7 @@ class ImpactZInput(BaseModel):
         from .plot import plot_layout
 
         return plot_layout(
-            input=self,
+            by_z=self.by_z,
             ax=ax,
             bounds=bounds,
             include_labels=include_labels,

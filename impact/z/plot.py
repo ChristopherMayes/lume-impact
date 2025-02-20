@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pydantic.dataclasses as dataclasses
 from impact.z.constants import MultipoleType
-from impact.z.input import AnyInputElement, Multipole
+from impact.z.input import AnyInputElement, Multipole, ZElement
 from pmd_beamphysics.units import nice_array, nice_scale_prefix
 from pydantic import ConfigDict, Field
 from typing_extensions import Literal
@@ -26,7 +26,7 @@ if typing.TYPE_CHECKING:
 
 
 def plot_layout(
-    input: ImpactZInput,
+    by_z: list[ZElement],
     ax: matplotlib.axes.Axes | None = None,
     bounds: tuple[float, float] | None = None,
     include_labels: bool = True,
@@ -40,18 +40,12 @@ def plot_layout(
     # TODO reorganize
     from .plot import element_to_shape, patch_to_mpl
 
-    by_z = input.by_z
     if not by_z:
         return fig, ax
 
     ax.axhline(y=0, color="Black", linewidth=1)
     ax.yaxis.set_visible(False)
     # ax.grid(axis="x", visible=False)
-
-    # quad_k1s = input.quadrupoles.k1
-    # quad_min_k1 = np.min(np.abs(quad_k1s))
-    # quad_max_k1 = np.max(np.abs(quad_k1s))
-
     for zele in by_z:
         ele = zele.ele
         if np.isclose(ele.length, 0.0):
@@ -61,12 +55,6 @@ def plot_layout(
         if shape is None:
             continue
 
-        # if isinstance(ele, Quadrupole):
-        #     # TODO this all needs restructuring; resize based on strength
-        #     scale = abs(ele.k1)
-        #     shape.y1 = -scale
-        #     shape.y2 = scale
-        #
         for curve in shape.to_lines():
             ax.plot(
                 curve.xs,
