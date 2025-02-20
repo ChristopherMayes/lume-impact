@@ -137,7 +137,7 @@ class InputElement(BaseModel):
         self, *, with_description: bool = True, z_start: float | None = None
     ) -> str:
         def as_string(v: float | int):
-            if isinstance(v, float):
+            if isinstance(v, (bool, float)):
                 return f"{v:.20g}"
             return str(v)
 
@@ -1340,6 +1340,34 @@ class CollimateBeamWithRectangularAperture(InputElement, element_id=-13):
     xmax: float = 0.0
     ymin: float = 0.0
     ymax: float = 0.0
+
+
+class ToggleSpaceCharge(InputElement, element_id=-14):
+    """
+    Toggle space charge. Available in IMPACT-Z v2.5+.
+
+    Attributes
+    ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
+    unused : float
+        Not used.
+    enable : float
+        Toggle space charge on or off.
+    """
+
+    length: float = 0.0
+    steps: int = 0
+    map_steps: int = 0
+    type_id: Literal[-14] = -14
+
+    unused: float = 0.0
+    enable: float | bool = False
 
 
 class RotateBeamWithRespectToLongitudinalAxis(InputElement, element_id=-18):
@@ -2824,7 +2852,7 @@ class ImpactZInput(BaseModel):
     # @property
     # def LOWERs(self) -> ElementListProxy[ELEMENT]:
     #     """List of all ELEMENT instances."""
-    #     return self.by_element.get(ELEMENT, [])
+    #     return self.by_element.get(ELEMENT, ElementListProxy())
     #
     # @property
     # def LOWER(self) -> ELEMENT:
@@ -3073,6 +3101,16 @@ class ImpactZInput(BaseModel):
     ) -> CollimateBeamWithRectangularAperture:
         """Get the sole CollimateBeamWithRectangularAperture if it is defined."""
         return self._get_only_one(CollimateBeamWithRectangularAperture)
+
+    @property
+    def toggle_space_charges(self) -> ElementListProxy[ToggleSpaceCharge]:
+        """List of all ToggleSpaceCharge instances."""
+        return self.by_element.get(ToggleSpaceCharge, ElementListProxy())
+
+    @property
+    def toggle_space_charge(self) -> ToggleSpaceCharge:
+        """Get the sole ToggleSpaceCharge if it is defined."""
+        return self._get_only_one(ToggleSpaceCharge)
 
     @property
     def rotate_beam_with_respect_to_longitudinal_axiss(
