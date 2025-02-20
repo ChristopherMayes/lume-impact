@@ -25,6 +25,83 @@ if typing.TYPE_CHECKING:
     from .output import ImpactZOutput
 
 
+def plot_layout(
+    input: ImpactZInput,
+    ax: matplotlib.axes.Axes | None = None,
+    bounds: tuple[float, float] | None = None,
+    include_labels: bool = True,
+    figsize: tuple[int, int] = (6, 2),
+):
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    else:
+        fig = ax.get_figure()
+
+    # TODO reorganize
+    from .plot import element_to_shape, patch_to_mpl
+
+    by_z = input.by_z
+    if not by_z:
+        return fig, ax
+
+    ax.axhline(y=0, color="Black", linewidth=1)
+    ax.yaxis.set_visible(False)
+    # ax.grid(axis="x", visible=False)
+
+    # quad_k1s = input.quadrupoles.k1
+    # quad_min_k1 = np.min(np.abs(quad_k1s))
+    # quad_max_k1 = np.max(np.abs(quad_k1s))
+
+    for zele in by_z:
+        ele = zele.ele
+        if np.isclose(ele.length, 0.0):
+            continue
+
+        shape = element_to_shape(ele=ele, s1=zele.z_start, s2=zele.z_end)
+        if shape is None:
+            continue
+
+        # if isinstance(ele, Quadrupole):
+        #     # TODO this all needs restructuring; resize based on strength
+        #     scale = abs(ele.k1)
+        #     shape.y1 = -scale
+        #     shape.y2 = scale
+        #
+        for curve in shape.to_lines():
+            ax.plot(
+                curve.xs,
+                curve.ys,
+                color=shape.color,
+                linestyle=curve.linestyle,
+                linewidth=curve.linewidth,
+                label=shape.name,
+            )
+        for patch in shape.to_patches():
+            mpl = patch_to_mpl(patch, line_width_scale=1.0)
+            ax.add_patch(mpl)
+
+        if ele.name and include_labels:
+            s_center = (shape.s1 + shape.s2) / 2.0
+            ax.annotate(
+                xy=(s_center, -1.1),
+                text=ele.name,
+                horizontalalignment="center",
+                verticalalignment="top",
+                clip_on=False,
+                color=shape.color,
+                rotation=90,
+                rotation_mode="default",
+                fontsize=8,
+            )
+
+    if bounds is None:
+        bounds = by_z[0].z_start, by_z[-1].z_end
+
+    ax.set_xlim(bounds)
+    ax.set_ylim(-2, 2)
+    return fig, ax
+
+
 def plot_stats_with_layout(
     output: ImpactZOutput,
     ykeys: Sequence[str] = ("sigma_x", "sigma_y"),
