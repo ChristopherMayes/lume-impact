@@ -23,6 +23,11 @@ logging.getLogger("pytao.subproc").setLevel("WARNING")
 logging.getLogger("matplotlib.font_manager").setLevel("WARNING")
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _make_artifacts_dir() -> None:
+    test_artifacts.mkdir(exist_ok=True, parents=True)
+
+
 @pytest.fixture(autouse=True, scope="function")
 def _plot_show_to_savefig(
     request: pytest.FixtureRequest,
