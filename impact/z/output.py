@@ -35,7 +35,6 @@ from .units import (
     Meter_Rad,
     Meter_RadArray,
     eVArray,
-    MeVArray,
     Meters,
     MeV,
     MetersArray,
@@ -360,7 +359,7 @@ class OutputStats(BaseModel):
     gamma_ref: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Reference particle gamma."
     )
-    kinetic_energy_ref: MeVArray = pydantic.Field(
+    kinetic_energy_ref: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Reference particle kinetic energy. (eV)",
     )
@@ -372,8 +371,8 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Minimum number of particles on a processing element (PE).",
     )
-    max_amplitude_energy_dev: MeVArray = pydantic.Field(
-        default_factory=_empty_ndarray, description="Maximum energy deviation in MeV."
+    max_amplitude_energy_dev: eVArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Maximum energy deviation (eV)."
     )
     max_amplitude_gammabeta_x: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Maximum Px (in radians)."
@@ -414,7 +413,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Centroid location in the y-direction (meters).",
     )
-    moment3_energy: MeVArray = pydantic.Field(
+    moment3_energy: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Third-order central moment for energy deviation (eV).",
     )
@@ -438,7 +437,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Third-order central moment for y (meters).",
     )
-    moment4_energy: MeVArray = pydantic.Field(
+    moment4_energy: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Fourth-order central moment for energy deviation (eV).",
     )
@@ -486,7 +485,7 @@ class OutputStats(BaseModel):
     phase_ref: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Absolute phase in radians."
     )
-    sigma_energy: MeVArray = pydantic.Field(
+    sigma_energy: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Sigma energy (eV).",
     )
