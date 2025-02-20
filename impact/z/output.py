@@ -34,7 +34,9 @@ from .units import (
     DegreesArray,
     Meter_Rad,
     Meter_RadArray,
+    SecondsArray,
     eVArray,
+    eV_c_Array,
     Meters,
     MeV,
     MetersArray,
@@ -647,15 +649,15 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Mean gamma (computed)",
     )
-    mean_px: eVArray = pydantic.Field(
+    mean_px: eV_c_Array = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Mean px (eV) (computed)",
+        description="Mean px (eV/c) (computed)",
     )
-    mean_py: eVArray = pydantic.Field(
+    mean_py: eV_c_Array = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Mean py (eV) (computed)",
+        description="Mean py (eV/c) (computed)",
     )
-    mean_t: UnitlessArray = pydantic.Field(
+    mean_t: SecondsArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Mean time (s) (computed)",
     )
@@ -667,15 +669,15 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Momentum reference (eV) (computed)",
     )
-    sigma_px: eVArray = pydantic.Field(
+    sigma_px: eV_c_Array = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Sigma px (eV) (computed)",
+        description="Sigma px (eV/c) (computed)",
     )
-    sigma_py: eVArray = pydantic.Field(
+    sigma_py: eV_c_Array = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Sigma py (eV) (computed)",
+        description="Sigma py (eV/c) (computed)",
     )
-    sigma_t: RadiansArray = pydantic.Field(
+    sigma_t: SecondsArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="RMS size in time (rad) (computed)",
     )
@@ -683,13 +685,13 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Reference time (sec) (computed)",
     )
-    twiss_beta_x: UnitlessArray = pydantic.Field(
+    twiss_beta_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Twiss beta x (computed)",
+        description="Twiss beta x (m) (computed)",
     )
-    twiss_beta_y: UnitlessArray = pydantic.Field(
+    twiss_beta_y: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Twiss beta y (computed)",
+        description="Twiss beta y (m) (computed)",
     )
 
     units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
