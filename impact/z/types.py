@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from inspect import isclass
 import pathlib
 from typing import Any, TypeAlias, Union
 from collections.abc import Iterable, Sequence
@@ -105,6 +106,24 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
             "descriptions": None,
             "annotations": units if isinstance(units, dict) else None,
         }
+
+    @classmethod
+    def _to_docstring(cls):
+        print('    """')
+        print("    Attributes")
+        print("    ----------")
+        for attr, fld in cls.model_fields.items():
+            annotation = fld.annotation
+            if isclass(annotation):
+                annotation = annotation.__name__
+
+            annotation = str(annotation)
+            annotation = annotation.replace("typing.", "")
+
+            print(f"    {attr} : {annotation}")
+            if fld.description:
+                print(f"        {fld.description}")
+        print('    """')
 
     def to_table(self):
         return tools.table_output(**self._repr_table_data_())

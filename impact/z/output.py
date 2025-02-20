@@ -348,6 +348,186 @@ def _units_from_metadata(md):
 
 
 class OutputStats(BaseModel):
+    r"""
+    Output statistics.
+
+    Attributes
+    ----------
+    beta_ref : ndarray
+        Beta of the reference particle.
+    charge_state_n_particle : ndarray
+        The number of particles for each charge state.
+    gamma_ref : ndarray
+        Reference particle gamma.
+    kinetic_energy_ref : ndarray
+        Reference particle kinetic energy. (eV)
+    loadbalance_max_n_particle : ndarray
+        Maximum number of particles on a processing element (PE).
+    loadbalance_min_n_particle : ndarray
+        Minimum number of particles on a processing element (PE).
+    max_amplitude_energy_dev : ndarray
+        Maximum energy deviation (eV).
+    max_amplitude_gammabeta_x : ndarray
+        Maximum Px (in radians).
+    max_amplitude_gammabeta_y : ndarray
+        Maximum Py (in radians).
+    max_amplitude_phase : ndarray
+        Maximum phase (in degrees).
+    max_amplitude_x : ndarray
+        Maximum X (in meters).
+    max_amplitude_y : ndarray
+        Maximum Y (in meters).
+    max_r : ndarray
+        Maximum radius (Rmax) in meters, measured from the axis of the pipe.
+    mean_phase_deg : ndarray
+        Mean phase (degrees)
+    mean_px_over_p0 : ndarray
+        Mean $px / p0$ (unitless).
+    mean_py_over_p0 : ndarray
+        Mean $py / p0$ (unitless).
+    mean_x : ndarray
+        Centroid location in the x-direction (meters).
+    mean_y : ndarray
+        Centroid location in the y-direction (meters).
+    moment3_energy : ndarray
+        Third-order central moment for energy deviation (eV).
+    moment3_phase : ndarray
+        Third-order central moment for phase (degree).
+    moment3_px_over_p0 : ndarray
+        Third-order central moment for Px (rad).
+    moment3_py_over_p0 : ndarray
+        Third-order central moment for Py (rad).
+    moment3_x : ndarray
+        Third-order central moment for x (meters).
+    moment3_y : ndarray
+        Third-order central moment for y (meters).
+    moment4_energy : ndarray
+        Fourth-order central moment for energy deviation (eV).
+    moment4_phase : ndarray
+        Fourth-order central moment for phase (degree).
+    moment4_px_over_p0 : ndarray
+        Fourth-order central moment for Px over p0 (unitless).
+    moment4_py_over_p0 : ndarray
+        Fourth-order central moment for Py over p0 (unitless).
+    moment4_x : ndarray
+        Fourth-order central moment for x (meters).
+    moment4_y : ndarray
+        Fourth-order central moment for y (meters).
+    n_particle : ndarray
+        Total number of particles in the bunch.
+    neg_mean_rel_energy : ndarray
+        Negative delta mean energy (eV).
+    norm_emit_x : ndarray
+        Normalized RMS emittance in x-direction (m-rad).
+    norm_emit_y : ndarray
+        Normalized RMS emittance in y-direction (m-rad).
+    norm_emit_z : ndarray
+        Normalized RMS emittance in z-direction (degree-eV).
+    phase_ref : ndarray
+        Absolute phase in radians.
+    sigma_energy : ndarray
+        Sigma energy (eV).
+    sigma_phase_deg : ndarray
+        Sigma phase (degrees).
+    sigma_px_over_p0 : ndarray
+        Sigma $px / p0$ (unitless).
+    sigma_py_over_p0 : ndarray
+        Sigma $py / p0$ (unitless).
+    sigma_x : ndarray
+        RMS size in the x-direction (meters).
+    sigma_y : ndarray
+        RMS size in the y-direction (meters).
+    twiss_alpha_x : ndarray
+        Twiss parameter alpha for x-direction (unitless).
+    twiss_alpha_y : ndarray
+        Twiss parameter alpha for y-direction (unitless).
+    twiss_alpha_z : ndarray
+        Twiss parameter alpha for z-direction (unitless).
+    z : ndarray
+        Z position (meters)
+    max_abs_x : ndarray
+        Maximum horizontal displacement from the beam axis: $\max(|x|)$ (meters)
+    max_abs_px_over_p0 : ndarray
+        Maximum $x$-plane transverse momentum $\max(|p_x/p_0|)$ (unitless)
+    max_abs_y : ndarray
+        Maximum vertical displacement from the beam axis $\max(|y|)$ (meters)
+    max_abs_py_over_p0 : ndarray
+        Maximum $y$-plane transverse momentum $\max(|p_y/p_0|)$ (unitless)
+    max_phase : ndarray
+        Maximum deviation in phase (degrees)
+    max_energy_dev : ndarray
+        Maximum deviation in particle energy (eV)
+    mean_r : ndarray
+        Mean radius (meters)
+    sigma_r : ndarray
+        RMS radius (meters)
+    mean_r_90percent : ndarray
+        90 percent mean radius (meters)
+    mean_r_95percent : ndarray
+        95 percent mean radius (meters)
+    mean_r_99percent : ndarray
+        99 percent mean radius (meters)
+    max_r_rel : ndarray
+        Maximum radius (meters)
+    max_abs_gammabeta_x : ndarray
+        Maximum $x$-plane transverse momentum $\max(|\gamma\beta_x|)$ (dimensionless)
+    max_abs_gammabeta_y : ndarray
+        Maximum $x$-plane transverse momentum $\max(|\gamma\beta_y|)$ (dimensionless)
+    max_gamma_rel : ndarray
+        Maximum deviation in relativistic gamma $\max(|\gamma - \gamma_0)|)$ (dimensionless)
+    norm_emit_x_90percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_x_95percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_x_99percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_y_90percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_y_95percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_y_99percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_z_90percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_z_95percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    norm_emit_z_99percent : ndarray
+        90% normalied RMS emittance (meter-rad)
+    energy_ref : ndarray
+        Energy reference (eV) (computed)
+    mean_energy : ndarray
+        Mean energy (eV) (computed)
+    mean_gamma : ndarray
+        Mean gamma (computed)
+    mean_px : ndarray
+        Mean px (eV/c) (computed)
+    mean_py : ndarray
+        Mean py (eV/c) (computed)
+    mean_t : ndarray
+        Mean time (s) (computed)
+    mean_t_rel : ndarray
+        Mean time relative (s) (computed)
+    p0c : ndarray
+        Momentum reference (eV) (computed)
+    sigma_px : ndarray
+        Sigma px (eV/c) (computed)
+    sigma_py : ndarray
+        Sigma py (eV/c) (computed)
+    sigma_t : ndarray
+        RMS size in time (rad) (computed)
+    t_ref : ndarray
+        Reference time (sec) (computed)
+    twiss_beta_x : ndarray
+        Twiss beta x (m) (computed)
+    twiss_beta_y : ndarray
+        Twiss beta y (m) (computed)
+    units : dict[str, pmd_beamphysics.units.pmd_unit]
+        Mapping of attribute name to pmd_unit.
+    extra : dict[str, numpy.ndarray]
+        Additional Impact-Z output data.  This is a future-proofing mechanism
+        in case Impact-Z changes and LUME-Impact is not yet ready for it.
+    """
+
     # Statistics largely unmodified from the data files
     # Some modifications include:
     #   1. Units changed to SI units (e.g., MeV->eV as noted)
@@ -694,7 +874,11 @@ class OutputStats(BaseModel):
         description="Twiss beta y (m) (computed)",
     )
 
-    units: dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    units: dict[str, PydanticPmdUnit] = pydantic.Field(
+        default_factory=dict,
+        repr=False,
+        description="Mapping of attribute name to pmd_unit.",
+    )
     extra: dict[str, NDArray] = pydantic.Field(
         default_factory=dict,
         description=(
