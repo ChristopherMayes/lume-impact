@@ -399,13 +399,13 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Mean phase (degrees)",
     )
-    mean_px_over_p0: RadiansArray = pydantic.Field(
+    mean_px_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Mean $px / p0$ (rad).",
+        description="Mean $px / p0$ (unitless).",
     )
-    mean_py_over_p0: RadiansArray = pydantic.Field(
+    mean_py_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Mean $py / p0$ (rad).",
+        description="Mean $py / p0$ (unitless).",
     )
     mean_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -423,11 +423,11 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Third-order central moment for phase (degree).",
     )
-    moment3_px_over_p0: RadiansArray = pydantic.Field(
+    moment3_px_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Third-order central moment for Px (rad).",
     )
-    moment3_py_over_p0: RadiansArray = pydantic.Field(
+    moment3_py_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Third-order central moment for Py (rad).",
     )
@@ -447,13 +447,13 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Fourth-order central moment for phase (degree).",
     )
-    moment4_px_over_p0: RadiansArray = pydantic.Field(
+    moment4_px_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Fourth-order central moment for Px (rad).",
+        description="Fourth-order central moment for Px over p0 (unitless).",
     )
-    moment4_py_over_p0: RadiansArray = pydantic.Field(
+    moment4_py_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Fourth-order central moment for Py (rad).",
+        description="Fourth-order central moment for Py over p0 (unitless).",
     )
     moment4_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -495,13 +495,13 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Sigma phase (degrees).",
     )
-    sigma_px_over_p0: RadiansArray = pydantic.Field(
+    sigma_px_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Sigma $px / p0$ (rad).",
+        description="Sigma $px / p0$ (unitless).",
     )
-    sigma_py_over_p0: RadiansArray = pydantic.Field(
+    sigma_py_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Sigma $py / p0$ (rad).",
+        description="Sigma $py / p0$ (unitless).",
     )
     sigma_x: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -511,17 +511,17 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="RMS size in the y-direction (meters).",
     )
-    twiss_alpha_x: MetersArray = pydantic.Field(
+    twiss_alpha_x: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Twiss parameter alpha for x-direction.",
+        description="Twiss parameter alpha for x-direction (unitless).",
     )
-    twiss_alpha_y: MetersArray = pydantic.Field(
+    twiss_alpha_y: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Twiss parameter alpha for y-direction.",
+        description="Twiss parameter alpha for y-direction (unitless).",
     )
     twiss_alpha_z: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Twiss parameter alpha for z-direction.",
+        description="Twiss parameter alpha for z-direction (unitless).",
     )
     z: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Z position (meters)"
@@ -532,17 +532,17 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description=r"Maximum horizontal displacement from the beam axis: $\max(|x|)$ (meters)",
     )
-    max_abs_px_over_p0: RadiansArray = pydantic.Field(
+    max_abs_px_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"Maximum $x$-plane transverse momentum $\max(|p_x/p_0|)$ (rad)",
+        description=r"Maximum $x$-plane transverse momentum $\max(|p_x/p_0|)$ (unitless)",
     )
     max_abs_y: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description=r"Maximum vertical displacement from the beam axis: $\max(|y|)$ (meters)",
     )
-    max_abs_py_over_p0: RadiansArray = pydantic.Field(
+    max_abs_py_over_p0: UnitlessArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"Maximum $y$-plane transverse momentum $\max(|p_y/p_0|)$ (rad)",
+        description=r"Maximum $y$-plane transverse momentum $\max(|p_y/p_0|)$ (unitless)",
     )
     max_phase: DegreesArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -808,9 +808,9 @@ class RmsX(FortranOutputFileData, file_id=24):
     sigma_x : float
         RMS size (m)
     mean_px_over_p0 : float
-        Mean $px / p0$ (rad)
+        Mean $px / p0$ (unitless)
     sigma_px_over_p0 : float
-        Sigma $px / p0$ (rad)
+        Sigma $px / p0$ (unitless)
     twiss_alpha_x : float
         Twiss parameter, alpha
     norm_emit_x : float
@@ -829,8 +829,8 @@ class RmsX(FortranOutputFileData, file_id=24):
     z: Meters
     mean_x: Meters
     sigma_x: Meters
-    mean_px_over_p0: Radians
-    sigma_px_over_p0: Radians
+    mean_px_over_p0: Unitless
+    sigma_px_over_p0: Unitless
     twiss_alpha_x: Meters
     norm_emit_x: Meters  # m-rad
 
@@ -853,9 +853,9 @@ class RmsY(FortranOutputFileData, file_id=25):
     sigma_y : float
         RMS size (m)
     mean_py_over_p0 : float
-        Mean $py / p0$ [rad]
+        Mean $py / p0$ [unitless]
     sigma_py_over_p0 : float
-        $py / p0$ [rad]
+        $py / p0$ [unitless]
     twiss_alpha_y : float
         Twiss parameter, alpha
     norm_emit_y : float
@@ -874,8 +874,8 @@ class RmsY(FortranOutputFileData, file_id=25):
     z: Meters
     mean_y: Meters
     sigma_y: Meters
-    mean_py_over_p0: Radians
-    sigma_py_over_p0: Radians
+    mean_py_over_p0: Unitless
+    sigma_py_over_p0: Unitless
     twiss_alpha_y: Meters
     norm_emit_y: Meters  # m-rad
 
@@ -948,11 +948,11 @@ class MaxAmplitudeStandard(
     max_abs_x : float
         Maximum horizontal displacement from the beam axis: $\max(|x|)$ (meters)
     max_abs_px_over_p0 : float
-        Maximum $x$-plane transverse momentum $\max(|p_x/p_0|)$ (rad)
+        Maximum $x$-plane transverse momentum $\max(|p_x/p_0|)$ (unitless)
     max_abs_y : float
         Maximum vertical displacement from the beam axis: $\max(|y|)$ (meters)
     max_abs_py_over_p0 : float
-        Maximum $y$-plane transverse momentum $\max(|p_y/p_0|)$ (rad)
+        Maximum $y$-plane transverse momentum $\max(|p_y/p_0|)$ (unitless)
     max_phase : float
         Maximum deviation in phase (deg)
     max_energy_dev : float
@@ -961,9 +961,9 @@ class MaxAmplitudeStandard(
 
     z: Meters
     max_abs_x: Meters
-    max_abs_px_over_p0: Radians
+    max_abs_px_over_p0: Unitless
     max_abs_y: Meters
-    max_abs_py_over_p0: Radians
+    max_abs_py_over_p0: Unitless
     max_phase: Degrees
     max_energy_dev: MeV
 
@@ -1040,11 +1040,11 @@ class BeamDistribution3rdStandard(
     moment3_x : float
         Cubic root of the third moment of the horizontal position $M_3(x)$ (meters)
     moment3_px_over_p0 : float
-        Cubic root of the third moment of the horizontal momentum $M_3(p_x/p_0)$ (rad)
+        Cubic root of the third moment of the horizontal momentum $M_3(p_x/p_0)$ (unitless)
     moment3_y : float
         Cubic root of the third moment of the vertical position $M_3(y)$ (meters)
     moment3_py_over_p0 : float
-        Cubic root of the third moment of the vertical momentum $M_3(p_y/p_0)$ (rad)
+        Cubic root of the third moment of the vertical momentum $M_3(p_y/p_0)$ (unitless)
     moment3_phase : float
         Cubic root of the third moment of the phase $M_3(\phi)$ (deg)
     moment3_energy : float
