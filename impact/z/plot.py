@@ -5,9 +5,12 @@ from collections.abc import Sequence
 from typing import Union, cast
 
 import matplotlib.axes
+import matplotlib.patches
 import matplotlib.pyplot as plt
 import numpy as np
 import pydantic.dataclasses as dataclasses
+from impact.z.constants import MultipoleType
+from impact.z.input import AnyInputElement, Multipole
 from pmd_beamphysics.units import nice_array, nice_scale_prefix
 from pydantic import ConfigDict, Field
 from typing_extensions import Literal
@@ -195,9 +198,8 @@ def plot_stats_with_layout(
 
         # Make a line and point
         for key, dat in zip(keys, data):
-            #
             ii += 1
-            color = "C" + str(ii)
+            color = f"C{ii}"
 
             # Handle tex labels
             label = mathlabel(key, units=unit, tex=tex)
@@ -273,11 +275,11 @@ def plot_stats_with_layout(
             xlim = (0, output.stats.z[-1])
 
         input.plot(
-            axes=ax_layout,
+            ax=ax_layout,
             bounds=xlim,
             include_labels=include_labels,
             # include_field=include_field,
-            include_markers=include_markers,
+            # include_markers=include_markers,
         )
 
     if return_figure:
@@ -433,6 +435,44 @@ class LayoutShape:
         }
 
 
+def patch_to_mpl(patch: PlotPatch, line_width_scale: float = 1.0):
+    patch_args = patch._patch_args
+    if patch_args["linewidth"] is not None:
+        patch_args["linewidth"] *= line_width_scale
+
+    if isinstance(patch, PlotPatchRectangle):
+        return matplotlib.patches.Rectangle(
+            xy=patch.xy,
+            width=patch.width,
+            height=patch.height,
+            angle=patch.angle,
+            rotation_point=patch.rotation_point,
+            **patch_args,
+        )
+    if isinstance(patch, PlotPatchCircle):
+        return matplotlib.patches.Circle(
+            xy=patch.xy,
+            radius=patch.radius,
+            **patch_args,
+        )
+    if isinstance(patch, PlotPatchPolygon):
+        return matplotlib.patches.Polygon(
+            xy=patch.vertices,
+            **patch_args,
+        )
+
+    if isinstance(patch, PlotPatchEllipse):
+        return matplotlib.patches.Ellipse(
+            xy=patch.xy,
+            width=patch.width,
+            height=patch.height,
+            angle=patch.angle,
+            **patch_args,
+        )
+
+    raise NotImplementedError(f"Unsupported patch type: {type(patch).__name__}")
+
+
 @dataclasses.dataclass(config=_dcls_config)
 class LayoutBox(LayoutShape):
     def to_patches(self) -> list[PlotPatch]:
@@ -560,12 +600,66 @@ class LayoutTriangle(LayoutShape):
         return [PlotPatchPolygon(vertices=self.vertices, **self.patch_kwargs)]
 
 
-AnyLayoutShape = Union[
-    LayoutBox,
-    LayoutXBox,
-    LayoutLetterX,
-    LayoutBowTie,
-    LayoutDiamond,
-    LayoutCircle,
-    LayoutTriangle,
-]
+def element_to_shape(
+    ele: AnyInputElement,
+    s1: float,
+    s2: float,
+):
+    from . import input as IZ
+
+    cls_to_shape = {
+        IZ.Drift: (None, "blue"),
+        IZ.Quadrupole: (LayoutXBox, "magenta"),
+        IZ.ConstantFocusing: (LayoutBox, "black"),
+        IZ.Solenoid: (LayoutBox, "blue"),
+        IZ.Dipole: (LayoutBox, "black"),
+        IZ.Multipole: (LayoutXBox, "black"),
+        IZ.DTL: (LayoutXBox, "black"),
+        IZ.CCDTL: (LayoutXBox, "black"),
+        IZ.CCL: (LayoutXBox, "black"),
+        IZ.SuperconductingCavity: (LayoutXBox, "black"),
+        IZ.SolenoidWithRFCavity: (LayoutXBox, "blue"),
+        IZ.TravelingWaveRFCavity: (LayoutXBox, "black"),
+        IZ.UserDefinedRFCavity: (LayoutXBox, "black"),
+        IZ.ShiftCentroid: (LayoutBox, "black"),
+        IZ.WriteFull: (None, "black"),
+        IZ.DensityProfileInput: (None, "black"),
+        IZ.DensityProfile: (None, "black"),
+        IZ.Projection2D: (None, "black"),
+        IZ.Density3D: (None, "black"),
+        IZ.WritePhaseSpaceInfo: (None, "black"),
+        IZ.WriteSliceInfo: (None, "black"),
+        IZ.ScaleMismatchParticle6DCoordinates: (None, "black"),
+        IZ.CollimateBeamWithRectangularAperture: (None, "black"),
+        IZ.RotateBeamWithRespectToLongitudinalAxis: (None, "black"),
+        IZ.BeamShift: (None, "black"),
+        IZ.BeamEnergySpread: (None, "black"),
+        IZ.ShiftBeamCentroid: (None, "black"),
+        IZ.IntegratorTypeSwitch: (None, "black"),
+        IZ.BeamKickerByRFNonlinearity: (None, "black"),
+        IZ.RfcavityStructureWakefield: (None, "black"),
+        IZ.EnergyModulation: (None, "black"),
+        IZ.KickBeamUsingMultipole: (None, "black"),
+        IZ.HaltExecution: (None, "black"),
+    }
+
+    if isinstance(ele, Multipole):
+        shape_cls = LayoutBox
+        color = {
+            MultipoleType.sextupole: "green",
+            MultipoleType.octupole: "black",
+            MultipoleType.decapole: "black",
+        }[ele.multipole_type]
+    else:
+        shape_cls, color = cls_to_shape[type(ele)]
+        if shape_cls is None:
+            return None
+
+    return shape_cls(
+        s1=s1,
+        s2=s2,
+        y1=-1,
+        y2=1,
+        color=color,
+        name=ele.name,
+    )
