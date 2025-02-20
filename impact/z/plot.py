@@ -802,22 +802,22 @@ def default_shape_mapper(
     from . import input as IZ
 
     cls_to_shape = {
-        IZ.Drift: (None, "blue"),
-        IZ.Quadrupole: (LayoutXBox, "magenta"),
+        # IZ.Drift: (None, "black"),
+        IZ.Quadrupole: (LayoutXBox, "blue"),
         IZ.ConstantFocusing: (LayoutBox, "black"),
-        IZ.Solenoid: (LayoutBox, "blue"),
-        IZ.Dipole: (LayoutBox, "black"),
-        IZ.Multipole: (LayoutXBox, "black"),
+        IZ.Solenoid: (LayoutXBox, "blue"),
+        IZ.Dipole: (LayoutBox, "red"),
+        # IZ.Multipole: (LayoutXBox, "black"),
         IZ.DTL: (LayoutXBox, "black"),
         IZ.CCDTL: (LayoutXBox, "black"),
-        IZ.CCL: (LayoutXBox, "black"),
+        IZ.CCL: (LayoutXBox, "black"),  # standard tracking, standing/traveling wave
         IZ.SuperconductingCavity: (LayoutXBox, "black"),
-        IZ.SolenoidWithRFCavity: (LayoutXBox, "blue"),
+        IZ.SolenoidWithRFCavity: (LayoutXBox, "blue"),  # RK tracking, standing wave
         IZ.TravelingWaveRFCavity: (LayoutXBox, "black"),
         IZ.UserDefinedRFCavity: (LayoutXBox, "black"),
         # Control inputs
         IZ.ShiftCentroid: (LayoutDiamond, "blue"),
-        IZ.WriteFull: (LayoutBowTie, "red"),
+        IZ.WriteFull: (LayoutTriangle, "red"),
         IZ.DensityProfileInput: (LayoutDiamond, "green"),
         IZ.DensityProfile: (LayoutDiamond, "purple"),
         IZ.Projection2D: (LayoutDiamond, "brown"),
@@ -842,9 +842,9 @@ def default_shape_mapper(
     if isinstance(ele, Multipole):
         shape_cls = LayoutBox
         color = {
-            MultipoleType.sextupole: "green",
-            MultipoleType.octupole: "black",
-            MultipoleType.decapole: "black",
+            MultipoleType.sextupole: "magenta",
+            MultipoleType.octupole: "green",
+            MultipoleType.decapole: "orange",
         }[ele.multipole_type]
     else:
         shape_cls, color = cls_to_shape.get(type(ele), (None, ""))

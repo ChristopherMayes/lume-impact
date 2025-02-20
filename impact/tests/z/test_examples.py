@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -436,3 +437,6 @@ def test_run_example(example_input_file: ImpactZInput) -> None:
     I.input.lattice = I.input.lattice[:3]
     output = I.run()
     print(output)
+
+    I.plot()
+    plt.show()
