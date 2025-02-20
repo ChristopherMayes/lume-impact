@@ -220,6 +220,11 @@ doc_test_cases = {
         # 0.04m.
         "0. 0 0 -13 0.014 -0.02 0.02 /",
     ],
+    -14: [
+        # toggle space charge
+        "0.0 0 1 -14 0.1 -1.0 /",  # off
+        "0.0 0 1 -14 0.1 1.0 /",  # on
+    ],
     -18: [
         # radius=0.014m (not used), rotation angle = 0.5 rad.
         "0. 0 0 -18 0.014 0.5 /",
