@@ -457,7 +457,7 @@ class OutputStats(BaseModel):
         default_factory=_empty_ndarray,
         description="Total number of particles in the bunch.",
     )
-    neg_mean_rel_energy: MeVArray = pydantic.Field(
+    neg_mean_rel_energy: eVArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Negative delta mean energy (eV).",
         repr=False,
@@ -472,7 +472,7 @@ class OutputStats(BaseModel):
     )
     norm_emit_z: MetersArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Normalized RMS emittance in z-direction (degree-MeV).",
+        description="Normalized RMS emittance in z-direction (degree-eV).",
     )
     phase_ref: RadiansArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Absolute phase in radians."
