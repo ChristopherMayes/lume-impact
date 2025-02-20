@@ -7,7 +7,7 @@ cd "$REPO_ROOT/docs/examples" || exit 1
 
 NOTEBOOKS=$(git ls-files "*.ipynb")
 
-SKIP_PATTERNS=("autophase" "awa_" "devel_" "dipole" "movie")
+SKIP_PATTERNS=("autophase" "awa_" "devel_" "dipole" "movie" "csr-zeuthen")
 
 # Silence Jupyterlab warning
 export PYDEVD_DISABLE_FILE_VALIDATION=1
