@@ -810,11 +810,11 @@ def default_shape_mapper(
         # IZ.Multipole: (LayoutXBox, "black"),
         IZ.DTL: (LayoutXBox, "black"),
         IZ.CCDTL: (LayoutXBox, "black"),
-        IZ.CCL: (LayoutXBox, "black"),  # standard tracking, standing/traveling wave
-        IZ.SuperconductingCavity: (LayoutXBox, "black"),
-        IZ.SolenoidWithRFCavity: (LayoutXBox, "blue"),  # RK tracking, standing wave
-        IZ.TravelingWaveRFCavity: (LayoutXBox, "black"),
-        IZ.UserDefinedRFCavity: (LayoutXBox, "black"),
+        IZ.CCL: (LayoutXBox, "green"),  # standard tracking, standing/traveling wave
+        IZ.SolenoidWithRFCavity: (LayoutBox, "green"),  # RK tracking, standing wave
+        IZ.SuperconductingCavity: (LayoutXBox, "green"),
+        IZ.TravelingWaveRFCavity: (LayoutBox, "green"),
+        IZ.UserDefinedRFCavity: (LayoutXBox, "green"),
         # Control inputs
         IZ.ShiftCentroid: (LayoutDiamond, "blue"),
         IZ.WriteFull: (LayoutTriangle, "red"),
