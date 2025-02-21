@@ -504,7 +504,7 @@ def single_element_from_tao_info(
 
             phi0 = float(info["PHI0"])
             rf_frequency = float(info["RF_FREQUENCY"])
-            rf_wavelength = c_light / rf_frequency
+            # rf_wavelength = c_light / rf_frequency
             phi0_autoscale = float(info["PHI0_AUTOSCALE"])
             phi0_ref = rf_frequency * ref_time_start
             n_cell = int(info["N_CELL"])
@@ -524,7 +524,7 @@ def single_element_from_tao_info(
             return cls(
                 name=name,
                 length=length,
-                steps=int((length / rf_wavelength) * 180.0),
+                steps=n_cell * 36,  # heuristic that seems to work
                 map_steps=num_steps,
                 file_id=1.0,
                 rf_frequency=rf_frequency,
