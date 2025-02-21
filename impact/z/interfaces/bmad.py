@@ -32,12 +32,14 @@ from ..input import (
     AnyInputElement,
     CollimateBeamWithRectangularAperture,
     Dipole,
+    InputElementMetadata,
     IntegratorTypeSwitch,
     Multipole,
     Quadrupole,
     Solenoid,
     SolenoidWithRFCavity,
     SuperconductingCavity,
+    ToggleSpaceCharge,
     WriteFull,
 )
 
@@ -74,6 +76,17 @@ def ele_csr_enabled(
         return False
 
     return str(csr_method).lower() == "1_dim"
+
+
+def ele_space_charge_enabled(
+    ele_methods_info: TaoInfoDict,
+    global_csr_flag: bool = False,
+) -> bool:
+    if not global_csr_flag:
+        return False
+
+    space_charge_method = ele_methods_info.get("space_charge_method", "Off")
+    return str(space_charge_method).lower() != "off"
 
 
 def get_element_index(
@@ -283,6 +296,8 @@ def single_element_from_tao_info(
     num_steps = int(info.get("NUM_STEPS", 10))
     radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
     csr = ele_csr_enabled(ele_methods_info, global_csr_flag)
+    space_charge = ele_space_charge_enabled(ele_methods_info, global_csr_flag)
+    metadata: InputElementMetadata = {"bmad_csr": csr, "bmad_sc": space_charge}
 
     if all(key in info for key in ("Y_PITCH_TOT", "X_OFFSET_TOT", "Y_OFFSET_TOT")):
         offset_x = (
@@ -304,7 +319,7 @@ def single_element_from_tao_info(
             steps=num_steps,
             map_steps=num_steps,
             radius=1.0,  # no such thing in bmad, right?
-            metadata={"bmad_csr": csr},
+            metadata=metadata,
         ), None
 
     if key == "sbend":
@@ -337,6 +352,7 @@ def single_element_from_tao_info(
             # rotation_error_x=rotation_error_x,
             # rotation_error_y=rotation_error_y,
             # rotation_error_z=rotation_error_z,
+            metadata=metadata,
         ), None
 
     if key in {"sextupole", "octupole", "thick_multipole"}:
@@ -383,6 +399,7 @@ def single_element_from_tao_info(
             rotation_error_x=rotation_error_x,
             rotation_error_y=rotation_error_y,
             rotation_error_z=rotation_error_z,
+            metadata=metadata,
         ), None
 
     if key == "quadrupole":
@@ -418,6 +435,7 @@ def single_element_from_tao_info(
             rotation_error_x=rotation_error_x,
             rotation_error_y=rotation_error_y,
             rotation_error_z=-rotation_error_z,
+            metadata=metadata,
         ), None
     if key == "solenoid":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
@@ -437,6 +455,7 @@ def single_element_from_tao_info(
             rotation_error_x=rotation_error_x,
             rotation_error_y=rotation_error_y,
             rotation_error_z=rotation_error_z,
+            metadata=metadata,
         ), None
 
     if key == "lcavity":
@@ -472,6 +491,7 @@ def single_element_from_tao_info(
                 rotation_error_x=0.0,
                 rotation_error_y=0.0,
                 rotation_error_z=-rotation_error_z,
+                metadata=metadata,
             ), None
         if cls is SolenoidWithRFCavity:
             if has_superpositions:
@@ -520,6 +540,7 @@ def single_element_from_tao_info(
                 bz0=0.0,
                 gap_size_for_wakefield=0.0,
                 length_for_wakefield=0.0,
+                metadata=metadata,
             ), rf_data
         raise RuntimeError(f"Unexpected cavity type: {cls=}")
 
@@ -641,6 +662,9 @@ def element_from_tao(
     inner_ele, rfdata = res
     data = {}
 
+    assert "bmad_sc" in inner_ele.metadata
+    assert "bmad_csr" in inner_ele.metadata
+
     leading_elements: list[AnyInputElement] = []
     trailing_elements: list[AnyInputElement] = []
 
@@ -710,6 +734,17 @@ def change_lattice_integrator(
                 )
 
 
+def toggle_space_charge(lattice: list[AnyInputElement]) -> list[AnyInputElement]:
+    new_lattice = []
+    space_charge_enabled = False
+    for ele in lattice:
+        if ele.length > 0 and ele.metadata["bmad_sc"] != space_charge_enabled:
+            space_charge_enabled = bool(ele.metadata["bmad_sc"])
+            new_lattice.append(ToggleSpaceCharge(enable=space_charge_enabled))
+        new_lattice.append(ele)
+    return new_lattice
+
+
 @dataclass
 class ConversionState:
     track_start: str
@@ -769,6 +804,7 @@ class ConversionState:
         rfdata_file_id = initial_rfdata_file_id
 
         file_data: dict[str, np.ndarray] = {}
+
         for ele_id, name in self.idx_to_name.items():
             try:
                 z_elems, elem_data = element_from_tao(
@@ -827,6 +863,9 @@ class ConversionState:
         lattice.append(
             WriteFull(name="final_particles", file_id=final_particles_file_id)
         )
+
+        if self.global_csr_flag:
+            lattice = toggle_space_charge(lattice)
 
         self.tao_id_to_elems = tao_id_to_elems
         return lattice, file_data

@@ -53,7 +53,7 @@ input_element_by_id: dict[int, type[InputElement]] = {}
 logger = logging.getLogger(__name__)
 
 
-class InputElementMetadata(BaseModel):
+class _InputElementClassMetadata(BaseModel):
     element_id: int
     has_input_file: bool = False
     has_output_file: bool = False
@@ -73,8 +73,11 @@ class HasOutputFile(Protocol):
     file_id: float
 
 
+InputElementMetadata = dict[str, int | float | str | bool | NDArray]
+
+
 class InputElement(BaseModel):
-    _impactz_metadata_: ClassVar[InputElementMetadata]
+    _impactz_metadata_: ClassVar[_InputElementClassMetadata]
     _impactz_fields_: ClassVar[tuple[str, ...]]
     name: str = ""
     metadata: dict[str, int | float | str | bool | NDArray] = {}
@@ -94,7 +97,7 @@ class InputElement(BaseModel):
             raise RuntimeError(f"Duplicate element {element_id}")
 
         input_element_by_id[element_id] = cls
-        cls._impactz_metadata_ = InputElementMetadata(
+        cls._impactz_metadata_ = _InputElementClassMetadata(
             element_id=element_id,
             has_input_file=has_input_file,
             has_output_file=has_output_file,
