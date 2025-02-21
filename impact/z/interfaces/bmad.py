@@ -736,12 +736,19 @@ def change_lattice_integrator(
 
 def toggle_space_charge(lattice: list[AnyInputElement]) -> list[AnyInputElement]:
     new_lattice = []
+    was_enabled = False
     space_charge_enabled = False
     for ele in lattice:
         if ele.length > 0 and ele.metadata["bmad_sc"] != space_charge_enabled:
             space_charge_enabled = bool(ele.metadata["bmad_sc"])
+            was_enabled = True
             new_lattice.append(ToggleSpaceCharge(enable=space_charge_enabled))
         new_lattice.append(ele)
+
+    if not was_enabled:
+        # If space charge was never enabled throughout the lattice, disable it entirely from the start:
+        new_lattice.insert(0, ToggleSpaceCharge(enable=False))
+
     return new_lattice
 
 
@@ -866,6 +873,8 @@ class ConversionState:
 
         if self.global_csr_flag:
             lattice = toggle_space_charge(lattice)
+        else:
+            lattice.insert(0, ToggleSpaceCharge(enable=False))
 
         self.tao_id_to_elems = tao_id_to_elems
         return lattice, file_data
