@@ -117,8 +117,13 @@ def get_index_to_name(
     track_end: str | int | None = None,
 ) -> dict[int, str]:
     idx_to_name = tao_unique_names(tao)
-    ix_start = get_element_index(tao, track_start) if track_start else 0
-    ix_end = get_element_index(tao, track_end) if track_end else max(idx_to_name)
+
+    indices = cast(list[str], tao.lat_list("*", "ele.ix_ele"))
+    ix_first = int(indices[0])
+    ix_last = int(indices[-1])
+
+    ix_start = get_element_index(tao, track_start) if track_start else ix_first
+    ix_end = get_element_index(tao, track_end) if track_end else ix_last
     return {
         ix_ele: name
         for ix_ele, name in idx_to_name.items()
