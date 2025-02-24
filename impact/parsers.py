@@ -1,14 +1,15 @@
-from pmd_beamphysics.species import mass_of
-from . import tools, fieldmaps
-from .particles import identify_species
-from .tools import parse_float
-from pmd_beamphysics.units import unit, multiply_units
-
+import os
+import re
 import warnings
 
 import numpy as np
-import os
-import re
+import polars as pl
+from pmd_beamphysics.species import mass_of
+from pmd_beamphysics.units import multiply_units, unit
+
+from . import fieldmaps, tools
+from .particles import identify_species
+from .tools import parse_float
 
 # -----------------
 # Parsing ImpactT input file
@@ -1640,32 +1641,56 @@ def parse_impact_input(filePath, verbose=False):
 
 
 def parse_impact_particles(
-    filePath, names=("x", "GBx", "y", "GBy", "z", "GBz"), skiprows=0
+    filePath,
+    names=(
+        "x",
+        "GBx",
+        "y",
+        "GBy",
+        "z",
+        "GBz",
+        "charge_over_mass_ratio",
+        "charge_per_macroparticle",
+        "id",
+    ),
+    skiprows=0,
 ):
     """
     Parse Impact-T input and output particle data.
     Typical filenames: 'partcl.data', 'fort.40', 'fort.50'.
 
-    Note that partcl.data has the number of particles in the first line, so skiprows=1 should be used.
+    Note that partcl.data has the number of particles in the first line, so
+    skiprows=1 should be used.
 
     Returns a structured numpy array
 
-    Impact-T input/output particles distribions are ASCII files with columns:
+    Impact-T 3.0+ input/output particles distribions are ASCII files with 9 columns:
     x (m)
     GBy = gamma*beta_x (dimensionless)
     y (m)
     GBy = gamma*beta_y (dimensionless)
     z (m)
     GBz = gamma*beta_z (dimensionless)
-
+    charge_over_mass_ratio
+    charge_per_macroparticle
+    id
     """
 
-    dtype = {"names": names, "formats": 6 * [float]}
-    pdat = np.loadtxt(
-        filePath, skiprows=skiprows, dtype=dtype, ndmin=1
-    )  # to make sure that 1 particle is parsed the same as many.
-
-    return pdat
+    try:
+        return pl.read_csv(
+            filePath,
+            separator=" ",
+            has_header=False,
+            skip_rows=skiprows,
+            schema=dict.fromkeys(names, pl.Float64),
+        ).to_numpy(structured=True)
+    except pl.exceptions.ComputeError:
+        return np.loadtxt(
+            filePath,
+            skiprows=skiprows,
+            dtype={"names": names, "formats": 9 * [float]},
+            ndmin=1,  # to make sure that 1 particle is parsed the same as many.
+        )
 
 
 # -----------------------------------------------------------------
