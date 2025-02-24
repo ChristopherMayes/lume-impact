@@ -322,6 +322,27 @@ def single_element_from_tao_info(
             metadata=metadata,
         ), None
 
+    if key in {"hkicker", "vkicker", "kicker"}:
+        kick = max(  # integrated field kick in m-T
+            (
+                np.abs(info.get("BL_KICK", 0.0)),
+                np.abs(info.get("BL_VKICK", 0.0)),
+                np.abs(info.get("BL_HKICK", 0.0)),
+            )
+        )
+        if kick > 0.0:
+            raise NotImplementedError(
+                "Kickers with integrated field kick are not supported (bl_kick, bl_vkick, bl_hkick)"
+            )
+        return Drift(
+            length=length,
+            name=name,
+            steps=num_steps,
+            map_steps=num_steps,
+            radius=1.0,
+            metadata=metadata,
+        ), None
+
     if key == "sbend":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for SBend")
@@ -644,18 +665,22 @@ def element_from_tao(
     ele_ref_time_start = cast(TaoInfoDict, tao.ele_param(ele_id, "ele.ref_time_start"))
     ref_time_start = float(ele_ref_time_start["ele_ref_time_start"])
 
-    res = single_element_from_tao_info(
-        ele_id=ele_id,
-        info=info,
-        multipole_info=multipole_info,
-        ele_methods_info=ele_methods_info,
-        name=name,
-        global_csr_flag=global_csr_flag,
-        species=species,
-        integrator_type=integrator_type,
-        ref_time_start=ref_time_start,
-        has_superpositions=ele_has_superpositions(tao, ele_id),
-    )
+    try:
+        res = single_element_from_tao_info(
+            ele_id=ele_id,
+            info=info,
+            multipole_info=multipole_info,
+            ele_methods_info=ele_methods_info,
+            name=name,
+            global_csr_flag=global_csr_flag,
+            species=species,
+            integrator_type=integrator_type,
+            ref_time_start=ref_time_start,
+            has_superpositions=ele_has_superpositions(tao, ele_id),
+        )
+    except NotImplementedError as ex:
+        raise NotImplementedError(f"Element {name!r} (id={ele_id}): {ex}")  # from None
+
     if res is None:
         return [], {}
 

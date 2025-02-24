@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import pathlib
+from collections.abc import Generator
+from textwrap import dedent
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,6 +32,18 @@ lattices = pytest.mark.parametrize(
         for fn in lattice_root.glob("*.bmad")
     ],
 )
+
+
+@contextlib.contextmanager
+def tao_with_lattice(
+    tmp_path: pathlib.Path, contents: str, name: str = "lattice.lat"
+) -> Generator[Tao]:
+    lattice_path = tmp_path / name
+    with open(lattice_path, "w") as fp:
+        print(dedent(contents.rstrip()), file=fp)
+
+    with Tao(lattice_file=lattice_path, noplot=True) as tao:
+        yield tao
 
 
 @lattices
@@ -223,3 +238,34 @@ def test_check_initial_particles(tmp_path: pathlib.Path) -> None:
     )
     assert P0 == Pin
     assert P0_written == Pin
+
+
+@pytest.mark.parametrize(
+    "kicker",
+    [
+        "kick: hkicker, l = 0.6, bl_kick=1e-3",
+        "kick: vkicker, l = 0.6, bl_kick=1e-3",
+        "kick: kicker, l = 0.6, bl_hkick=1e-3",
+        "kick: kicker, l = 0.6, bl_vkick=1e-3",
+    ],
+)
+def test_kicker_with_nonzero_field_kick(tmp_path: pathlib.Path, kicker: str) -> None:
+    with pytest.raises(NotImplementedError):
+        with tao_with_lattice(
+            tmp_path=tmp_path,
+            contents=f"""\
+                no_digested
+                beginning[beta_a] = 10.   ! m  a-mode beta function
+                beginning[beta_b] = 10.   ! m  b-mode beta function
+                beginning[e_tot] = 10e6   ! eV
+
+                parameter[geometry] = open
+                parameter[particle] = electron
+
+                {kicker}
+
+                lat: line = (kick)
+                use, lat
+            """,
+        ) as tao:
+            ImpactZInput.from_tao(tao)
