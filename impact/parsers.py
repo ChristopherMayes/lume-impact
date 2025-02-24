@@ -1688,7 +1688,7 @@ def parse_impact_particles(
         return np.loadtxt(
             filePath,
             skiprows=skiprows,
-            dtype={"names": names, "formats": 9 * [float]},
+            dtype={"names": names, "formats": len(names) * [float]},
             ndmin=1,  # to make sure that 1 particle is parsed the same as many.
         )
 
