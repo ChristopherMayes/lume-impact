@@ -9,7 +9,10 @@ bmad_com[csr_and_space_charge_on] = T
 
 P1: Pipe, L = 0
 B1: sbend, L = 3, rho = 10, csr_method = 1_dim
-P2: Pipe, L = 0
+P2: Pipe, L = 1, csr_method = 1_dim
+
+!This will mess up Impact-Z's drift CSR
+!m1: marker, superimpose, ref = P2, ref_origin=beginning, offset = 0.1
 
 lat: line = (P1, B1, P2)
 
