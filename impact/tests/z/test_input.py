@@ -313,7 +313,7 @@ def test_plot_layout_all(include_labels: bool, include_markers: bool) -> None:
             IZ.ScaleMismatchParticle6DCoordinates(length=1.0),
             IZ.CollimateBeamWithRectangularAperture(length=1.0),
             IZ.ToggleSpaceCharge(length=1.0),
-            IZ.RotateBeamWithRespectToLongitudinalAxis(length=1.0),
+            IZ.RotateBeam(length=1.0),
             IZ.BeamShift(length=1.0),
             IZ.BeamEnergySpread(length=1.0),
             IZ.ShiftBeamCentroid(length=1.0),

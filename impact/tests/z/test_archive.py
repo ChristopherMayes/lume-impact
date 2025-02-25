@@ -149,8 +149,8 @@ lattice_element_classes = typing.get_args(AnyInputElement)
         #     id="CollimateBeamWithRectangularAperture",
         # ),
         # pytest.param(
-        #     IZ.RotateBeamWithRespectToLongitudinalAxis(),
-        #     id="RotateBeamWithRespectToLongitudinalAxis",
+        #     IZ.RotateBeam(),
+        #     id="RotateBeam",
         # ),
         # pytest.param(IZ.BeamShift(), id="BeamShift"),
         # pytest.param(IZ.BeamEnergySpread(), id="BeamEnergySpread"),
