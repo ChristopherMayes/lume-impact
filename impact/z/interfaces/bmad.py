@@ -36,6 +36,7 @@ from ..input import (
     IntegratorTypeSwitch,
     Multipole,
     Quadrupole,
+    RotateBeam,
     Solenoid,
     SolenoidWithRFCavity,
     SuperconductingCavity,
@@ -723,6 +724,12 @@ def element_from_tao(
 
     if inner_ele is None:
         return [], data
+
+    if isinstance(inner_ele, Dipole):
+        ref_tilt = cast(float, info["REF_TILT"])
+        if ref_tilt != 0.0:
+            leading_elements.append(RotateBeam(tilt=ref_tilt))
+            trailing_elements.insert(0, RotateBeam(tilt=-ref_tilt))
 
     if include_collimation:
         aperture_leading, aperture_trailing = add_aperture(
