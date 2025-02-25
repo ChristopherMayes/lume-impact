@@ -827,7 +827,7 @@ def default_shape_mapper(
         IZ.ScaleMismatchParticle6DCoordinates: (LayoutDiamond, "purple"),
         IZ.CollimateBeamWithRectangularAperture: (LayoutDiamond, "brown"),
         IZ.ToggleSpaceCharge: (LayoutCircle, "blue"),
-        IZ.RotateBeamWithRespectToLongitudinalAxis: (LayoutDiamond, "red"),
+        IZ.RotateBeam: (LayoutDiamond, "red"),
         IZ.BeamShift: (LayoutLetterX, "green"),
         IZ.BeamEnergySpread: (LayoutDiamond, "purple"),
         IZ.ShiftBeamCentroid: (LayoutCircle, "brown"),

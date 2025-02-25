@@ -1373,7 +1373,7 @@ class ToggleSpaceCharge(InputElement, element_id=-14):
     enable: float | bool = False
 
 
-class RotateBeamWithRespectToLongitudinalAxis(InputElement, element_id=-18):
+class RotateBeam(InputElement, element_id=-18):
     """
     Rotate the beam with respect to the longitudinal axis.
 
@@ -1386,17 +1386,9 @@ class RotateBeamWithRespectToLongitudinalAxis(InputElement, element_id=-18):
     map_steps : int
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
-    x : float
-        The x-coordinate.
-    y : float
-        The y-coordinate.
-    z : float
-        The z-coordinate.
-    id : int
-        The id value.
     radius : float
         The radius in meters.
-    rotation_angle : float
+    tilt : float
         The rotation angle in radians.
     """
 
@@ -1405,12 +1397,8 @@ class RotateBeamWithRespectToLongitudinalAxis(InputElement, element_id=-18):
     map_steps: int = 0
     type_id: Literal[-18] = -18
 
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 0.0
-    id: int = 0
     radius: float = 0.0
-    rotation_angle: float = 0.0
+    tilt: float = 0.0
 
 
 class BeamShift(InputElement, element_id=-19):
@@ -1718,7 +1706,7 @@ AnyInputElement = (
     | ScaleMismatchParticle6DCoordinates
     | CollimateBeamWithRectangularAperture
     | ToggleSpaceCharge
-    | RotateBeamWithRespectToLongitudinalAxis
+    | RotateBeam
     | BeamShift
     | BeamEnergySpread
     | ShiftBeamCentroid
@@ -3150,20 +3138,18 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(ToggleSpaceCharge)
 
     @property
-    def rotate_beam_with_respect_to_longitudinal_axiss(
+    def rotate_beams(
         self,
-    ) -> ElementListProxy[RotateBeamWithRespectToLongitudinalAxis]:
-        """List of all RotateBeamWithRespectToLongitudinalAxis instances."""
-        return self.by_element.get(
-            RotateBeamWithRespectToLongitudinalAxis, ElementListProxy()
-        )
+    ) -> ElementListProxy[RotateBeam]:
+        """List of all RotateBeam instances."""
+        return self.by_element.get(RotateBeam, ElementListProxy())
 
     @property
-    def rotate_beam_with_respect_to_longitudinal_axis(
+    def rotate_beam(
         self,
-    ) -> RotateBeamWithRespectToLongitudinalAxis:
-        """Get the sole RotateBeamWithRespectToLongitudinalAxis if it is defined."""
-        return self._get_only_one(RotateBeamWithRespectToLongitudinalAxis)
+    ) -> RotateBeam:
+        """Get the sole RotateBeam if it is defined."""
+        return self._get_only_one(RotateBeam)
 
     @property
     def beam_shifts(self) -> ElementListProxy[BeamShift]:

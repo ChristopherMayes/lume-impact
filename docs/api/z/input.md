@@ -36,7 +36,7 @@
 ::: impact.z.KickBeamUsingMultipole
 ::: impact.z.Projection2D
 ::: impact.z.RfcavityStructureWakefield
-::: impact.z.RotateBeamWithRespectToLongitudinalAxis
+::: impact.z.RotateBeam
 ::: impact.z.ScaleMismatchParticle6DCoordinates
 ::: impact.z.ShiftBeamCentroid
 ::: impact.z.ShiftCentroid
