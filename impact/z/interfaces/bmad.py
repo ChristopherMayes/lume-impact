@@ -350,6 +350,19 @@ def single_element_from_tao_info(
         ), None
 
     if key == "sbend":
+        angle = float(info["ANGLE"])
+
+        if angle == 0.0:
+            # Dipoles in Impact-Z don't work if they have zero angle
+            return Drift(
+                length=length,
+                name=name,
+                steps=num_steps,
+                map_steps=num_steps,
+                radius=1.0,
+                metadata=metadata,
+            ), None
+
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for SBend")
 
@@ -365,7 +378,7 @@ def single_element_from_tao_info(
             length=length,
             steps=num_steps,
             map_steps=num_steps,
-            angle=float(info["ANGLE"]),  # rad
+            angle=angle,  # rad
             k1=float(info["K1"]),
             input_switch=201.0 if csr else 0.0,
             hgap=float(info["HGAP"]),
