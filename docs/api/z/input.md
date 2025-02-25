@@ -26,7 +26,7 @@
 ::: impact.z.BeamEnergySpread
 ::: impact.z.BeamKickerByRFNonlinearity
 ::: impact.z.BeamShift
-::: impact.z.CollimateBeamWithRectangularAperture
+::: impact.z.CollimateBeam
 ::: impact.z.Density3D
 ::: impact.z.DensityProfile
 ::: impact.z.DensityProfileInput

@@ -145,8 +145,8 @@ lattice_element_classes = typing.get_args(AnyInputElement)
         #     id="ScaleMismatchParticle6DCoordinates",
         # ),
         # pytest.param(
-        #     IZ.CollimateBeamWithRectangularAperture(),
-        #     id="CollimateBeamWithRectangularAperture",
+        #     IZ.CollimateBeam(),
+        #     id="CollimateBeam",
         # ),
         # pytest.param(
         #     IZ.RotateBeam(),

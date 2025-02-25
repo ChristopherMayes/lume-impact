@@ -30,7 +30,7 @@ from ..fieldmaps import make_solenoid_rfcavity_rfdata_simple
 from ..input import (
     CCL,
     AnyInputElement,
-    CollimateBeamWithRectangularAperture,
+    CollimateBeam,
     Dipole,
     InputElementMetadata,
     IntegratorTypeSwitch,
@@ -591,7 +591,7 @@ def add_aperture(
         return [], []
 
     if aperture_type in {"rectangular", "elliptical"}:
-        aperture = CollimateBeamWithRectangularAperture(
+        aperture = CollimateBeam(
             name=f"{element.name}_aperture",
             radius=radius,
             xmin=x1_limit,

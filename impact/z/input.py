@@ -79,6 +79,8 @@ InputElementMetadata = dict[str, int | float | str | bool | NDArray]
 class InputElement(BaseModel):
     _impactz_metadata_: ClassVar[_InputElementClassMetadata]
     _impactz_fields_: ClassVar[tuple[str, ...]]
+    # Minimum file ID to be recognized as an input file
+    _impactz_min_file_id_: ClassVar[int] = 0
     name: str = ""
     metadata: dict[str, int | float | str | bool | NDArray] = {}
 
@@ -631,11 +633,6 @@ class CCDTL(InputElement, element_id=102, has_input_file=True):
         Rotation error around the y-axis in radians.
     rotation_error_z : float
         Rotation error around the z-axis in radians.
-
-    Class Attributes
-    ----------------
-    type: str
-        Type of the element, set as 'ccdtl'.
     """
 
     length: float = 0.0
@@ -1033,7 +1030,7 @@ class WriteFull(InputElement, element_id=-2, has_output_file=True):
 
 class DensityProfileInput(InputElement, element_id=-3):
     """
-    Class to represent the density profile input parameters.
+    Input element: density profile input parameters.
 
     Attributes
     ----------
@@ -1076,7 +1073,7 @@ class DensityProfileInput(InputElement, element_id=-3):
 
 class DensityProfile(InputElement, element_id=-4):
     """
-    Class to write the density along R, X, Y into files such as Xprof2.data, Yprof2.data, RadDens2.data.
+    Input element: write the density along R, X, Y into files.
 
     Attributes
     ----------
@@ -1162,7 +1159,7 @@ class Projection2D(InputElement, element_id=-5):
 
 class Density3D(InputElement, element_id=-6):
     """
-    Class representing the 3D density input element.
+    Input element: 3D density.
 
     Attributes
     ----------
@@ -1187,7 +1184,6 @@ class Density3D(InputElement, element_id=-6):
         Maximum z value in degrees.
     pzmax : float
         Maximum pz value in mc^2.
-
     """
 
     length: float = 0.0
@@ -1206,8 +1202,10 @@ class Density3D(InputElement, element_id=-6):
 
 class WritePhaseSpaceInfo(InputElement, element_id=-7):
     """
-    Class to write the 6D phase space information and local computation
-    domain information into files fort.1000, fort.1001, fort.1002, ...,
+    Input element: write the 6D phase space information and local computation
+    domain information.
+
+    Writes to files fort.1000, fort.1001, fort.1002, ...,
     fort.(1000+Nprocessor-1). This function is used for restart purposes.
     """
 
@@ -1222,47 +1220,42 @@ class WriteSliceInfo(InputElement, element_id=-8, has_output_file=True):
     """
     Write slice information into file fort.{file_id} using specific slices.
 
+    If the twiss mismatch parameters (alpha_x, etc.) are not provided, the
+    mismatch factor will be ignored.
+
     Attributes
     ----------
     length : float
         Unused.
     steps : int
         Unused.
-    map_steps : int
-        Number of "map steps". Each half-step involves computing a map for that
-        half-element which is computed by numerical integration.
     file_id : float
-        Element file id.
-    slices : float
+        The file ID to write slice information to.
+    slices : int
         Number of slices.
-    alphaX : float
-        Twiss parameter alphaX at the location.
-    betaX : float
-        Twiss parameter betaX at the location (m).
-    alphaY : float
-        Twiss parameter alphaY at the location.
-    betaY : float
-        Twiss parameter betaY at the location (m).
+    alpha_x : float
+        Twiss parameter alpha_x at the location.
+    beta_x : float
+        Twiss parameter beta_x at the location (m).
+    alpha_y : float
+        Twiss parameter alpha_y at the location.
+    beta_y : float
+        Twiss parameter beta_y at the location (m).
     """
 
     length: float = 0.0
     steps: int = 0
-    map_steps: int = 0
+    file_id: int = pydantic.Field(
+        default=0,
+        validation_alias=pydantic.AliasChoices("file_id", "map_steps"),
+    )
     type_id: Literal[-8] = -8
 
-    slices: float = 0.0
-    alphaX: float = 0.0
-    betaX: float = 0.0
-    alphaY: float = 0.0
-    betaY: float = 0.0
-
-    @property
-    def file_id(self) -> int:
-        return self.map_steps
-
-    @file_id.setter
-    def file_id(self, value) -> None:
-        self.map_steps = value
+    slices: int = 0
+    alpha_x: float = 0.0
+    beta_x: float = 0.0
+    alpha_y: float = 0.0
+    beta_y: float = 0.0
 
 
 class ScaleMismatchParticle6DCoordinates(InputElement, element_id=-10):
@@ -1308,7 +1301,7 @@ class ScaleMismatchParticle6DCoordinates(InputElement, element_id=-10):
     ptmis: float = 0.0
 
 
-class CollimateBeamWithRectangularAperture(InputElement, element_id=-13):
+class CollimateBeam(InputElement, element_id=-13):
     """
     Collimate the beam with transverse rectangular aperture sizes.
 
@@ -1403,7 +1396,7 @@ class RotateBeam(InputElement, element_id=-18):
 
 class BeamShift(InputElement, element_id=-19):
     """
-    BeamShift shifts the beam longitudinally to the bunch centroid.
+    BeamShift shifts the beam longitudinally to the bunch centroid.so that <dt>=<dE>=0.
 
     Attributes
     ----------
@@ -1414,20 +1407,20 @@ class BeamShift(InputElement, element_id=-19):
     map_steps : int
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
-    shift : float
-        The amount to shift the beam longitudinally so that <dt>=<dE>=0.
+    unused : float
     """
 
     length: float = 0.0
     steps: int = 0
     map_steps: int = 0
     type_id: Literal[-19] = -19
-    shift: float = 0.0
+
+    unused: float = 0.0
 
 
 class BeamEnergySpread(InputElement, element_id=-20):
     """
-    Class representing a beam energy spread input element.
+    Input element: a beam energy spread input element.
 
     Attributes
     ----------
@@ -1448,6 +1441,7 @@ class BeamEnergySpread(InputElement, element_id=-20):
     steps: int = 0
     map_steps: int = 0
     type_id: Literal[-20] = -20
+
     radius: float = 0.0
     energy_spread: float = 0.0
 
@@ -1497,7 +1491,7 @@ class ShiftBeamCentroid(InputElement, element_id=-21):
 
 class IntegratorTypeSwitch(InputElement, element_id=-25):
     """
-    Class to switch the integrator type using the "bmpstp" value (the 3rd number of the line).
+    Input element: switch the integrator type.
 
     Attributes
     ----------
@@ -1523,7 +1517,11 @@ class IntegratorTypeSwitch(InputElement, element_id=-25):
 
 class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
     """
-    Beam kicker element that applies a longitudinal kick to the beam by the RF nonlinearity.
+    Beam kicker element that applies a longitudinal kick to the beam by the RF
+    nonlinearity.
+
+    Note that the linear part has been included in the map integrator and
+    subtracted.
 
     Attributes
     ----------
@@ -1534,14 +1532,14 @@ class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
     map_steps : int
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
+    radius : float
+        Radius in meters (not used).
     vmax : float
         Maximum voltage in volts (V).
     phi0 : float
         Initial phase offset in degrees.
     harm : int
         Harmonic number with respect to the reference frequency.
-    radius : float
-        Radius in meters (not used).
     """
 
     length: float = 0.0
@@ -1549,15 +1547,15 @@ class BeamKickerByRFNonlinearity(InputElement, element_id=-40):
     map_steps: int = 0
     type_id: Literal[-40] = -40
 
+    radius: float = 0.0
     vmax: float = 0.0
     phi0: float = 0.0
     harm: int = 0
-    radius: float = 0.0
 
 
 class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=True):
     """
-    Class representing the read-in RF cavity structure wakefield.
+    Input element: read in RF cavity structure wakefield.
 
     Attributes
     ----------
@@ -1569,8 +1567,9 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
     file_id : float
-        -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
+        The file ID to load from.
     enable_wakefield : float
+        -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
     """
 
     length: float = 0.0
@@ -1578,15 +1577,34 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     map_steps: int = 0
     type_id: Literal[-41] = -41
 
-    not_used: float = 1.0
+    unused: float = 1.0
     file_id: float = 0.0
-    # TODO -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
     enable_wakefield: float = 0.0
+
+    # Minimum file ID to be recognized as an input file. Override the parent class.
+    _impactz_min_file_id_: ClassVar[int] = 0
+
+    def set_rf(self, rf_on: bool, transverse_wake_effects: bool) -> None:
+        if rf_on:
+            if transverse_wake_effects:
+                self.enable_wakefield = 10.0
+            else:
+                self.enable_wakefield = 1.0
+        else:
+            self.enable_wakefield = -1.0
+
+    @property
+    def rf_on(self) -> bool:
+        return self.enable_wakefield > 0.0
+
+    @property
+    def transverse_wake_effects(self) -> bool:
+        return self.enable_wakefield >= 10.0
 
 
 class EnergyModulation(InputElement, element_id=-52):
     """
-    Class representing the energy modulation (emulate laser heater).
+    Input element: energy modulation (emulate laser heater).
 
     Attributes
     ----------
@@ -1617,7 +1635,7 @@ class EnergyModulation(InputElement, element_id=-52):
 
 class KickBeamUsingMultipole(InputElement, element_id=-55):
     """
-    Kick the beam using thin lens multipole.
+    Input element: kick the beam using thin lens multipole.
 
     Attributes
     ----------
@@ -1704,7 +1722,7 @@ AnyInputElement = (
     | WritePhaseSpaceInfo
     | WriteSliceInfo
     | ScaleMismatchParticle6DCoordinates
-    | CollimateBeamWithRectangularAperture
+    | CollimateBeam
     | ToggleSpaceCharge
     | RotateBeam
     | BeamShift
@@ -1734,14 +1752,14 @@ class ElementListProxy(list[T_InputElement]):
 
     # auto-generated (see _generate_attr_list_ below)
     Bz0: list[float] | float
-    alphaX: list[float] | float
-    alphaY: list[float] | float
+    alpha_x: list[float] | float
+    alpha_y: list[float] | float
     angle: list[float] | float
     aperture_size_for_wakefield: list[float] | float
     beam_centroid_6D: list[float] | float
     beam_size: list[float] | float
-    betaX: list[float] | float
-    betaY: list[float] | float
+    beta_x: list[float] | float
+    beta_y: list[float] | float
     bz0: list[float] | float
     coordinate_type: list[RFCavityCoordinateType] | RFCavityCoordinateType
     data_mode: list[RFCavityDataMode] | RFCavityDataMode
@@ -1780,7 +1798,6 @@ class ElementListProxy(list[T_InputElement]):
     multipole_type: list[MultipoleType] | MultipoleType
     name: list[str] | str
     nonlinear_lorentz_integrator: list[float] | float
-    not_used: list[float] | float
     phase_deg: list[float] | float
     phase_diff: list[float] | float
     phi0: list[float] | float
@@ -3112,20 +3129,14 @@ class ImpactZInput(BaseModel):
         return self._get_only_one(ScaleMismatchParticle6DCoordinates)
 
     @property
-    def collimate_beam_with_rectangular_apertures(
-        self,
-    ) -> ElementListProxy[CollimateBeamWithRectangularAperture]:
-        """List of all CollimateBeamWithRectangularAperture instances."""
-        return self.by_element.get(
-            CollimateBeamWithRectangularAperture, ElementListProxy()
-        )
+    def collimate_beams(self) -> ElementListProxy[CollimateBeam]:
+        """List of all CollimateBeam instances."""
+        return self.by_element.get(CollimateBeam, ElementListProxy())
 
     @property
-    def collimate_beam_with_rectangular_aperture(
-        self,
-    ) -> CollimateBeamWithRectangularAperture:
-        """Get the sole CollimateBeamWithRectangularAperture if it is defined."""
-        return self._get_only_one(CollimateBeamWithRectangularAperture)
+    def collimate_beam(self) -> CollimateBeam:
+        """Get the sole CollimateBeam if it is defined."""
+        return self._get_only_one(CollimateBeam)
 
     @property
     def toggle_space_charges(self) -> ElementListProxy[ToggleSpaceCharge]:

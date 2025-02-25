@@ -311,7 +311,7 @@ def test_plot_layout_all(include_labels: bool, include_markers: bool) -> None:
             IZ.WritePhaseSpaceInfo(length=1.0),
             IZ.WriteSliceInfo(length=1.0),
             IZ.ScaleMismatchParticle6DCoordinates(length=1.0),
-            IZ.CollimateBeamWithRectangularAperture(length=1.0),
+            IZ.CollimateBeam(length=1.0),
             IZ.ToggleSpaceCharge(length=1.0),
             IZ.RotateBeam(length=1.0),
             IZ.BeamShift(length=1.0),
