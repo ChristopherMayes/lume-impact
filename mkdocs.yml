@@ -48,14 +48,19 @@ nav:
       - Elements:
           - examples/z/elements/drift.ipynb
           - examples/z/elements/dipole.ipynb
+      - Space charge:
+          - examples/z/elements/spacecharge-benchmark.ipynb
+          - examples/z/elements/spacecharge-drift-bmad.ipynb
+      - CSR:
+          - examples/z/elements/csr-zeuthen.ipynb
+          - examples/z/elements/csr-bench-bmad.ipynb
       - Bmad Comparison:
-          # - docs/examples/z/elements/csr-bench-bmad.ipynb
           - examples/z/elements/decapole-bmad.ipynb
           - examples/z/elements/dipole-bmad.ipynb
           - examples/z/elements/drift-bmad.ipynb
           - examples/z/elements/lcavity-bmad.ipynb
           - examples/z/elements/octupole-bmad.ipynb
-          # - docs/examples/z/elements/optics-matching-bmad.ipynb
+          - examples/z/elements/optics-matching-bmad.ipynb
           - examples/z/elements/quadrupole-bmad.ipynb
           - examples/z/elements/sextupole-bmad.ipynb
           - examples/z/elements/solenoid-bmad.ipynb
