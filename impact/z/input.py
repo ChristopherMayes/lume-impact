@@ -1960,13 +1960,162 @@ class ZElement(NamedTuple):
 
 
 class ImpactZInput(BaseModel):
-    """Input settings for an IMPACT-Z run."""
+    """
+    Input settings for an IMPACT-Z run.
+
+    In the docstring, parameters are grouped by their line number in the
+    file, where `ncpu_y` starts on line 1.
+
+    String values may be used in place of enumeration instances. For example,
+
+    >>> ImpactZInput(integrator_type="linear_map")
+
+    is equivalent to:
+
+    >>> ImpactZInput(integrator_type=IntegratorType.linear_map)
+
+    Parameters
+    ----------
+    initial_particles : ParticleGroup or None, optional
+        Initial particle distribution. Default is None.
+    file_data : dict[str, NDArray], optional
+        User-provided external file data, indexed by either file ID or name of
+        element - both as strings. Default is an empty dict.
+
+    ncpu_y : int, optional
+        Number of processors in y direction. Default is 1.
+    ncpu_z : int, optional
+        Number of processors in z direction. Default is 1.
+
+    seed : int, optional
+        Random number seed. Default is 0.
+    n_particle : int, optional
+        Number of particles. Default is 0.
+    integrator_type : IntegratorType or str, optional
+        Type of integrator. Default is `IntegratorType.linear_map`
+        (equivalently "linear_map").
+    err : int, optional
+        Error flag. Default is 1.
+    diagnostic_type : DiagnosticType, optional
+        Type of diagnostics. Default is DiagnosticType.extended.
+
+    nx : int, optional
+        Number of mesh points in x. Default is 0.
+    ny : int, optional
+        Number of mesh points in y. Default is 0.
+    nz : int, optional
+        Number of mesh points in z. Default is 0.
+    boundary_type : BoundaryType, optional
+        Boundary condition type. Default is `BoundaryType.trans_open_longi_open`.
+    radius_x : float, optional
+        Pipe radius in x direction. Default is 0.0.
+    radius_y : float, optional
+        Pipe radius in y direction. Default is 0.0.
+    z_period_size : float, optional
+        Period size in z direction. Default is 0.0.
+
+    distribution : DistributionType, optional
+        Particle distribution type. Default is `DistributionType.uniform`.
+    restart : int, optional
+        Restart flag. Default is 0.
+    subcycle : int, optional
+        Subcycling flag. Default is 0.
+    nbunch : int, optional
+        Number of bunches. Default is 0.
+
+    particle_list : list[int], optional
+        List of particles. Default is [0].
+        This must be the same length as `current_list` and
+        `charge_over_mass_list`.
+
+    current_list : list[float], optional
+        List of currents for each particle type. Default is [0.0].
+        This is used with:
+        * `DistributionType.waterbag` and
+          `DistributionType.multi_charge_state_gaussian`.
+
+    charge_over_mass_list : list[float], optional
+        List of charge-to-mass ratios for each particle type. Default is [0.0].
+        This is used with:
+        * `DistributionType.waterbag` and
+          `DistributionType.multi_charge_state_gaussian`.
+        * `CollimateBeam` elements
+        * Calculating space charge forces
+
+    twiss_alpha_x : float, optional
+        Alpha Twiss parameter in x plane. Default is 0.0.
+    twiss_beta_x : float, optional
+        Beta Twiss parameter in x plane. Default is 1.0.
+    twiss_norm_emit_x : float, optional
+        Normalized emittance in x plane. Default is 1e-6.
+    twiss_mismatch_x : float, optional
+        Mismatch factor for x coordinate. Default is 1.0.
+    twiss_mismatch_px : float, optional
+        Mismatch factor for px coordinate. Default is 1.0.
+    twiss_offset_x : float, optional
+        Offset in x coordinate. Default is 0.0.
+    twiss_offset_px : float, optional
+        Offset in px coordinate. Default is 0.0.
+
+    twiss_alpha_y : float, optional
+        Alpha Twiss parameter in y plane. Default is 0.0.
+    twiss_beta_y : float, optional
+        Beta Twiss parameter in y plane. Default is 1.0.
+    twiss_norm_emit_y : float, optional
+        Normalized emittance in y plane. Default is 1e-6.
+    twiss_mismatch_y : float, optional
+        Mismatch factor for y coordinate. Default is 1.0.
+    twiss_mismatch_py : float, optional
+        Mismatch factor for py coordinate. Default is 1.0.
+    twiss_offset_y : float, optional
+        Offset in y coordinate. Default is 0.0.
+    twiss_offset_py : float, optional
+        Offset in py coordinate. Default is 0.0.
+
+    twiss_alpha_z : float, optional
+        Alpha Twiss parameter in z plane. Default is 0.0.
+    twiss_beta_z : float, optional
+        Beta Twiss parameter in z plane. Default is 1.0.
+    twiss_norm_emit_z : float, optional
+        Normalized emittance in z plane. Default is 1e-6.
+    twiss_mismatch_z : float, optional
+        Mismatch factor for z coordinate. Default is 1.0.
+    twiss_mismatch_e_z : float, optional
+        Mismatch factor for energy coordinate. Default is 1.0.
+    twiss_offset_phase_z : float, optional
+        Offset in z phase. Default is 0.0.
+    twiss_offset_energy_z : float, optional
+        Offset in energy. Default is 0.0.
+
+    average_current : float, optional
+        Average beam current in Amperes. Default is 1.0.
+    reference_kinetic_energy : float, optional
+        Reference particle kinetic energy. Default is 0.0.
+    reference_particle_mass : float, optional
+        Reference particle mass. Default is 0.0.
+    reference_particle_charge : float, optional
+        Reference particle charge. Default is 0.0.
+    reference_frequency : float, optional
+        Reference RF frequency. Default is 0.0.
+    initial_phase_ref : float, optional
+        Initial phase of reference particle. Default is 0.0.
+
+    lattice : list[AnyInputElement], optional
+        List of lattice elements. Default is empty list.
+
+    filename : pathlib.Path or None, optional
+        Input file path. Default is None. (Excluded from JSON serialization.)
+    verbose : bool, optional
+        Verbose output flag when running IMPACT-Z. Default is False.
+    """
 
     initial_particles: PydanticParticleGroup | None = None
+    # User-provided external file data, indexed by file number or element name
+    file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
 
     # Line 1
-    ncpu_y: int = 0
-    ncpu_z: int = 0
+    ncpu_y: int = 1
+    ncpu_z: int = 1
     gpu: GPUFlag = GPUFlag.disabled
 
     # Line 2
@@ -1991,13 +2140,13 @@ class ImpactZInput(BaseModel):
     subcycle: int = 0
     nbunch: int = 0
 
-    # Line 5 (NOTE: I think this is unused based on the source code)
+    # Line 5
     particle_list: list[int] = [0]
 
-    # Line 6 (NOTE: I think this is unused based on the source code)
+    # Line 6
     current_list: list[float] = [0.0]
 
-    # Line 7 (NOTE: I think this is unused based on the source code)
+    # Line 7
     charge_over_mass_list: list[float] = [0.0]
 
     # Line 8
@@ -2041,9 +2190,6 @@ class ImpactZInput(BaseModel):
     # Internal
     filename: pathlib.Path | None = pydantic.Field(default=None, exclude=True)
     verbose: bool = False
-
-    # User-provided external file data, indexed by number
-    file_data: dict[str, NDArray] = pydantic.Field(default={}, repr=False)
 
     def write_particles_at(
         self,
