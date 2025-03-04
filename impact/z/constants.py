@@ -94,6 +94,7 @@ class DistributionType(IntEnum):
     waterBag = 3
     semiGauss = 4
     kV = 5
+    unknown = 6
     read = 19
     multi_charge_state_waterbag = 16
     multi_charge_state_gaussian = 17

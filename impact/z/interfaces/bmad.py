@@ -948,7 +948,7 @@ class ConversionState:
             ny = self.space_charge_mesh_size[1]
         if nz is None:
             nz = self.space_charge_mesh_size[2]
-        return ImpactZInput(
+        input = ImpactZInput(
             # Line 1
             ncpu_y=ncpu_y,
             ncpu_z=ncpu_z,
@@ -976,7 +976,6 @@ class ConversionState:
             restart=0,
             subcycle=0,
             nbunch=0,
-            # I think there are unused:
             # particle_list=[],
             # current_list=[],
             # charge_over_mass_list=[],
@@ -1015,6 +1014,9 @@ class ConversionState:
             # External file data
             file_data=file_data,
         )
+        # if self.global_csr_flag:
+        #     input.space_charge_on()
+        return input
 
     @classmethod
     def from_tao(

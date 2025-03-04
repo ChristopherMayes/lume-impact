@@ -3038,6 +3038,57 @@ class ImpactZInput(BaseModel):
             figsize=figsize,
         )
 
+    @property
+    def bounds(self):
+        """
+        Calculate the bounds based on the Twiss settings and distribution type.
+
+        Returns
+        -------
+        (xmin, xmax)
+        (ymin, ymax)
+        (zmin, zmax)
+        """
+        sig11x = self.twiss_alpha_x * self.twiss_mismatch_x
+        # sig22x = self.twiss_beta_x * self.twiss_mismatch_px
+        sig11y = self.twiss_alpha_y * self.twiss_mismatch_y
+        # sig22y = self.twiss_beta_y * self.twiss_mismatch_py
+        sig11z = self.twiss_alpha_z * self.twiss_mismatch_z
+        # sig22z = self.twiss_beta_z * self.twiss_mismatch_e_z
+
+        if self.distribution == DistributionType.uniform:
+            xy_factor = z_factor = np.sqrt(3.0)
+        elif self.distribution == DistributionType.gauss:
+            xy_factor = z_factor = 4.0
+        elif self.distribution == DistributionType.waterBag:
+            xy_factor = z_factor = np.sqrt(8.0)
+        elif self.distribution == DistributionType.semiGauss:
+            xy_factor = z_factor = np.sqrt(5.0)
+        elif self.distribution == DistributionType.unknown:  # read in or fortran bug?
+            xy_factor = z_factor = 2.0
+        elif self.distribution == DistributionType.kV:  # 3d kv
+            xy_factor = 2
+            z_factor = np.sqrt(3.0)
+        else:  # default case
+            xy_factor = z_factor = np.sqrt(3.0)
+
+        emit_x_sqr = self.twiss_norm_emit_x * self.twiss_norm_emit_x
+        emit_y_sqr = self.twiss_norm_emit_y * self.twiss_norm_emit_y
+        emit_z_sqr = self.twiss_norm_emit_z * self.twiss_norm_emit_z
+
+        xmin = self.twiss_offset_x + -xy_factor * sig11x / np.sqrt(1.0 - emit_x_sqr)
+        xmax = self.twiss_offset_x + xy_factor * sig11x / np.sqrt(1.0 - emit_x_sqr)
+        ymin = self.twiss_offset_y + -xy_factor * sig11y / np.sqrt(1.0 - emit_y_sqr)
+        ymax = self.twiss_offset_y + xy_factor * sig11y / np.sqrt(1.0 - emit_y_sqr)
+        zmin = self.twiss_offset_phase_z - z_factor * sig11z / np.sqrt(1.0 - emit_z_sqr)
+        zmax = self.twiss_offset_phase_z + z_factor * sig11z / np.sqrt(1.0 - emit_z_sqr)
+
+        return (
+            (float(xmin), float(xmax)),
+            (float(ymin), float(ymax)),
+            (float(zmin), float(zmax)),
+        )
+
     # @property
     # def LOWERs(self) -> ElementListProxy[ELEMENT]:
     #     """List of all ELEMENT instances."""
