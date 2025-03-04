@@ -2863,10 +2863,8 @@ class ImpactZInput(BaseModel):
     @nproc.setter
     def nproc(self, n: int | None) -> None:
         n = int(n or 0)
-        if n < 0:
-            raise ValueError("nproc must be >= 0")
-        if not n:
-            n = tools.get_suggested_nproc()
+        if n <= 0:
+            n = tools.get_suggested_nproc() + n
 
         Npcol, Nprow = suggested_processor_domain(self.nz, self.ny, n)
 
