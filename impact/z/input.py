@@ -3041,7 +3041,7 @@ class ImpactZInput(BaseModel):
     @property
     def bounds(self):
         """
-        Calculate the bounds based on the Twiss settings and distribution type.
+        Calculate the phase bounds based on the Twiss settings and distribution type.
 
         Returns
         -------
@@ -3056,32 +3056,38 @@ class ImpactZInput(BaseModel):
         sig11z = self.twiss_alpha_z * self.twiss_mismatch_z
         # sig22z = self.twiss_beta_z * self.twiss_mismatch_e_z
 
-        if self.distribution == DistributionType.uniform:
-            xy_factor = z_factor = np.sqrt(3.0)
-        elif self.distribution == DistributionType.gauss:
-            xy_factor = z_factor = 4.0
-        elif self.distribution == DistributionType.waterBag:
-            xy_factor = z_factor = np.sqrt(8.0)
-        elif self.distribution == DistributionType.semiGauss:
-            xy_factor = z_factor = np.sqrt(5.0)
-        elif self.distribution == DistributionType.unknown:  # read in or fortran bug?
-            xy_factor = z_factor = 2.0
-        elif self.distribution == DistributionType.kV:  # 3d kv
-            xy_factor = 2
-            z_factor = np.sqrt(3.0)
-        else:  # default case
-            xy_factor = z_factor = np.sqrt(3.0)
+        xy_factor, z_factor = {
+            DistributionType.uniform: (np.sqrt(3.0), np.sqrt(3.0)),
+            DistributionType.gauss: (4.0, 4.0),
+            DistributionType.waterBag: (np.sqrt(8.0), np.sqrt(8.0)),
+            DistributionType.semiGauss: (np.sqrt(5.0), np.sqrt(5.0)),
+            DistributionType.unknown: (2.0, 2.0),  # read in or fortran bug?
+            DistributionType.kV: (2.0, np.sqrt(3.0)),
+        }.get(self.distribution, (np.sqrt(3.0), np.sqrt(3.0)))
 
         emit_x_sqr = self.twiss_norm_emit_x * self.twiss_norm_emit_x
         emit_y_sqr = self.twiss_norm_emit_y * self.twiss_norm_emit_y
         emit_z_sqr = self.twiss_norm_emit_z * self.twiss_norm_emit_z
 
-        xmin = self.twiss_offset_x + -xy_factor * sig11x / np.sqrt(1.0 - emit_x_sqr)
+        xmin = self.twiss_offset_x - xy_factor * sig11x / np.sqrt(1.0 - emit_x_sqr)
         xmax = self.twiss_offset_x + xy_factor * sig11x / np.sqrt(1.0 - emit_x_sqr)
-        ymin = self.twiss_offset_y + -xy_factor * sig11y / np.sqrt(1.0 - emit_y_sqr)
+        ymin = self.twiss_offset_y - xy_factor * sig11y / np.sqrt(1.0 - emit_y_sqr)
         ymax = self.twiss_offset_y + xy_factor * sig11y / np.sqrt(1.0 - emit_y_sqr)
         zmin = self.twiss_offset_phase_z - z_factor * sig11z / np.sqrt(1.0 - emit_z_sqr)
         zmax = self.twiss_offset_phase_z + z_factor * sig11z / np.sqrt(1.0 - emit_z_sqr)
+
+        if self.boundary_type == BoundaryType.trans_round_longi_open:
+            xmin = 0.0
+            xmax = self.radius_x
+            ymin = 0.0
+            ymax = 4 * np.pi / 2.0
+        elif self.boundary_type == BoundaryType.trans_round_longi_period:
+            xmin = 0.0
+            xmax = self.radius_x
+            ymin = 0.0
+            ymax = 4 * np.pi / 2.0
+            zmin = -self.z_period_size / 2
+            zmax = self.z_period_size / 2
 
         return (
             (float(xmin), float(xmax)),
