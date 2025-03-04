@@ -829,6 +829,7 @@ class ConversionState:
     species_mass: float
 
     reference_kinetic_energy: float
+    space_charge_mesh_size: tuple[int, int, int]
 
     omega: float
     initial_phase_ref: float
@@ -937,10 +938,16 @@ class ConversionState:
         radius_y: float = 0.0,
         ncpu_y: int = 1,
         ncpu_z: int = 1,
-        nx: int = 64,
-        ny: int = 64,
-        nz: int = 64,
+        nx: int | None = None,
+        ny: int | None = None,
+        nz: int | None = None,
     ) -> ImpactZInput:
+        if nx is None:
+            nx = self.space_charge_mesh_size[0]
+        if ny is None:
+            ny = self.space_charge_mesh_size[1]
+        if nz is None:
+            nz = self.space_charge_mesh_size[2]
         return ImpactZInput(
             # Line 1
             ncpu_y=ncpu_y,
@@ -1062,6 +1069,8 @@ class ConversionState:
         initial_phase_ref = float(start_head["ref_time"]) * omega
         tao_global = cast(dict, tao.tao_global())
 
+        space_charge_com = cast(dict, tao.space_charge_com())
+
         return cls(
             track_start=idx_to_name[ix_beginning],
             track_end=idx_to_name[ix_end],
@@ -1086,4 +1095,8 @@ class ConversionState:
             omega=omega,
             initial_phase_ref=initial_phase_ref,
             tao_global=tao_global,
+            space_charge_mesh_size=cast(
+                tuple[int, int, int],
+                tuple(space_charge_com["space_charge_mesh_size"]),
+            ),
         )

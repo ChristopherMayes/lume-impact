@@ -2365,9 +2365,9 @@ class ImpactZInput(BaseModel):
         radius_y: float = 0.0,
         ncpu_y: int = 1,
         ncpu_z: int = 1,
-        nx: int = 64,
-        ny: int = 64,
-        nz: int = 64,
+        nx: int | None = None,
+        ny: int | None = None,
+        nz: int | None = None,
         which: TaoWhich = "model",
         ix_uni: int = 1,
         ix_branch: int = 0,
@@ -2408,10 +2408,13 @@ class ImpactZInput(BaseModel):
             Number of processor divisions along the z-axis.
         nx : int, optional
             Space charge grid mesh points along the x-axis.
+            Defaults to space_charge_mesh_size.
         ny : int, optional
             Space charge grid mesh points along the y-axis.
+            Defaults to space_charge_mesh_size.
         nz : int, optional
             Space charge grid mesh points along the z-axis.
+            Defaults to space_charge_mesh_size.
         which : "model", "base", or "design", optional
             Specifies the source of lattice data used from Tao.
         ix_uni : int, optional
