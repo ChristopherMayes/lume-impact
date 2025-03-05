@@ -37,11 +37,11 @@ def parse_input_line(line: str) -> InputLine:
     parts = line.strip().split()
 
     def literal_eval(value: str):
-        if value == "NaN":
+        if value.lower() == "nan":
             return math.nan
-        if value == "-Infinity":
+        if value.lower().startswith("-inf"):
             return -math.inf
-        if value == "Infinity":
+        if value.lower().startswith("inf"):
             return math.inf
         try:
             return ast.literal_eval(value)
