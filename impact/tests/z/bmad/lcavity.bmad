@@ -5,14 +5,16 @@ parameter[geometry] = open
 beginning[beta_a]    = 10
 beginning[beta_b]    = 10
 
-swcav: lcavity, L = 1,
+swcav: lcavity, L = 1.1,
     rf_frequency = 1300e6,
     voltage = 1e6,
     phi0=.3,
-    num_steps = 10
+    N_CELL = 9,
+    num_steps = 10,
+    tracking_method = runge_kutta
 
 twcav: swcav, cavity_type = traveling_wave
 
-lat: line = (twcav)
+lat: line = (swcav)
 
 use, lat
