@@ -2826,16 +2826,24 @@ class ImpactZInput(BaseModel):
     def space_charge_off(self) -> None:
         self.average_current = 0.0
 
-    def space_charge_on(self, current: float | None = None) -> None:
-        if current is None:
+    def space_charge_on(self, bunch_charge: float | None = None) -> None:
+        if bunch_charge is None:
             if self.initial_particles is None:
                 raise ValueError(
-                    "Must specify `current` if `initial_particles` is unset"
+                    "Must specify `bunch_charge` if `initial_particles` is unset"
                 )
-            current = float(self.initial_particles.charge) * self.reference_frequency
+            bunch_charge = float(self.initial_particles.charge)
 
-        assert np.abs(current) > 0.0
-        self.average_current = current
+        self.bunch_charge = bunch_charge
+
+    @property
+    def bunch_charge(self) -> float:
+        """Bunch charge, if space charge is enabled."""
+        return self.average_current / self.reference_frequency
+
+    @bunch_charge.setter
+    def bunch_charge(self, bunch_charge: float) -> None:
+        self.average_current = bunch_charge * self.reference_frequency
 
     @property
     def reference_species(self) -> str:

@@ -823,6 +823,7 @@ class ConversionState:
     global_csr_flag: bool
 
     branch1: dict[str, Any]
+    beam_init: dict[str, Any]
     branch_particle: str
 
     reference_particle_charge: float
@@ -1014,8 +1015,8 @@ class ConversionState:
             # External file data
             file_data=file_data,
         )
-        # if self.global_csr_flag:
-        #     input.space_charge_on()
+        if self.global_csr_flag:
+            input.space_charge_on(bunch_charge=float(self.beam_init["bunch_charge"]))
         return input
 
     @classmethod
@@ -1059,6 +1060,7 @@ class ConversionState:
         global_csr_flag = cast(dict, tao.bmad_com())["csr_and_space_charge_on"]
         assert isinstance(global_csr_flag, bool)
 
+        beam_init = cast(Dict[str, Any], tao.beam_init(ix_branch, ix_uni=str(ix_uni)))
         branch1 = cast(Dict[str, Any], tao.branch1(ix_uni, ix_branch))
         branch_particle: str = branch1["param_particle"]
 
@@ -1090,6 +1092,7 @@ class ConversionState:
             start_ele_orbit=start_ele_orbit,
             global_csr_flag=global_csr_flag,
             branch1=branch1,
+            beam_init=beam_init,
             branch_particle=branch_particle,
             reference_particle_charge=reference_particle_charge,
             species_mass=species_mass,
