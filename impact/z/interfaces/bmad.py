@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Any, Dict, Iterable, NamedTuple, Sequence, TypeAlias, TypedDict, cast
 
+
+import matplotlib.pyplot as plt
 import numpy as np
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.particles import c_light
@@ -1105,3 +1107,105 @@ class ConversionState:
                 tuple(space_charge_com["space_charge_mesh_size"]),
             ),
         )
+
+
+def plot_impactz_and_tao_stats(impactz, tao):
+    """
+    Simple function to compare the output of Impact-Z vs Tao's bunch comb
+    """
+
+    I = impactz
+    stats = I.output.stats
+    mc2 = I.input.reference_particle_mass
+    z = stats.z
+    x = stats.mean_x
+    y = stats.mean_y
+    sigma_x = I.output.stats.sigma_x
+    sigma_y = I.output.stats.sigma_y
+    sigma_z = I.output.stats.sigma_t * c_light
+    energy = stats.mean_energy
+
+    x_tao = tao.bunch_comb("x")
+    y_tao = tao.bunch_comb("y")
+    sigma_x_tao = np.sqrt(tao.bunch_comb("sigma.11"))
+    sigma_y_tao = np.sqrt(tao.bunch_comb("sigma.33"))
+    sigma_z_tao = np.sqrt(tao.bunch_comb("sigma.55"))
+    p_tao = (1 + tao.bunch_comb("pz")) * tao.bunch_comb("p0c")
+    energy_tao = np.hypot(p_tao, mc2)
+    s_tao_raw = tao.bunch_comb("s")
+    s_tao = s_tao_raw - s_tao_raw[0]
+
+    fig, axes = plt.subplots(7, figsize=(12, 8))
+
+    ax = axes[0]
+    ax.plot(z, x * 1e6, label="Impact-Z")
+    ax.plot(s_tao, x_tao * 1e6, "--", label="Tao")
+    ax.set_ylabel(r"$\left<x\right>$ (µm)")
+
+    ax = axes[1]
+    ax.plot(z, sigma_x * 1e6, label="Impact-Z")
+    ax.plot(s_tao, sigma_x_tao * 1e6, "--", label="Tao")
+    ax.set_ylabel(r"$\sigma_x$ (µm)")
+
+    ax = axes[2]
+    ax.plot(z, y * 1e6, label="Impact-Z")
+    ax.plot(s_tao, y_tao * 1e6, "--", label="Tao")
+    ax.set_ylabel(r"$\left<y\right>$ (µm)")
+
+    ax = axes[3]
+    ax.plot(z, sigma_y * 1e6, label="Impact-Z")
+    ax.plot(s_tao, sigma_y_tao * 1e6, "--", label="Tao")
+    ax.set_ylabel(r"$\sigma_y$ (µm)")
+
+    ax = axes[4]
+    ax.plot(z, sigma_z * 1e6, label="Impact-Z")
+    ax.plot(s_tao, sigma_z_tao * 1e6, "--", label="Tao")
+    ax.set_ylabel(r"$\sigma_z$ (µm)")
+
+    ax = axes[5]
+    ax.plot(z, (energy - energy[0]) / 1e6, label="Impact-Z")
+    ax.plot(s_tao, (energy_tao - energy_tao[0]) / 1e6, "--", label="Tao")
+    ax.set_ylabel(r"$d\left<E\right>$ (MeV)")
+
+    ax.legend()
+
+    ax = axes[-1]
+    tao.matplotlib.plot("lat_layout", axes=[ax])
+
+    s_max = s_tao.max()
+    for ax in axes[:-1]:
+        ax.set_xlim(0, s_max)
+    # Tao has the full s range
+    axes[-1].set_xlim(s_tao_raw.max() - s_max, s_tao_raw.max())
+
+    ax.set_xlabel(r"$s$ (m)")
+
+
+def track_tao(
+    tao, particles: ParticleGroup, track_start=None, track_end=None, ix_branch=0
+):
+    """
+    helper to track a ParticleGroup in Tao
+    """
+    cmds = [
+        f"set beam_init bunch_charge = {particles.charge}",
+        f"set beam_init n_particle = {particles.n_particle}",
+    ]
+
+    if track_start is not None:
+        cmds.append(f"set beam_init track_start = {track_start}")
+
+    if track_end is not None:
+        cmds.append(f"set beam_init track_start = {track_end}")
+    else:
+        track_end = tao.beam(ix_branch)["track_end"] or "END"
+
+    tao.cmds(cmds)
+
+    with tempfile.NamedTemporaryFile(suffix=".h5") as temp_file:
+        particles.write(temp_file.name)
+        tao.cmd(f"set beam_init position_file = {temp_file.name}")
+        tao.cmd("set global lattice_calc_on = T")
+        tao.track_beam()
+
+    return ParticleGroup(data=tao.bunch_data(track_end))
