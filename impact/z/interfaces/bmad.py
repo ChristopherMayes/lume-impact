@@ -599,20 +599,26 @@ def add_aperture(
     x2_limit: float,
     y1_limit: float,
     y2_limit: float,
+    limit_if_unset: float = 1000.0,
 ) -> tuple[list[AnyInputElement], list[AnyInputElement]]:
     radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
 
     if all(value == 0.0 for value in [x1_limit, x2_limit, y1_limit, y2_limit]):
         return [], []
 
+    def ensure_nonzero(limit: float) -> float:
+        if limit == 0.0:
+            return limit_if_unset
+        return limit
+
     if aperture_type in {"rectangular", "elliptical"}:
         aperture = CollimateBeam(
             name=f"{element.name}_aperture",
             radius=radius,
-            xmin=x1_limit,
-            xmax=x2_limit,
-            ymin=y1_limit,
-            ymax=y2_limit,
+            xmin=-ensure_nonzero(x1_limit),
+            xmax=ensure_nonzero(x2_limit),
+            ymin=-ensure_nonzero(y1_limit),
+            ymax=ensure_nonzero(y2_limit),
         )
         if aperture_at == "entrance_end":
             return [aperture], []
