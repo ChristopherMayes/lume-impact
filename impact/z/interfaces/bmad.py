@@ -48,6 +48,14 @@ from ..input import (
 
 logger = logging.getLogger(__name__)
 Which = Literal["model", "base", "design"]
+DRIFT_ELEMENT_KEYS = {
+    "drift",
+    "pipe",
+    "monitor",
+    "instrument",
+    "ecollimator",
+    "rcollimator",
+}
 
 
 class UnusableElementError(Exception): ...
@@ -433,7 +441,7 @@ def single_element_from_tao_info(
         offset_x = 0.0
         offset_y = 0.0
 
-    if key in {"drift", "pipe", "monitor", "instrument"}:
+    if key in DRIFT_ELEMENT_KEYS:
         return Drift(
             length=length,
             name=name,
