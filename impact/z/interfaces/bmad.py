@@ -830,7 +830,7 @@ def element_from_tao(
     global_csr_flag: bool = False,
     species: str = "electron",
     verbose: bool = False,
-    include_collimation: bool = False,
+    include_collimation: bool = True,
     integrator_type: IntegratorType = IntegratorType.linear_map,
     rfdata_file_id: int = 500,
     file_data: dict[str, np.ndarray] | None = None,
@@ -856,7 +856,7 @@ def element_from_tao(
         Enable verbose output of the element's attributes, by default False.
     include_collimation : bool, optional
         Whether to include collimation elements before and after the primary
-        element, by default False.
+        element, by default True.
     integrator_type : IntegratorType, optional
         The type of integrator specified for the input file, by default
         `IntegratorType.linear_map`. Depending on the element settings, the
@@ -1064,7 +1064,7 @@ class ConversionState:
         initial_rfdata_file_id: int = 500,
         initial_write_full_id: int = 200,
         write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
-        include_collimation: bool = False,
+        include_collimation: bool = True,
     ) -> tuple[list[AnyInputElement], dict[str, np.ndarray]]:
         lattice: list[AnyInputElement] = [
             WriteFull(name="initial_particles", file_id=initial_particles_file_id),

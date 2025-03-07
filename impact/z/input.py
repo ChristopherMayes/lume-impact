@@ -2378,7 +2378,7 @@ class ImpactZInput(BaseModel):
         initial_rfdata_file_id: int = 500,
         initial_write_full_id: int = 200,
         write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
-        include_collimation: bool = False,
+        include_collimation: bool = True,
         integrator_type: IntegratorType = IntegratorType.linear_map,
     ) -> ImpactZInput:
         """
@@ -2438,7 +2438,7 @@ class ImpactZInput(BaseModel):
             particle data via `WriteFull`.
         include_collimation : bool, optional
             If True, includes collimation elements in the lattice conversion.
-            Defaults to False as this doesn't work quite yet.
+            Defaults to True.
         integrator_type : IntegratorType, optional
             The integrator scheme to be used in the lattice conversion.
             Defaults to 'linear_map', but this may be switched automatically to
