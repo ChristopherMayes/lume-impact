@@ -71,6 +71,21 @@ def ele_csr_enabled(
     ele_methods_info: TaoInfoDict,
     global_csr_flag: bool = False,
 ) -> bool:
+    """
+    Determine if Coherent Synchrotron Radiation (CSR) is enabled for an element.
+
+    Parameters
+    ----------
+    ele_methods_info : TaoInfoDict
+        Dictionary containing element methods information, from `ele_methods`
+    global_csr_flag : bool, optional
+        Tao's global CSR flag that must be True for CSR to be enabled, by
+        default False.
+
+    Returns
+    -------
+    bool
+    """
     if not global_csr_flag:
         return False
 
@@ -118,10 +133,32 @@ def get_index_to_name(
     tao: Tao,
     track_start: str | int | None = None,
     track_end: str | int | None = None,
+    ix_uni: int = 1,
+    ix_branch: int = 0,
 ) -> dict[int, str]:
-    idx_to_name = tao_unique_names(tao)
+    """
+    Get a mapping from element indices to element names.
 
-    indices = cast(list[str], tao.lat_list("*", "ele.ix_ele"))
+    Parameters
+    ----------
+    tao : Tao
+        The Tao object to query.
+    track_start : str or int or None, optional
+        The start element index or name. If None, uses the first element.
+    track_end : str or int or None, optional
+        The end element index or name. If None, uses the last element.
+
+    Returns
+    -------
+    dict[int, str]
+        A dictionary mapping element indices to element names, filtered by the specified range.
+    """
+    idx_to_name = tao_unique_names(tao, ix_uni=ix_uni, ix_branch=ix_branch)
+
+    indices = cast(
+        list[str],
+        tao.lat_list("*", "ele.ix_ele", ix_uni=str(ix_uni), ix_branch=str(ix_branch)),
+    )
     ix_first = int(indices[0])
     ix_last = int(indices[-1])
 
@@ -230,6 +267,26 @@ class MultipoleInfo(NamedTuple):
 
 
 def get_multipole_info(tao: Tao, ele_id: str | int) -> MultipoleInfo | None:
+    """
+    Retrieves multipole information for a specified element in Tao.
+
+    Parameters
+    ----------
+    tao : Tao
+        The Tao interface object.
+    ele_id : str or int
+        The element identifier, either as a string name or integer index.
+
+    Returns
+    -------
+    MultipoleInfo or None
+
+    Raises
+    ------
+    ValueError
+        If more than one multipole is found, or other unsupported scenarios are
+        encountered.
+    """
     info = cast(EleMultipoles, tao.ele_multipoles(ele_id))
     data = info["data"]
     if not data or not info["multipoles_on"]:
@@ -255,6 +312,29 @@ CavityClass: TypeAlias = (
 
 
 def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:
+    """
+    Determine the appropriate cavity class based on tracking method and cavity type.
+
+    Parameters
+    ----------
+    tracking_method : str
+        The tracking method to use for beam dynamics calculation.
+        Supported values include 'bmad_standard', 'runge_kutta', 'time_runge_kutta'.
+    cavity_type : str
+        The type of RF cavity.
+        Supported values are 'standing_wave' and 'traveling_wave'.
+
+    Returns
+    -------
+    type[SuperconductingCavity] | type[SolenoidWithRFCavity] | type[CCL]
+        The appropriate cavity class implementation based on the provided tracking method
+        and cavity type.
+
+    Raises
+    ------
+    NotImplementedError
+        If no mapping exists for the given combination of tracking method and cavity type.
+    """
     cavity_type = cavity_type.lower()
     tracking_method = tracking_method.lower()
 
@@ -289,11 +369,44 @@ def single_element_from_tao_info(
     ref_time_start: float | None = None,
     has_superpositions: bool = False,
 ) -> tuple[AnyInputElement, np.ndarray | None] | None:
+    """
+    Convert a Tao element into its corresponding basic Impact input element.
+
+    This does not include collimation elements, integrator type changes, and so on.
+    For that functionality, see `element_from_tao`.
+
+    Parameters
+    ----------
+    ele_id : str or int
+        Element identifier.
+    info : dict
+        Dictionary from `ele_info`.
+    ele_methods_info : dict
+        Dictionary from `ele_methods`.
+    multipole_info : MultipoleInfo or None
+        Multipole information for the element, if available.
+    name : str, optional
+        Name of the element, by default "".
+    global_csr_flag : bool, optional
+        Whether CSR is enabled globally in Tao or not, by default False.
+    species : str, optional
+        Particle species, by default "electron".
+    integrator_type : IntegratorType, optional
+        Type of integrator, by default `IntegratorType.linear_map`.
+    ref_time_start : float or None, optional
+        Reference time start, by default None.
+    has_superpositions : bool, optional
+        Whether the element has superpositions, by default False.
+
+    Returns
+    -------
+    tuple[AnyInputElement, np.ndarray or None] or None
+        Tuple of the input element and associated RF data, or None if
+        no IMPACT-Z element should be generated (i.e., for markers and such).
+    """
     key = str(info["key"]).lower()
 
-    length = info["L"]
-    assert isinstance(length, float)
-
+    length = float(info["L"])
     x1_limit = float(info.get("X1_LIMIT", 0.0))
     x2_limit = float(info.get("X2_LIMIT", 0.0))
     y1_limit = float(info.get("Y1_LIMIT", 0.0))
@@ -601,6 +714,37 @@ def add_aperture(
     y2_limit: float,
     limit_if_unset: float = 1000.0,
 ) -> tuple[list[AnyInputElement], list[AnyInputElement]]:
+    """
+    Add apertures to a beam element.
+
+    Parameters
+    ----------
+    element : InputElement
+        The beam element to which apertures should optionally be added.
+    aperture_type : str
+        Type of aperture. 'rectangular' or 'elliptical' are supported for
+        collimation apertures.
+    aperture_at : str
+        Position of aperture. 'entrance_end' or 'exit_end' are supported for
+        collimation apertures.
+    x1_limit : float
+        Negative x-axis limit of the aperture.
+    x2_limit : float
+        Positive x-axis limit of the aperture.
+    y1_limit : float
+        Negative y-axis limit of the aperture.
+    y2_limit : float
+        Positive y-axis limit of the aperture.
+    limit_if_unset : float, optional
+        Default limit value to use when a limit is set to 0.0, by default 1000.0.
+
+    Returns
+    -------
+    list[AnyInputElement]
+        Apertures to add at the start of the element.
+    list[AnyInputElement]
+        Apertures to add after the end of the element.
+    """
     radius = get_element_radius(x1_limit, x2_limit, y1_limit, y2_limit, default=0.03)
 
     if all(value == 0.0 for value in [x1_limit, x2_limit, y1_limit, y2_limit]):
@@ -649,6 +793,17 @@ def ele_has_superpositions(tao: Tao, ele_id: int | str) -> bool:
 
 
 def should_switch_integrator(ele: AnyInputElement) -> bool:
+    """
+    Determines if an element should use the Runge-Kutta integrator.
+
+    Parameters
+    ----------
+    ele : InputElement
+
+    Returns
+    -------
+    bool
+    """
     if isinstance(ele, Multipole):
         # all multipoles must use RK integrator
         return True
@@ -672,6 +827,48 @@ def element_from_tao(
     rfdata_file_id: int = 500,
     file_data: dict[str, np.ndarray] | None = None,
 ) -> tuple[list[AnyInputElement], dict[str, np.ndarray]]:
+    """
+    Create beam elements from Tao data.
+
+    Parameters
+    ----------
+    tao : Tao
+        The Tao instance.
+    ele_id : str or int
+        Element ID (name or index) to extract from Tao.
+    which : {"model", "base", "design"}, optional
+        Which Tao model to use, by default "model".
+    name : str, optional
+        Name for the element, by default "".
+    global_csr_flag : bool, optional
+        Whether CSR is enabled globally in Tao or not, by default False.
+    species : str, optional
+        Particle species, by default "electron".
+    verbose : bool, optional
+        Enable verbose output of the element's attributes, by default False.
+    include_collimation : bool, optional
+        Whether to include collimation elements before and after the primary
+        element, by default False.
+    integrator_type : IntegratorType, optional
+        The type of integrator specified for the input file, by default
+        `IntegratorType.linear_map`. Depending on the element settings, the
+        element may switch the integrator for the duration of this element to
+        `IntegratorType.runge_kutta`.
+    rfdata_file_id : int, optional
+        RF data file ID, by default 500.  This is only used for certain element
+        types.
+    file_data : dict[str, np.ndarray] or None, optional
+        Existing file data for the lattice, by default None.
+        This function will reuse other elements' `file_data` when possible from
+        this dictionary.
+
+    Returns
+    -------
+    list[AnyInputElement]
+        A list of IMPACT-Z beam elements
+    dict[str, np.ndarray]
+        And a dictionary of file data.
+    """
     try:
         info = ele_info(tao, ele_id=ele_id, which=which)
     except KeyError:
@@ -1043,7 +1240,8 @@ class ConversionState:
             tao,
             track_start=track_start,
             track_end=track_end,
-            # ix_uni=ix_uni, ix_branch=ix_branch
+            ix_uni=ix_uni,
+            ix_branch=ix_branch,
         )
 
         ix_beginning = list(idx_to_name)[0]

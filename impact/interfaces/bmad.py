@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
     from pytao import Tao
 
 
-def tao_unique_names(tao: Tao):
+def tao_unique_names(tao: Tao, ix_uni: int | str = "", ix_branch: int | str = ""):
     """
     Invent a unique name
 
@@ -28,8 +28,18 @@ def tao_unique_names(tao: Tao):
         Mapping of ix_ele to a unique name
     """
     # Get all ixs
-    ixs = set(tao.lat_list("*", "ele.ix_ele"))
-    ixs.update(set(tao.lat_list("*", "ele.ix_ele", flags="-array_out -no_slaves")))
+    ixs = set(tao.lat_list("*", "ele.ix_ele", ix_uni=ix_uni, ix_branch=ix_branch))
+    ixs.update(
+        set(
+            tao.lat_list(
+                "*",
+                "ele.ix_ele",
+                flags="-array_out -no_slaves",
+                ix_uni=ix_uni,
+                ix_branch=ix_branch,
+            )
+        )
+    )
     ixs = list(sorted(ixs))
 
     names = [tao.ele_head(ix)["name"] for ix in ixs]
