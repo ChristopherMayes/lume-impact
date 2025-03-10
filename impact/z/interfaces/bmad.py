@@ -6,7 +6,17 @@ import pathlib
 import tempfile
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Dict, Iterable, NamedTuple, Sequence, TypeAlias, TypedDict, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    NamedTuple,
+    Sequence,
+    TypeAlias,
+    TypedDict,
+    cast,
+)
 
 
 import matplotlib.pyplot as plt
@@ -45,6 +55,10 @@ from ..input import (
     ToggleSpaceCharge,
     WriteFull,
 )
+
+if TYPE_CHECKING:
+    from .. import ImpactZ
+
 
 logger = logging.getLogger(__name__)
 Which = Literal["model", "base", "design"]
@@ -1321,33 +1335,54 @@ class ConversionState:
         )
 
 
-def plot_impactz_and_tao_stats(impactz, tao):
+def plot_impactz_and_tao_stats(impactz: ImpactZ, tao: Tao) -> None:
     """
-    Simple function to compare the output of Impact-Z vs Tao's bunch comb
+    Simple function to compare the output of Impact-Z vs Tao's bunch comb.
+
+    Parameters
+    ----------
+    impactz : ImpactZ
+        ImpactZ object.
+    tao : Tao
+        The Tao object to compare to.
+
+    Returns
+    -------
+    None
+        This function produces plots but does not return any values.
+        Retrieve the last figure by way of `plt.gcf()`, if necessary.
     """
 
     I = impactz
+    if I.output is None:
+        raise ValueError("No output available on the ImpactZ object.")
+
     stats = I.output.stats
+
     mc2 = I.input.reference_particle_mass
     z = stats.z
     x = stats.mean_x
     y = stats.mean_y
-    sigma_x = I.output.stats.sigma_x
-    sigma_y = I.output.stats.sigma_y
-    sigma_z = I.output.stats.sigma_t * c_light
+    sigma_x = stats.sigma_x
+    sigma_y = stats.sigma_y
+    sigma_z = stats.sigma_t * c_light
     energy = stats.mean_energy
 
-    x_tao = tao.bunch_comb("x")
-    y_tao = tao.bunch_comb("y")
-    sigma_x_tao = np.sqrt(tao.bunch_comb("sigma.11"))
-    sigma_y_tao = np.sqrt(tao.bunch_comb("sigma.33"))
-    sigma_z_tao = np.sqrt(tao.bunch_comb("sigma.55"))
-    p_tao = (1 + tao.bunch_comb("pz")) * tao.bunch_comb("p0c")
+    def bunch_comb(who: str) -> np.ndarray:
+        return cast(np.ndarray, tao.bunch_comb(who))
+
+    x_tao = bunch_comb("x")
+    y_tao = bunch_comb("y")
+    sigma_x_tao = np.sqrt(bunch_comb("sigma.11"))
+    sigma_y_tao = np.sqrt(bunch_comb("sigma.33"))
+    sigma_z_tao = np.sqrt(bunch_comb("sigma.55"))
+    p_tao = (1 + bunch_comb("pz")) * bunch_comb("p0c")
     energy_tao = np.hypot(p_tao, mc2)
-    s_tao_raw = tao.bunch_comb("s")
+    s_tao_raw = bunch_comb("s")
+
     s_tao = s_tao_raw - s_tao_raw[0]
 
-    fig, axes = plt.subplots(7, figsize=(12, 8))
+    _fig, axes = plt.subplots(7, figsize=(12, 8))
 
     ax = axes[0]
     ax.plot(z, x * 1e6, label="Impact-Z")
@@ -1387,6 +1422,7 @@ def plot_impactz_and_tao_stats(impactz, tao):
     s_max = s_tao.max()
     for ax in axes[:-1]:
         ax.set_xlim(0, s_max)
+
     # Tao has the full s range
     axes[-1].set_xlim(s_tao_raw.max() - s_max, s_tao_raw.max())
 
@@ -1394,10 +1430,30 @@ def plot_impactz_and_tao_stats(impactz, tao):
 
 
 def track_tao(
-    tao, particles: ParticleGroup, track_start=None, track_end=None, ix_branch=0
+    tao: Tao,
+    particles: ParticleGroup,
+    track_start: str | int | None = None,
+    track_end: str | int | None = None,
+    ix_uni: int | str = "",
+    ix_branch: int | str = 0,
 ):
     """
-    helper to track a ParticleGroup in Tao
+    Helper to track a ParticleGroup in Tao.
+
+    Parameters
+    ----------
+    tao : Tao
+        The Tao object instance.
+    particles : ParticleGroup
+        The particle group to track.
+    track_start : str, int, or None, optional
+        The starting element for tracking, by default None.
+    track_end : str, int, or None, optional
+        The ending element for tracking, by default None.
+    ix_uni : int or str, optional
+        The universe index, by default "".
+    ix_branch : int or str, optional
+        The branch index, by default 0.
     """
     cmds = [
         f"set beam_init bunch_charge = {particles.charge}",
@@ -1410,7 +1466,8 @@ def track_tao(
     if track_end is not None:
         cmds.append(f"set beam_init track_start = {track_end}")
     else:
-        track_end = tao.beam(ix_branch)["track_end"] or "END"
+        beam = cast(dict, tao.beam(ix_branch, ix_uni=str(ix_uni)))
+        track_end = beam["track_end"] or "END"
 
     tao.cmds(cmds)
 
