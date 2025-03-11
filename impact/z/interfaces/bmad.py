@@ -25,6 +25,7 @@ from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.particles import c_light
 from pmd_beamphysics.species import charge_state, mass_of
 from pytao import Tao, TaoCommandError
+from scipy.constants import e
 from typing_extensions import Literal
 
 from ..constants import (
@@ -1176,6 +1177,18 @@ class ConversionState:
             ny = self.space_charge_mesh_size[1]
         if nz is None:
             nz = self.space_charge_mesh_size[2]
+
+        if self.initial_particles:
+            particle_list = [len(self.initial_particles)]
+            current_list = [self.initial_particles.charge * self.reference_frequency]
+            charge_over_mass_list = [
+                self.initial_particles.species_charge / e / self.initial_particles.mass
+            ]
+        else:
+            particle_list = [0]
+            current_list = [0.0]
+            charge_over_mass_list = [0.0]
+
         input = ImpactZInput(
             # Line 1
             ncpu_y=ncpu_y,
@@ -1204,9 +1217,9 @@ class ConversionState:
             restart=0,
             subcycle=0,
             nbunch=0,
-            # particle_list=[],
-            # current_list=[],
-            # charge_over_mass_list=[],
+            particle_list=particle_list,
+            current_list=current_list,
+            charge_over_mass_list=charge_over_mass_list,
             # Twiss
             twiss_alpha_x=self.start_twiss["alpha_a"],
             twiss_alpha_y=self.start_twiss["alpha_b"],
