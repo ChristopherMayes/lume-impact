@@ -1210,7 +1210,8 @@ class ConversionState:
             # Twiss
             twiss_alpha_x=self.start_twiss["alpha_a"],
             twiss_alpha_y=self.start_twiss["alpha_b"],
-            twiss_alpha_z=0.0,  # start_twiss["alpha_z"],
+            # Use the default from the class - this must be nonzero.
+            # twiss_alpha_z=0.0,  # start_twiss["alpha_z"],
             twiss_beta_x=self.start_twiss["beta_a"],
             twiss_beta_y=self.start_twiss["beta_b"],
             twiss_beta_z=1.0,  # start_twiss["beta_z"],

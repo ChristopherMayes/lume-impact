@@ -1370,6 +1370,8 @@ class RotateBeam(InputElement, element_id=-18):
     """
     Rotate the beam with respect to the longitudinal axis.
 
+    Both (x,y), and (px,py) are rotated.
+
     Attributes
     ----------
     length : float
@@ -2073,7 +2075,9 @@ class ImpactZInput(BaseModel):
         Offset in py coordinate. Default is 0.0.
 
     twiss_alpha_z : float, optional
-        Alpha Twiss parameter in z plane. Default is 0.0.
+        Alpha Twiss parameter in z plane. Default is 1e-9.
+        This must be greater than 0, or compute domain calculations in IMPACT-Z
+        may lead to crashes.
     twiss_beta_z : float, optional
         Beta Twiss parameter in z plane. Default is 1.0.
     twiss_norm_emit_z : float, optional
@@ -2168,7 +2172,7 @@ class ImpactZInput(BaseModel):
     twiss_offset_py: float = 0.0
 
     # Line 10
-    twiss_alpha_z: float = 0.0
+    twiss_alpha_z: float = pydantic.Field(default=1e-9, gt=0.0)
     twiss_beta_z: float = 1.0
     twiss_norm_emit_z: float = 1e-6
     twiss_mismatch_z: float = 1.0
