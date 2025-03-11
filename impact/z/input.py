@@ -22,6 +22,7 @@ import numpy as np
 import pydantic
 import pydantic.alias_generators
 from lume import tools as lume_tools
+from scipy.constants import e
 from typing_extensions import Protocol, runtime_checkable
 
 from pmd_beamphysics import ParticleGroup
@@ -2728,17 +2729,58 @@ class ImpactZInput(BaseModel):
     @classmethod
     def _update_n_particle(cls, data: dict[str, Any]) -> dict[str, Any]:
         initial_particles = data.get("initial_particles", None)
-        if initial_particles is not None:
+        if isinstance(initial_particles, ParticleGroup):
             data["n_particle"] = len(initial_particles)
+            data["distribution"] = DistributionType.read
+            data["particle_list"] = [len(initial_particles)]
+            data["current_list"] = [
+                float(initial_particles.charge) * data.get("reference_frequency", 0.0)
+            ]
+            data["charge_over_mass_list"] = [
+                float(initial_particles.species_charge / e / initial_particles.mass)
+            ]
+
         return data
+
+    def update_particle_parameters(self) -> None:
+        """
+        Update all relevant parameters from `self.initial_particles`.
+
+        This method configures particle-related parameters based on the initial particle
+        distribution. If no initial particles are defined, it sets default values. Otherwise,
+        it configures the distribution type, particle count, current, and charge-to-mass ratio
+        based on the initial particles.
+
+        Notes
+        -----
+        It is not typically required to call this separately.  When setting
+        `initial_particles`, a Pydantic validator will set these appropriately.
+
+        The following attributes are updated:
+        - `self.distribution`: Set to DistributionType.read if initial particles exist
+        - `self.n_particle`: The number of particles
+        - `self.particle_list`: List containing the number of particles
+        - `self.current_list`: List containing the particle charge scaled by reference frequency
+        - `self.charge_over_mass_list`: List containing the charge-to-mass ratio
+        """
+        if self.initial_particles is None:
+            self.particle_list = [self.n_particle]
+            self.current_list = [0.0]
+            self.charge_over_mass_list = [0.0]
+            return
+
+        self.distribution = DistributionType.read
+        self.n_particle = len(self.initial_particles)
+        self.particle_list = [self.n_particle]
+        self.current_list = [self.initial_particles.charge * self.reference_frequency]
+        self.charge_over_mass_list = [
+            self.initial_particles.species_charge / e / self.initial_particles.mass
+        ]
 
     def check(self, workdir: pathlib.Path = pathlib.Path(".")):
         if self.initial_particles is not None:
-            if self.distribution != DistributionType.read:
-                self.distribution = DistributionType.read
-                # f'In order to use initial particles, set `distribution="read"`'
-            if self.n_particle == 0 or self.n_particle > len(self.initial_particles):
-                self.n_particle = len(self.initial_particles)
+            # self.update_particle_parameters()
+            pass
         elif self.distribution == DistributionType.read:
             # No particles and 'read' mode may not work:
             raise ValueError(
@@ -2995,8 +3037,14 @@ class ImpactZInput(BaseModel):
         if emit <= 0.0:
             raise ValueError("Calculated `twiss_norm_emit_z` <= 0.0")
 
+        alpha_z = -cov * fref * 360 / 1e6 / emit
+
+        if alpha_z == 0.0:
+            # twiss_alpha_z must be nonzero
+            alpha_z = 1e-9
+
         self.twiss_norm_emit_z = emit
-        self.twiss_alpha_z = -cov * fref * 360 / 1e6 / emit
+        self.twiss_alpha_z = alpha_z
         self.twiss_beta_z = (fref * sig_t * 360) ** 2 / emit
 
     def plot(

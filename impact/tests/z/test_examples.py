@@ -435,6 +435,7 @@ def test_run_example(example_input_file: ImpactZInput) -> None:
         file_data=example1_data,
     )
     I.input.lattice = I.input.lattice[:3]
+    I.input.update_particle_parameters()  # for coverage
     output = I.run()
     print(output)
 
