@@ -22,7 +22,6 @@ lattice_root = z_tests / "bmad"
 
 lattice_markers = {
     "elements.bmad": pytest.mark.xfail(reason="Unsupported elements"),
-    "wiggler.bmad": pytest.mark.xfail(reason="Unsupported elements"),
     # "csr_bench.bmad": pytest.mark.xfail(reason="Additional setup required"),
 }
 comparison_markers = {}
