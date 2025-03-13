@@ -144,11 +144,6 @@ class RFCavityCoordinateType(IntEnum):
 
 
 @_pydantic_enum
-class ElementID(IntEnum):
-    drift = 0
-    quad = 1
-    bend = 4
-    scrf = 104
-    write_full = -2
-    restart = -7
-    halt = -99
+class WigglerType(IntEnum):
+    planar = 1
+    helical = 2

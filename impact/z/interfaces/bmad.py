@@ -34,6 +34,7 @@ from ..constants import (
     IntegratorType,
     MultipoleType,
     DiagnosticType,
+    WigglerType,
 )
 
 from ...interfaces.bmad import ele_info, tao_unique_names
@@ -53,6 +54,7 @@ from ..input import (
     SolenoidWithRFCavity,
     SuperconductingCavity,
     ToggleSpaceCharge,
+    Wiggler,
     WriteFull,
 )
 
@@ -534,7 +536,7 @@ def single_element_from_tao_info(
 
     if key in {"sextupole", "octupole", "thick_multipole"}:
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
-            raise NotImplementedError("Z offset not supported for Solenoid")
+            raise NotImplementedError("Z offset not supported for multipoles")
 
         if key in {"sextupole", "octupole"}:
             multipole_type = MultipoleType[key]
@@ -569,6 +571,30 @@ def single_element_from_tao_info(
             # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             multipole_type=multipole_type,
             field_strength=field_strength,
+            file_id=-1,  # TODO?
+            radius=radius,
+            misalignment_error_x=offset_x,
+            misalignment_error_y=offset_y,
+            rotation_error_x=rotation_error_x,
+            rotation_error_y=rotation_error_y,
+            rotation_error_z=rotation_error_z,
+            metadata=metadata,
+        ), None
+
+    if key == "wiggler":
+        if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
+            raise NotImplementedError("Z offset not supported for Wiggler")
+
+        return Wiggler(
+            name=name,
+            length=length,
+            steps=num_steps,
+            map_steps=num_steps,
+            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
+            wiggler_type=WigglerType.planar,
+            max_field_strength=float(info["B_MAX"]),
+            period=float(info["L_PERIOD"]),
+            kx=float(info["KX"]),
             file_id=-1,  # TODO?
             radius=radius,
             misalignment_error_x=offset_x,

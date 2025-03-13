@@ -40,6 +40,7 @@ from .constants import (
     DiagnosticType,
     RFCavityCoordinateType,
     RFCavityDataMode,
+    WigglerType,
 )
 from .errors import MultipleElementError, NoSuchElementError
 from .particles import ImpactZParticles, detect_species
@@ -503,6 +504,62 @@ class Multipole(InputElement, element_id=5, has_input_file=True):
     field_strength: float = 0.0
     file_id: float = 0.0
     radius: float = 0.0
+    misalignment_error_x: float = 0.0
+    misalignment_error_y: float = 0.0
+    rotation_error_x: float = 0.0
+    rotation_error_y: float = 0.0
+    rotation_error_z: float = 0.0
+
+
+class Wiggler(InputElement, element_id=6):
+    """
+    Represents a planar or helical wiggler element used in beam simulations.
+
+    Attributes
+    ----------
+    length : float, optional
+        Length of the element in meters.
+    steps : int, optional
+        Number of space-charge kicks through the beamline element. Each
+        "step" consists of a half-step, a space-charge kick, and another half-step.
+    map_steps : int, optional
+        Number of "map steps". Each half-step involves computing a map for that
+        half-element which is computed by numerical integration.
+    wiggler_type : WigglerType, optional
+        Wiggler type. Defaults to `WigglerType.planar`.
+    max_field_strength : float, optional
+        The maximum strength of the magnetic field.  Units of T/m^n.
+    file_id : float, optional
+        File ID (unused?)
+    radius : float, optional
+        Radius in meters.
+    kx : float, optional
+        Wiggler strength.
+    period : float
+        Period of the wiggler.
+    misalignment_error_x : float, optional
+        Misalignment error in the x-direction.
+    misalignment_error_y : float, optional
+        Misalignment error in the y-direction.
+    rotation_error_x : float, optional
+        Rotation error around the x-axis.
+    rotation_error_y : float, optional
+        Rotation error around the y-axis.
+    rotation_error_z : float, optional
+        Rotation error around the z-axis.
+    """
+
+    length: float = 0.0
+    steps: int = 0
+    map_steps: int = 0
+    type_id: Literal[5] = 5
+
+    wiggler_type: WigglerType = WigglerType.planar
+    max_field_strength: float = 0.0
+    file_id: float = 0.0
+    radius: float = 0.0
+    kx: float = 0.0
+    period: float = 0.0
     misalignment_error_x: float = 0.0
     misalignment_error_y: float = 0.0
     rotation_error_x: float = 0.0
@@ -1709,6 +1766,7 @@ AnyInputElement = (
     | Solenoid
     | Dipole
     | Multipole
+    | Wiggler
     | DTL
     | CCDTL
     | CCL

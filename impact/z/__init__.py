@@ -7,7 +7,7 @@ from .constants import (
     MultipoleType,
     RFCavityDataMode,
     RFCavityCoordinateType,
-    ElementID,
+    WigglerType,
 )
 from .input import (
     AnyInputElement,
@@ -70,7 +70,6 @@ __all__ = [
     "Dipole",
     "DistributionType",
     "Drift",
-    "ElementID",
     "EnergyModulation",
     "GPUFlag",
     "HaltExecution",
@@ -100,6 +99,7 @@ __all__ = [
     "ToggleSpaceCharge",
     "TravelingWaveRFCavity",
     "UserDefinedRFCavity",
+    "WigglerType",
     "WriteFull",
     "WritePhaseSpaceInfo",
     "WriteSliceInfo",
