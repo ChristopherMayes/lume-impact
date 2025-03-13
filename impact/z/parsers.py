@@ -25,14 +25,14 @@ def fix_line(contents: str) -> str:
 
 
 def parse_input_line(line: str) -> InputLine:
-    line = line.replace("D", "E").replace("d", "e")  # fortran float style
-    line = re_missing_exponent.sub(r"\1E\2", line)
-
     if "/" in line:
         line, comment = line.split("/", 1)
         comment = comment.strip()
     else:
         comment = None
+
+    line = line.replace("D", "E").replace("d", "e")  # fortran float style
+    line = re_missing_exponent.sub(r"\1E\2", line)
 
     parts = line.strip().split()
 

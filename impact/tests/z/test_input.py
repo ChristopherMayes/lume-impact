@@ -333,3 +333,27 @@ def test_plot_layout_all(include_labels: bool, include_markers: bool) -> None:
         include_markers=include_markers,
     )
     plt.show()
+
+
+def test_check_names():
+    contents = """1 1
+-1 1 2 0 2
+64 64 64 1 0 0 0
+3 0 0 0
+1
+0.0
+-1.9569511835591837e-06
+0 10 9.9999999999999995475e-07 1 1 0 0
+0 10 9.9999999999999995475e-07 1 1 0 0
+1.0000000000000000623e-09 1 9.9999999999999995475e-07 1 1 0 0
+0 999489001.04999995232 510998.94999999995343 -1 1300000000 0
+0 0 0 -14 0 0 /
+0 0 100 -2 0 0 / initial_particles
+1 100 10 6 1 0.0010000000000000000208 -1 0.02999999999999999889 0 0.10000000000000000555 0 0 0 0 0 / UND
+0 0 200 -2 0 0 / WRITE_END
+0 0 101 -2 0 0 / final_particles
+"""
+    i1 = ImpactZInput.from_contents(contents)
+
+    assert i1.wiggler.name == "UND"
+    assert i1.write_fulls.name == ["initial_particles", "WRITE_END", "final_particles"]

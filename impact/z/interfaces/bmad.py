@@ -584,6 +584,9 @@ def single_element_from_tao_info(
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Wiggler")
 
+        n_period = int(info["N_PERIOD"])
+        num_steps = max((num_steps, 10 * n_period))
+
         return Wiggler(
             name=name,
             length=length,
