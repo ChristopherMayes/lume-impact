@@ -568,7 +568,6 @@ def single_element_from_tao_info(
             length=length,
             steps=num_steps,
             map_steps=num_steps,
-            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             multipole_type=multipole_type,
             field_strength=field_strength,
             file_id=-1,  # TODO?
@@ -590,7 +589,6 @@ def single_element_from_tao_info(
             length=length,
             steps=num_steps,
             map_steps=num_steps,
-            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             wiggler_type=WigglerType.planar,
             max_field_strength=float(info["B_MAX"]),
             period=float(info["L_PERIOD"]),
@@ -649,7 +647,6 @@ def single_element_from_tao_info(
             length=length,
             steps=num_steps,
             map_steps=num_steps,
-            # The gradient of the quadrupole magnetic field, measured in Tesla per meter.
             Bz0=float(info["BS_FIELD"]),
             file_id=-1,  # TODO?
             radius=radius,  # TODO arbitrary
