@@ -4,6 +4,7 @@ from abc import abstractmethod
 import logging
 import pathlib
 import shlex
+import types
 import typing
 from typing import (
     Any,
@@ -1811,13 +1812,12 @@ class ElementListProxy(list[T_InputElement]):
     May be used as a normal list with indexing and standard methods such as `.append()`.
     """
 
-    # auto-generated (see _generate_attr_list_ below)
+    # ** auto-generated section begins ** (see _generate_attr_list_ below)
     Bz0: list[float] | float
     alpha_x: list[float] | float
     alpha_y: list[float] | float
     angle: list[float] | float
     aperture_size_for_wakefield: list[float] | float
-    beam_centroid_6D: list[float] | float
     beam_size: list[float] | float
     beta_x: list[float] | float
     beta_y: list[float] | float
@@ -1826,39 +1826,41 @@ class ElementListProxy(list[T_InputElement]):
     data_mode: list[RFCavityDataMode] | RFCavityDataMode
     e1: list[float] | float
     e2: list[float] | float
+    enable: list[float | bool] | float | bool
     enable_wakefield: list[float] | float
     energy_spread: list[float] | float
     entrance_curvature: list[float] | float
     exit_curvature: list[float] | float
     field_scaling: list[float] | float
     field_strength: list[float] | float
-    file_id: list[float] | float
     fint: list[float] | float
     gap_size: list[float] | float
     gap_size_for_wakefield: list[float] | float
     harm: list[int] | int
     hgap: list[float] | float
-    id: list[int] | int
     input_switch: list[float] | float
+    integrator_type: list[IntegratorType] | IntegratorType
     k0: list[float] | float
     k1: list[float] | float
     k2: list[float] | float
     k3: list[float] | float
     k4: list[float] | float
     k5: list[float] | float
+    kx: list[float] | float
     kx0_squared: list[float] | float
     ky0_squared: list[float] | float
     kz0_squared: list[float] | float
     laser_wavelength: list[float] | float
     length: list[float] | float
     length_for_wakefield: list[float] | float
-    linear_map_integrator: list[float] | float
     map_steps: list[int] | int
+    max_field_strength: list[float] | float
+    metadata: list[dict] | dict
     misalignment_error_x: list[float] | float
     misalignment_error_y: list[float] | float
     multipole_type: list[MultipoleType] | MultipoleType
     name: list[str] | str
-    nonlinear_lorentz_integrator: list[float] | float
+    period: list[float] | float
     phase_deg: list[float] | float
     phase_diff: list[float] | float
     phi0: list[float] | float
@@ -1894,33 +1896,31 @@ class ElementListProxy(list[T_InputElement]):
     rf_rotation_error_x: list[float] | float
     rf_rotation_error_y: list[float] | float
     rf_rotation_error_z: list[float] | float
-    rotation_angle: list[float] | float
     rotation_error_x: list[float] | float
     rotation_error_y: list[float] | float
     rotation_error_z: list[float] | float
     sample_frequency: list[int] | int
-    shift: list[float] | float
-    slices: list[float] | float
+    slices: list[int] | int
     steps: list[int] | int
+    tilt: list[float] | float
     tmis: list[float] | float
     unused: list[float] | float
     unused_0: list[float] | float
     unused_1: list[float] | float
     unused_2: list[float] | float
     vmax: list[float] | float
-    x: list[float] | float
+    wiggler_type: list[WigglerType] | WigglerType
     xmax: list[float] | float
     xmin: list[float] | float
     xmis: list[float] | float
     xshift: list[float] | float
-    y: list[float] | float
     ymax: list[float] | float
     ymin: list[float] | float
     ymis: list[float] | float
     yshift: list[float] | float
-    z: list[float] | float
     zmax: list[float] | float
     zshift: list[float] | float
+    # ** auto-generated section ends ** (see _generate_attr_list_ below)
 
     @staticmethod
     def _generate_attr_list_():
@@ -1934,9 +1934,13 @@ class ElementListProxy(list[T_InputElement]):
             annotation = list(set(fld.annotation for fld in flds))
             if len(annotation) == 1:
                 (cls,) = annotation
-                if cls is typing.Union and name == "angle":
-                    cls = float
-                print(f"{name}: list[{cls.__name__}] | {cls.__name__}")
+                if isinstance(cls, types.UnionType):
+                    type_name = str(cls)
+                elif cls is NonzeroFloat:
+                    type_name = "float"
+                else:
+                    type_name = cls.__name__
+                print(f"{name}: list[{type_name}] | {type_name}")
 
     def __getattr__(self, attr: str):
         return [getattr(element, attr) for element in self]
@@ -3283,6 +3287,16 @@ class ImpactZInput(BaseModel):
     def multipole(self) -> Multipole:
         """Get the sole Multipole if it is defined."""
         return self._get_only_one(Multipole)
+
+    @property
+    def wigglers(self) -> ElementListProxy[Wiggler]:
+        """List of all wiggler instances."""
+        return self.by_element.get(Wiggler, ElementListProxy())
+
+    @property
+    def wiggler(self) -> Wiggler:
+        """Get the sole Wiggler if it is defined."""
+        return self._get_only_one(Wiggler)
 
     @property
     def dtls(self) -> ElementListProxy[DTL]:
