@@ -853,6 +853,10 @@ def should_switch_integrator(ele: AnyInputElement) -> bool:
         # all multipoles must use RK integrator
         return True
 
+    if isinstance(ele, Wiggler):
+        # all wigglers must use RK integrator
+        return True
+
     if isinstance(ele, SolenoidWithRFCavity):
         # standing_wave + runge_kutta/time_runge_kutta -> RK integrator
         return True

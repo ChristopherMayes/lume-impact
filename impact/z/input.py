@@ -516,6 +516,8 @@ class Wiggler(InputElement, element_id=6):
     """
     Represents a planar or helical wiggler element used in beam simulations.
 
+    Only supports the integrator type `IntegratorType.runge_kutta`.
+
     Attributes
     ----------
     length : float, optional
@@ -553,7 +555,7 @@ class Wiggler(InputElement, element_id=6):
     length: float = 0.0
     steps: int = 0
     map_steps: int = 0
-    type_id: Literal[5] = 5
+    type_id: Literal[6] = 6
 
     wiggler_type: WigglerType = WigglerType.planar
     max_field_strength: float = 0.0
