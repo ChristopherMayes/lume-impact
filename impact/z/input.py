@@ -2207,7 +2207,7 @@ class ImpactZInput(BaseModel):
     distribution: DistributionType = DistributionType.uniform
     restart: int = 0
     subcycle: int = 0
-    nbunch: int = 0
+    nbunch: int = 1
 
     # Line 5
     particle_list: list[int] = [0]
@@ -2716,6 +2716,9 @@ class ImpactZInput(BaseModel):
         t_offset = phase_ref / (2 * np.pi * self.reference_frequency)
         particles = self.initial_particles.copy()
         particles.t = particles.t - t_offset
+
+        if len(particles) == 1:
+            particles.weight = [0]
         return particles
 
     def write(
@@ -2725,7 +2728,7 @@ class ImpactZInput(BaseModel):
         check: bool = True,
     ) -> list[pathlib.Path]:
         if check:
-            self.check(workdir)
+            self.check(pathlib.Path(workdir))
 
         contents = self.to_contents()
         workdir = pathlib.Path(workdir)
@@ -2794,12 +2797,17 @@ class ImpactZInput(BaseModel):
     def _update_n_particle(cls, data: dict[str, Any]) -> dict[str, Any]:
         initial_particles = data.get("initial_particles", None)
         if isinstance(initial_particles, ParticleGroup):
+            if len(initial_particles) == 1:
+                current = 0.0
+            else:
+                current = float(initial_particles.charge) * data.get(
+                    "reference_frequency", 0.0
+                )
+
             data["n_particle"] = len(initial_particles)
             data["distribution"] = DistributionType.read
             data["particle_list"] = [len(initial_particles)]
-            data["current_list"] = [
-                float(initial_particles.charge) * data.get("reference_frequency", 0.0)
-            ]
+            data["current_list"] = [current]
             data["charge_over_mass_list"] = [
                 float(initial_particles.species_charge / e / initial_particles.mass)
             ]
@@ -2842,9 +2850,17 @@ class ImpactZInput(BaseModel):
         ]
 
     def check(self, workdir: pathlib.Path = pathlib.Path(".")):
+        # if self.seed < 0:
+        #     self.seed = 6
         if self.initial_particles is not None:
-            # self.update_particle_parameters()
-            pass
+            num_particles = len(self.initial_particles)
+            if num_particles == 0:
+                raise ValueError(
+                    f"Initial particles is set to an empty ParticleGroup: {self.initial_particles}"
+                )
+            if num_particles == 1:
+                self.current_list = [0.0]
+                self.space_charge_off()
         elif self.distribution == DistributionType.read:
             # No particles and 'read' mode may not work:
             raise ValueError(
@@ -2852,6 +2868,17 @@ class ImpactZInput(BaseModel):
                 "To have IMPACT-Z generate particles, use distribution='uniform' or "
                 "one of the supported values (in `DistributionType`)"
             )
+
+        if (len(self.particle_list) != len(self.charge_over_mass_list)) or (
+            len(self.particle_list) != len(self.current_list)
+        ):
+            raise ValueError(
+                f"`particle_list`, `charge_over_mass_list`, and `current_list` must all have the same length.\n"
+                f"Got lengths: particle_list={len(self.particle_list)}, charge_over_mass_list={len(self.charge_over_mass_list)}, "
+                f"current_list={len(self.current_list)}."
+            )
+
+        self.nbunch = len(self.particle_list)
 
         by_ele = self.by_element
         for ele in self.elements_with_data:

@@ -270,6 +270,7 @@ class ImpactZParticles(BaseModel):
                 "ParticleGroup must have the same Z coordinate. Use `.drift_to_z()`."
             )
 
+        num_particles = len(particle_group)
         omega = 2 * np.pi * reference_frequency
         species_mass = particle_group.mass
         species_charge = particle_group.species_charge
@@ -290,7 +291,11 @@ class ImpactZParticles(BaseModel):
         impactz_pz = 1.0 - (E - reference_kinetic_energy) / species_mass
 
         impactz_t = particle_group.t * omega
-        impactz_weight = np.abs(particle_group.weight) * np.sign(species_charge)
+
+        if num_particles == 1:
+            impactz_weight = np.zeros_like(impactz_x)
+        else:
+            impactz_weight = np.abs(particle_group.weight) * np.sign(species_charge)
 
         impactz_charge_to_mass_ratio = np.ones_like(impactz_x) * (
             (species_charge / e) / species_mass

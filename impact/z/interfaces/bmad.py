@@ -1234,7 +1234,7 @@ class ConversionState:
             ),
             restart=0,
             subcycle=0,
-            nbunch=0,
+            nbunch=1,
             # particle_list=particle_list,
             # current_list=current_list,
             # charge_over_mass_list=charge_over_mass_list,

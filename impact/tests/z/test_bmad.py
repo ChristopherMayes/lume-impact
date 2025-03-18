@@ -98,6 +98,20 @@ def integrator_type(request: pytest.FixtureRequest) -> IntegratorType:
     return request.param
 
 
+def check_weighted_initial_particles(
+    expected: ParticleGroup, actual: ParticleGroup
+) -> None:
+    if len(expected) != 1:
+        assert expected == actual
+        return
+
+    # TODO/NOTE: zeroed weight for np=1
+    weighted_actual = actual.copy()
+    weighted_actual.weight = expected.weight
+
+    assert weighted_actual == expected
+
+
 @pytest.mark.parametrize(
     "lattice",
     [
@@ -144,7 +158,7 @@ def test_compare_sxy(
     zP0 = output.particles["initial_particles"]
 
     # Check that Impact-Z wrote the same particles that we are using
-    assert zP0 == P0
+    check_weighted_initial_particles(expected=P0, actual=zP0)
 
     # P1 = output.particles["final_particles"]
 
@@ -236,7 +250,7 @@ def test_check_initial_particles(tmp_path: pathlib.Path) -> None:
         reference_kinetic_energy=I.input.reference_kinetic_energy,
         phase_reference=I.input.initial_phase_ref,
     )
-    assert P0 == Pin
+    check_weighted_initial_particles(expected=Pin, actual=P0)
     assert P0_written == Pin
 
 
