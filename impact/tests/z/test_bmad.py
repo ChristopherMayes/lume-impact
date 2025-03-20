@@ -186,23 +186,45 @@ def compare_sxy(
     x_tao_interp = np.interp(z, s_tao, x_tao)
     y_tao_interp = np.interp(z, s_tao, y_tao)
 
-    x_pass = np.allclose(x, x_tao_interp)
-    y_pass = np.allclose(y, y_tao_interp)
+    atol = 1e-4
+    x_pass = np.allclose(x, x_tao_interp, atol=atol)
+    y_pass = np.allclose(y, y_tao_interp, atol=atol)
+    passed = x_pass and y_pass
     x_pass_fail = "Pass" if x_pass else "FAIL"
     y_pass_fail = "Pass" if y_pass else "FAIL"
-    pass_fail = "Pass" if x_pass and y_pass else "FAIL"
+    pass_fail = "Pass" if passed else "FAIL"
 
     fig, (ax0, ax1, ax2) = plt.subplots(3, figsize=(12, 8))
     fig.suptitle(f"{request.node.name}\n{pass_fail}")
     ax0.plot(z, x, color="red")
     ax0.plot(s_tao, x_tao, "--", color="blue")
     ax0.scatter(z, x_tao_interp, marker="o", color="purple")
+
+    if not x_pass:
+        ax0_right = ax0.twinx()
+        delta = x - x_tao_interp
+        # Plot the delta values on the right y-axis
+        ax0_right.plot(z, delta, color="gray", alpha=0.7)
+        ax0_right.set_ylabel("Delta (IZ - Tao)")
+        max_abs_delta = max(abs(delta)) if len(delta) > 0 else 1e-6
+        ax0_right.set_ylim(-max_abs_delta * 1.1, max_abs_delta * 1.1)
+
     ax0.set_ylabel(rf"$x$ (m) {x_pass_fail}")
 
     ax1.plot(z, y, color="red", label="IMPACT-Z")
     ax1.plot(s_tao, y_tao, "--", color="blue", label="Tao")
     ax1.scatter(z, y_tao_interp, marker="o", color="purple", label="Tao (interpolated)")
     ax1.set_ylabel(rf"$y$ (m) {y_pass_fail}")
+
+    if not y_pass:
+        ax1_right = ax1.twinx()
+        delta = x - x_tao_interp
+        # Plot the delta values on the right y-axis
+        ax1_right.plot(z, delta, color="gray", alpha=0.7)
+        ax1_right.set_ylabel("Delta (IZ - Tao)")
+        max_abs_delta = max(abs(delta)) if len(delta) > 0 else 1e-6
+        ax1_right.set_ylim(-max_abs_delta * 1.1, max_abs_delta * 1.1)
+
     ax1.set_xlabel(r"$s$ (m)")
     ax1.legend()
 
@@ -218,10 +240,10 @@ def compare_sxy(
         plt.savefig(test_failure_artifacts / f"{name}.png")
 
     np.testing.assert_allclose(
-        actual=x, desired=x_tao_interp, atol=1e-4, err_msg="X differs"
+        actual=x, desired=x_tao_interp, atol=atol, err_msg="X differs"
     )
     np.testing.assert_allclose(
-        actual=y, desired=y_tao_interp, atol=1e-4, err_msg="Y differs"
+        actual=y, desired=y_tao_interp, atol=atol, err_msg="Y differs"
     )
 
 
