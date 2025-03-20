@@ -16,7 +16,7 @@ import impact.z as IZ
 
 from ...z import ImpactZ, ImpactZInput, ImpactZParticles
 from ...z.constants import IntegratorType
-from .conftest import z_tests, test_artifacts
+from .conftest import z_tests, test_failure_artifacts
 
 lattice_root = z_tests / "bmad"
 
@@ -169,6 +169,7 @@ def compare_sxy(
     input.space_charge_off()
 
     I = ImpactZ(input)
+    print(I.input)
     output = I.run()
 
     zP0 = output.particles["initial_particles"]
@@ -191,8 +192,7 @@ def compare_sxy(
     y_pass_fail = "Pass" if y_pass else "FAIL"
     pass_fail = "Pass" if x_pass and y_pass else "FAIL"
 
-    fig, (ax0, ax1) = plt.subplots(2, figsize=(12, 8))
-
+    fig, (ax0, ax1, ax2) = plt.subplots(3, figsize=(12, 8))
     fig.suptitle(f"{request.node.name}\n{pass_fail}")
     ax0.plot(z, x, color="red")
     ax0.plot(s_tao, x_tao, "--", color="blue")
@@ -206,11 +206,16 @@ def compare_sxy(
     ax1.set_xlabel(r"$s$ (m)")
     ax1.legend()
 
+    I.input.plot(ax=ax2)
+
+    for ax in (ax0, ax1, ax2):
+        ax.set_xlim(-0.1, s_tao.max() + 0.1)
+
     plt.show()
 
     if not x_pass or not y_pass:
         name = request.node.name.replace("/", "_")
-        plt.savefig(test_artifacts / f"fail_{name}.png")
+        plt.savefig(test_failure_artifacts / f"{name}.png")
 
     np.testing.assert_allclose(
         actual=x, desired=x_tao_interp, atol=1e-4, err_msg="X differs"

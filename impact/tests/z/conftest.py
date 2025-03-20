@@ -10,6 +10,7 @@ z_tests = pathlib.Path(__file__).resolve().parent
 
 
 test_artifacts = z_tests / "artifacts"
+test_failure_artifacts = test_artifacts / "failures"
 
 z_examples_root = z_tests / "examples"
 z_example1 = z_examples_root / "example1.in"
@@ -25,7 +26,7 @@ logging.getLogger("matplotlib.font_manager").setLevel("WARNING")
 
 @pytest.fixture(autouse=True, scope="session")
 def _make_artifacts_dir() -> None:
-    test_artifacts.mkdir(exist_ok=True, parents=True)
+    test_failure_artifacts.mkdir(exist_ok=True, parents=True)
 
 
 @pytest.fixture(autouse=True, scope="function")
