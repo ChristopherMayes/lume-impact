@@ -16,7 +16,7 @@ import impact.z as IZ
 
 from ...z import ImpactZ, ImpactZInput, ImpactZParticles
 from ...z.constants import IntegratorType
-from .conftest import z_tests
+from .conftest import z_tests, test_artifacts
 
 lattice_root = z_tests / "bmad"
 
@@ -72,7 +72,6 @@ def set_initial_particles(
 
 
 comparison_lattices = [
-    "dipole.bmad",
     "drift.bmad",
     "octupole.bmad",
     "quad.bmad",
@@ -80,10 +79,13 @@ comparison_lattices = [
     "solenoid.bmad",
     "decapole.bmad",
     "lcavity.bmad",
-    "optics_matching.bmad",
     "lcavity_rf.bmad",
 ]
 
+comparison_lattices_without_rotation = [
+    "dipole.bmad",
+    "optics_matching.bmad",
+]
 
 positron_lattices = [
     "optics_matching.bmad",
@@ -112,19 +114,18 @@ def check_weighted_initial_particles(
     assert weighted_actual == expected
 
 
-@pytest.mark.parametrize(
-    "lattice",
-    [
-        pytest.param(lattice_root / fn, id=fn, marks=comparison_markers.get(fn, []))
-        for fn in comparison_lattices
-    ],
-)
-def test_compare_sxy(
+def compare_sxy(
     request: pytest.FixtureRequest,
     tmp_path: pathlib.Path,
     integrator_type: IntegratorType,
     lattice: pathlib.Path,
-) -> None:
+    tilt: float | None = None,
+    x_pitch: float | None = None,
+    y_pitch: float | None = None,
+    x_offset: float | None = None,
+    y_offset: float | None = None,
+    ele_to_move: int = 1,
+):
     if (
         lattice.name == "solenoid.bmad"
         and integrator_type == IntegratorType.runge_kutta
@@ -138,6 +139,21 @@ def test_compare_sxy(
 
     with Tao(lattice_file=lattice, noplot=True) as tao:
         set_initial_particles(tao, P0, path=tmp_path)
+
+        for attr, adj in [
+            ("tilt", tilt),
+            ("x_pitch", x_pitch),
+            ("y_pitch", y_pitch),
+            ("x_offset", x_offset),
+            ("y_offset", y_offset),
+        ]:
+            if adj is not None:
+                cmd = f"set ele {ele_to_move} {attr} = {adj}"
+                print("!!!", cmd)
+                tao.cmd(cmd, raises=True)
+
+        print("\n".join(tao.cmd(f"show ele {ele_to_move}")))
+
         input = ImpactZInput.from_tao(tao, integrator_type=integrator_type)
 
         if input.integrator_type == IntegratorType.runge_kutta:
@@ -169,35 +185,115 @@ def test_compare_sxy(
     x_tao_interp = np.interp(z, s_tao, x_tao)
     y_tao_interp = np.interp(z, s_tao, y_tao)
 
+    x_pass = np.allclose(x, x_tao_interp)
+    y_pass = np.allclose(y, y_tao_interp)
+    x_pass_fail = "Pass" if x_pass else "FAIL"
+    y_pass_fail = "Pass" if y_pass else "FAIL"
+    pass_fail = "Pass" if x_pass and y_pass else "FAIL"
+
     fig, (ax0, ax1) = plt.subplots(2, figsize=(12, 8))
 
-    fig.suptitle(request.node.name)
-    ax0.plot(z, x, label="Impact-Z")
-    ax0.plot(s_tao, x_tao, "--", label="Tao")
-    ax0.set_ylabel(r"$x$ (m)")
+    fig.suptitle(f"{request.node.name}\n{pass_fail}")
+    ax0.plot(z, x, color="red")
+    ax0.plot(s_tao, x_tao, "--", color="blue")
+    ax0.scatter(z, x_tao_interp, marker="o", color="purple")
+    ax0.set_ylabel(rf"$x$ (m) {x_pass_fail}")
 
-    ax1.plot(z, y, label="Impact-Z")
-    ax1.plot(s_tao, y_tao, "--", label="Tao")
-    ax1.set_ylabel(r"$y$ (m)")
+    ax1.plot(z, y, color="red", label="IMPACT-Z")
+    ax1.plot(s_tao, y_tao, "--", color="blue", label="Tao")
+    ax1.scatter(z, y_tao_interp, marker="o", color="purple", label="Tao (interpolated)")
+    ax1.set_ylabel(rf"$y$ (m) {y_pass_fail}")
     ax1.set_xlabel(r"$s$ (m)")
+    ax1.legend()
 
-    plt.legend()
     plt.show()
 
-    fig.suptitle(f"{request.node.name} (interp)")
-    ax0.plot(z, x, label="Impact-Z")
-    ax0.plot(z, x_tao_interp, "--", label="Tao (interpolated)")
-    ax0.set_ylabel(r"$x$ (m)")
+    if not x_pass or not y_pass:
+        name = request.node.name.replace("/", "_")
+        plt.savefig(test_artifacts / f"fail_{name}.png")
 
-    ax1.plot(z, y, label="Impact-Z")
-    ax1.plot(z, y_tao_interp, "--", label="Tao (interpolated)")
-    ax1.set_ylabel(r"$y$ (m)")
-    ax1.set_xlabel(r"$s$ (m)")
+    np.testing.assert_allclose(
+        actual=x, desired=x_tao_interp, atol=1e-4, err_msg="X differs"
+    )
+    np.testing.assert_allclose(
+        actual=y, desired=y_tao_interp, atol=1e-4, err_msg="Y differs"
+    )
 
-    plt.legend()
-    plt.show()
-    np.testing.assert_allclose(actual=x, desired=x_tao_interp, atol=1e-4)
-    np.testing.assert_allclose(actual=y, desired=y_tao_interp, atol=1e-4)
+
+@pytest.mark.parametrize(
+    "lattice",
+    [
+        pytest.param(lattice_root / fn, id=fn, marks=comparison_markers.get(fn, []))
+        for fn in comparison_lattices_without_rotation
+    ],
+)
+def test_compare_sxy(
+    request: pytest.FixtureRequest,
+    tmp_path: pathlib.Path,
+    integrator_type: IntegratorType,
+    lattice: pathlib.Path,
+) -> None:
+    compare_sxy(
+        request=request,
+        tmp_path=tmp_path,
+        integrator_type=integrator_type,
+        lattice=lattice,
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "lattice",
+    [
+        pytest.param(lattice_root / fn, id=fn, marks=comparison_markers.get(fn, []))
+        for fn in comparison_lattices
+    ],
+)
+@pytest.mark.parametrize(
+    ("tilt", "x_pitch", "x_offset", "y_pitch", "y_offset"),
+    [
+        # tilt test cases (others zero)
+        pytest.param(np.pi / 4, 0.0, 0.0, 0.0, 0.0, id="tilt=pi/4"),
+        pytest.param(-np.pi / 4, 0.0, 0.0, 0.0, 0.0, id="tilt=-pi/4"),
+        pytest.param(np.pi / 2, 0.0, 0.0, 0.0, 0.0, id="tilt=pi/2"),
+        pytest.param(-np.pi / 2, 0.0, 0.0, 0.0, 0.0, id="tilt=-pi/2"),
+        # x_pitch test cases (others zero)
+        pytest.param(0.0, 0.001, 0.0, 0.0, 0.0, id="x_pitch=0.001"),
+        pytest.param(0.0, -0.001, 0.0, 0.0, 0.0, id="x_pitch=-0.001"),
+        # x_offset test cases (others zero)
+        pytest.param(0.0, 0.0, 0.0001, 0.0, 0.0, id="x_offset=0.0001"),
+        pytest.param(0.0, 0.0, -0.0001, 0.0, 0.0, id="x_offset=-0.0001"),
+        # y_pitch test cases (others zero)
+        pytest.param(0.0, 0.0, 0.0, 0.001, 0.0, id="y_pitch=0.001"),
+        pytest.param(0.0, 0.0, 0.0, -0.001, 0.0, id="y_pitch=-0.001"),
+        # y_offset test cases (others zero)
+        pytest.param(0.0, 0.0, 0.0, 0.0, 0.0001, id="y_offset=0.0001"),
+        pytest.param(0.0, 0.0, 0.0, 0.0, -0.0001, id="y_offset=-0.0001"),
+    ],
+)
+def test_compare_sxy_rotated(
+    request: pytest.FixtureRequest,
+    tmp_path: pathlib.Path,
+    integrator_type: IntegratorType,
+    lattice: pathlib.Path,
+    tilt: float,
+    x_pitch: float,
+    y_pitch: float,
+    x_offset: float,
+    y_offset: float,
+) -> None:
+    compare_sxy(
+        request=request,
+        tmp_path=tmp_path,
+        integrator_type=integrator_type,
+        lattice=lattice,
+        tilt=tilt,
+        x_pitch=x_pitch,
+        y_pitch=y_pitch,
+        x_offset=x_offset,
+        y_offset=y_offset,
+        ele_to_move=1,
+    )
 
 
 def test_check_initial_particles(tmp_path: pathlib.Path) -> None:

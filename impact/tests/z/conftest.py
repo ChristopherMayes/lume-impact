@@ -35,9 +35,11 @@ def _plot_show_to_savefig(
 ) -> None:
     index = 0
 
+    name = request.node.name.replace("/", "_")
+
     def savefig():
         nonlocal index
-        filename = test_artifacts / f"{request.node.name}_{index}.png"
+        filename = test_artifacts / f"{name}_{index}.png"
         test_artifacts.mkdir(parents=True, exist_ok=True)
         print(f"Saving figure (_plot_show_to_savefig fixture) to {filename}")
         plt.savefig(filename)
