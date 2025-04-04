@@ -148,6 +148,10 @@ class ImpactZParticles(BaseModel):
                 )
 
         if not species:
+            if charge_to_mass_ratio.ndim == 0:
+                # TODO: only cmayes hits this scenario in lcavity-bmad?
+                charge_to_mass_ratio = np.asarray([charge_to_mass_ratio])
+
             if len(charge_to_mass_ratio):
                 species = detect_species(charge_to_mass_ratio[0])
                 if species != "electron":
