@@ -221,6 +221,8 @@ class _PydanticNDArray:
             return value
         if isinstance(value, Sequence):
             return np.asarray(value)
+        if np.isscalar(value):
+            return np.asarray([value])
         raise ValueError(f"No conversion from {value!r} to numpy ndarray")
 
 
