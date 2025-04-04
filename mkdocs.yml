@@ -159,6 +159,3 @@ plugins:
               - https://docs.python.org/3/objects.inv
               - https://docs.h5py.org/en/stable/objects.inv
               - https://slaclab.github.io/lume-base/objects.inv
-          rendering:
-            show_source: true
-            show_root_heading: true
