@@ -609,10 +609,6 @@ def single_element_from_tao_info(
     if key == "quadrupole":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Quadrupole")
-        if np.abs(rotation_error_x) > 0.0:
-            raise NotImplementedError("X pitch not currently supported for Quadrupole")
-        if np.abs(rotation_error_y) > 0.0:
-            raise NotImplementedError("Y pitch not currently supported for Quadrupole")
 
         k1 = {
             IntegratorType.linear_map: float(info["K1"]),
@@ -638,7 +634,7 @@ def single_element_from_tao_info(
             misalignment_error_y=offset_y,
             rotation_error_x=rotation_error_x,
             rotation_error_y=rotation_error_y,
-            rotation_error_z=-rotation_error_z,
+            rotation_error_z=rotation_error_z,
             metadata=metadata,
         ), None
     if key == "solenoid":
@@ -664,10 +660,6 @@ def single_element_from_tao_info(
     if key == "lcavity":
         if np.abs(info["Z_OFFSET_TOT"]) > 0.0:
             raise NotImplementedError("Z offset not supported for Lcavity")
-        if np.abs(rotation_error_x) > 0.0:
-            raise NotImplementedError("X pitch not currently supported for Lcavity")
-        if np.abs(rotation_error_y) > 0.0:
-            raise NotImplementedError("Y pitch not currently supported for Lcavity")
 
         cls = get_cavity_class(
             cavity_type=str(info["CAVITY_TYPE"]).lower(),
@@ -691,8 +683,8 @@ def single_element_from_tao_info(
                 field_scaling=float(info["GRADIENT"]),
                 misalignment_error_x=offset_x,
                 misalignment_error_y=offset_y,
-                rotation_error_x=0.0,
-                rotation_error_y=0.0,
+                rotation_error_x=rotation_error_x,
+                rotation_error_y=rotation_error_y,
                 rotation_error_z=-rotation_error_z,
                 metadata=metadata,
             ), None
@@ -736,8 +728,8 @@ def single_element_from_tao_info(
                 field_scaling=-2.0 * float(info["GRADIENT"]) * length / L_active,
                 misalignment_error_x=offset_x,
                 misalignment_error_y=offset_y,
-                rotation_error_x=0.0,
-                rotation_error_y=0.0,
+                rotation_error_x=rotation_error_x,
+                rotation_error_y=rotation_error_y,
                 rotation_error_z=-rotation_error_z,
                 aperture_size_for_wakefield=0.0,
                 bz0=0.0,
