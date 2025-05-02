@@ -41,13 +41,15 @@ nav:
       - API: api/impact_t.md
 
   - IMPACT-Z:
-      - Examples:
-          - examples/z/example1/example1.ipynb
-          - examples/z/example2/example2.ipynb
-          - examples/z/example3/example3.ipynb
+      - Basic:
+          - examples/z/basic/basic_impact_z.ipynb
       - Elements:
           - examples/z/elements/drift.ipynb
           - examples/z/elements/dipole.ipynb
+      - Ji's Examples:
+          - examples/z/example1/example1.ipynb
+          - examples/z/example2/example2.ipynb
+          - examples/z/example3/example3.ipynb
       - Space charge:
           - examples/z/elements/spacecharge-benchmark.ipynb
           - examples/z/elements/spacecharge-drift-bmad.ipynb
@@ -65,6 +67,7 @@ nav:
           - examples/z/elements/sextupole-bmad.ipynb
           - examples/z/elements/solenoid-bmad.ipynb
           - examples/z/elements/swcavity-bmad.ipynb
+
 
       - API:
           - Main: api/z/api.md
