@@ -605,6 +605,8 @@ class ImpactZ(CommandWrapper):
                 self._archive(fp)
         elif isinstance(dest, (h5py.File, h5py.Group)):
             self._archive(dest)
+        else:
+            raise NotImplementedError(type(dest))
 
     to_hdf5 = archive
 

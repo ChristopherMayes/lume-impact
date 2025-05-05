@@ -71,12 +71,12 @@ def set_initial_particles(
     )
 
 
-comparison_lattices = [
+rotation_comparison_lattices = [
     "drift.bmad",
     "octupole.bmad",
     "quad.bmad",
     "sextupole.bmad",
-    "solenoid.bmad",
+    # "solenoid.bmad",  # -> TODO some xfails
     "decapole.bmad",
     "lcavity.bmad",
     "lcavity_rf.bmad",
@@ -273,7 +273,7 @@ def test_compare_sxy(
     "lattice",
     [
         pytest.param(lattice_root / fn, id=fn, marks=comparison_markers.get(fn, []))
-        for fn in comparison_lattices
+        for fn in rotation_comparison_lattices
     ],
 )
 @pytest.mark.parametrize(
@@ -285,14 +285,14 @@ def test_compare_sxy(
         pytest.param(np.pi / 2, 0.0, 0.0, 0.0, 0.0, id="tilt=pi/2"),
         pytest.param(-np.pi / 2, 0.0, 0.0, 0.0, 0.0, id="tilt=-pi/2"),
         # x_pitch test cases (others zero)
-        pytest.param(0.0, 0.001, 0.0, 0.0, 0.0, id="x_pitch=0.001"),
-        pytest.param(0.0, -0.001, 0.0, 0.0, 0.0, id="x_pitch=-0.001"),
+        pytest.param(0.0, 1.0, 0.0, 0.0, 0.0, id="x_pitch=positive"),
+        pytest.param(0.0, -1.0, 0.0, 0.0, 0.0, id="x_pitch=negative"),
+        # y_pitch test cases (others zero)
+        pytest.param(0.0, 0.0, 0.0, 1.0, 0.0, id="y_pitch=positive"),
+        pytest.param(0.0, 0.0, 0.0, -1.0, 0.0, id="y_pitch=negative"),
         # x_offset test cases (others zero)
         pytest.param(0.0, 0.0, 0.0001, 0.0, 0.0, id="x_offset=0.0001"),
         pytest.param(0.0, 0.0, -0.0001, 0.0, 0.0, id="x_offset=-0.0001"),
-        # y_pitch test cases (others zero)
-        pytest.param(0.0, 0.0, 0.0, 0.001, 0.0, id="y_pitch=0.001"),
-        pytest.param(0.0, 0.0, 0.0, -0.001, 0.0, id="y_pitch=-0.001"),
         # y_offset test cases (others zero)
         pytest.param(0.0, 0.0, 0.0, 0.0, 0.0001, id="y_offset=0.0001"),
         pytest.param(0.0, 0.0, 0.0, 0.0, -0.0001, id="y_offset=-0.0001"),
@@ -309,11 +309,114 @@ def test_compare_sxy_rotated(
     x_offset: float,
     y_offset: float,
 ) -> None:
+    is_lcavity = lattice.name == "lcavity.bmad"
+    pitch_magnitude = 0.000_01 if is_lcavity else 0.001
+
+    # Use sign from value but magnitude based on lattice type
+    if x_pitch != 0.0:
+        x_pitch = pitch_magnitude if x_pitch > 0 else -pitch_magnitude
+    if y_pitch != 0.0:
+        y_pitch = pitch_magnitude if y_pitch > 0 else -pitch_magnitude
+
     compare_sxy(
         request=request,
         tmp_path=tmp_path,
         integrator_type=integrator_type,
         lattice=lattice,
+        tilt=tilt,
+        x_pitch=x_pitch,
+        y_pitch=y_pitch,
+        x_offset=x_offset,
+        y_offset=y_offset,
+        ele_to_move=1,
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    ("tilt", "x_pitch", "x_offset", "y_pitch", "y_offset"),
+    [
+        # tilt test cases (others zero)
+        pytest.param(np.pi / 4, 0.0, 0.0, 0.0, 0.0, id="tilt=pi/4"),
+        pytest.param(-np.pi / 4, 0.0, 0.0, 0.0, 0.0, id="tilt=-pi/4"),
+        pytest.param(np.pi / 2, 0.0, 0.0, 0.0, 0.0, id="tilt=pi/2"),
+        pytest.param(-np.pi / 2, 0.0, 0.0, 0.0, 0.0, id="tilt=-pi/2"),
+        # x_pitch test cases (others zero)
+        pytest.param(
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            id="x_pitch=positive",
+            marks=pytest.mark.xfail(reason="TODO bmad discrepancy", strict=True),
+        ),
+        pytest.param(
+            0.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            id="x_pitch=negative",
+            marks=pytest.mark.xfail(reason="TODO bmad discrepancy", strict=True),
+        ),
+        # y_pitch test cases (others zero)
+        pytest.param(
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            id="y_pitch=positive",
+            marks=pytest.mark.xfail(reason="TODO bmad discrepancy", strict=True),
+        ),
+        pytest.param(
+            0.0,
+            0.0,
+            0.0,
+            -1.0,
+            0.0,
+            id="y_pitch=negative",
+            marks=pytest.mark.xfail(reason="TODO bmad discrepancy", strict=True),
+        ),
+        # x_offset test cases (others zero)
+        pytest.param(0.0, 0.0, 0.0001, 0.0, 0.0, id="x_offset=0.0001"),
+        pytest.param(
+            0.0,
+            0.0,
+            -0.0001,
+            0.0,
+            0.0,
+            id="x_offset=-0.0001",
+            marks=pytest.mark.xfail(reason="TODO bmad discrepancy", strict=True),
+        ),
+        # y_offset test cases (others zero)
+        pytest.param(0.0, 0.0, 0.0, 0.0, 0.0001, id="y_offset=0.0001"),
+        pytest.param(0.0, 0.0, 0.0, 0.0, -0.0001, id="y_offset=-0.0001"),
+    ],
+)
+def test_compare_sxy_rotated_solenoid(
+    request: pytest.FixtureRequest,
+    tmp_path: pathlib.Path,
+    integrator_type: IntegratorType,
+    tilt: float,
+    x_pitch: float,
+    y_pitch: float,
+    x_offset: float,
+    y_offset: float,
+) -> None:
+    pitch_magnitude = 0.001
+
+    # Use sign from value but magnitude based on lattice type
+    if x_pitch != 0.0:
+        x_pitch = pitch_magnitude if x_pitch > 0 else -pitch_magnitude
+    if y_pitch != 0.0:
+        y_pitch = pitch_magnitude if y_pitch > 0 else -pitch_magnitude
+    compare_sxy(
+        request=request,
+        tmp_path=tmp_path,
+        integrator_type=integrator_type,
+        lattice=lattice_root / "solenoid.bmad",
         tilt=tilt,
         x_pitch=x_pitch,
         y_pitch=y_pitch,

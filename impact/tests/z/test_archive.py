@@ -333,7 +333,7 @@ def json_for_comparison(model: pydantic.BaseModel) -> str:
 def test_hdf_archive_using_group(
     impact: ImpactZ,
     request: pytest.FixtureRequest,
-    # hdf5_filename: pathlib.Path,
+    hdf5_filename: pathlib.Path,
 ) -> None:
     output = impact.run(raise_on_error=True)
     assert output.run.success
@@ -343,7 +343,7 @@ def test_hdf_archive_using_group(
     orig_output = impact.output
     assert orig_output is not None
 
-    hdf5_filename = test_artifacts / f"archive-{request.node.name}.h5"
+    # hdf5_filename = test_artifacts / f"archive-{request.node.name}.h5"
     t0 = time.monotonic()
     with h5py.File(hdf5_filename, "w") as h5:
         impact.archive(h5)
