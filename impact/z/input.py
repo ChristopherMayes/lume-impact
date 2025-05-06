@@ -13,6 +13,7 @@ from typing import (
     Literal,
     NamedTuple,
     TypeVar,
+    Union,
     cast,
 )
 from collections.abc import Sequence
@@ -76,7 +77,7 @@ class HasOutputFile(Protocol):
     file_id: float
 
 
-InputElementMetadata = dict[str, int | float | str | bool | NDArray]
+InputElementMetadata = dict[str, Union[int, float, str, bool, NDArray]]
 
 
 class InputElement(BaseModel):
@@ -1762,43 +1763,43 @@ class HaltExecution(InputElement, element_id=-99):
     type_id: Literal[-99] = -99
 
 
-AnyInputElement = (
-    Drift
-    | Quadrupole
-    | ConstantFocusing
-    | Solenoid
-    | Dipole
-    | Multipole
-    | Wiggler
-    | DTL
-    | CCDTL
-    | CCL
-    | SuperconductingCavity
-    | SolenoidWithRFCavity
-    | TravelingWaveRFCavity
-    | UserDefinedRFCavity
-    | ShiftCentroid
-    | WriteFull
-    | DensityProfileInput
-    | DensityProfile
-    | Projection2D
-    | Density3D
-    | WritePhaseSpaceInfo
-    | WriteSliceInfo
-    | ScaleMismatchParticle6DCoordinates
-    | CollimateBeam
-    | ToggleSpaceCharge
-    | RotateBeam
-    | BeamShift
-    | BeamEnergySpread
-    | ShiftBeamCentroid
-    | IntegratorTypeSwitch
-    | BeamKickerByRFNonlinearity
-    | RfcavityStructureWakefield
-    | EnergyModulation
-    | KickBeamUsingMultipole
-    | HaltExecution
-)
+AnyInputElement = Union[
+    Drift,
+    Quadrupole,
+    ConstantFocusing,
+    Solenoid,
+    Dipole,
+    Multipole,
+    Wiggler,
+    DTL,
+    CCDTL,
+    CCL,
+    SuperconductingCavity,
+    SolenoidWithRFCavity,
+    TravelingWaveRFCavity,
+    UserDefinedRFCavity,
+    ShiftCentroid,
+    WriteFull,
+    DensityProfileInput,
+    DensityProfile,
+    Projection2D,
+    Density3D,
+    WritePhaseSpaceInfo,
+    WriteSliceInfo,
+    ScaleMismatchParticle6DCoordinates,
+    CollimateBeam,
+    ToggleSpaceCharge,
+    RotateBeam,
+    BeamShift,
+    BeamEnergySpread,
+    ShiftBeamCentroid,
+    IntegratorTypeSwitch,
+    BeamKickerByRFNonlinearity,
+    RfcavityStructureWakefield,
+    EnergyModulation,
+    KickBeamUsingMultipole,
+    HaltExecution,
+]
 
 
 T_InputElement = TypeVar("T_InputElement", bound=InputElement)

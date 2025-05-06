@@ -14,6 +14,7 @@ from typing import (
     NamedTuple,
     Sequence,
     TypedDict,
+    Union,
     cast,
 )
 
@@ -79,7 +80,7 @@ class UnusableElementError(Exception): ...
 class UnsupportedElementError(Exception): ...
 
 
-TaoInfoDict: TypeAlias = dict[str, str | float | int]
+TaoInfoDict: TypeAlias = dict[str, Union[str, float, int]]
 
 
 def ele_methods(tao: Tao, ele: str | int, which: str = "model") -> TaoInfoDict:
@@ -329,9 +330,9 @@ def get_multipole_info(tao: Tao, ele_id: str | int) -> MultipoleInfo | None:
     return MultipoleInfo(order=order, Bn=d0["Bn"])  # May need another factor
 
 
-CavityClass: TypeAlias = (
-    type[SuperconductingCavity] | type[SolenoidWithRFCavity] | type[CCL]
-)
+CavityClass: TypeAlias = Union[
+    type[SuperconductingCavity], type[SolenoidWithRFCavity], type[CCL]
+]
 
 
 def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:

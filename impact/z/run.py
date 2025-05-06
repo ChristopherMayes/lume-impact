@@ -211,7 +211,7 @@ class ImpactZ(CommandWrapper):
         )
         if input is None:
             input = ImpactZInput()
-        elif isinstance(input, AnyPath):
+        elif isinstance(input, (pathlib.Path, str)):
             path, contents = read_if_path(input)
             if "\n" not in contents:
                 raise FileNotFoundError(
