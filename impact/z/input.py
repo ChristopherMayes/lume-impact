@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+import enum
 import logging
 import pathlib
 import shlex
@@ -148,6 +149,8 @@ class InputElement(BaseModel):
         def as_string(v: float | int):
             if isinstance(v, (bool, float)):
                 return f"{v:.20g}"
+            if isinstance(v, enum.IntEnum):
+                return str(v.value)
             return str(v)
 
         attr_to_value = {
