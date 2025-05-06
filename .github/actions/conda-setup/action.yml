@@ -31,7 +31,7 @@ runs:
       shell: bash -l {0}
       run: |
         if [ -f "${{ inputs.filename }}" ]; then
-          sed -i -e "s/- python>=.*/- python=${{ inputs.python-version }}/" ${{ inputs.filename }}
+          sed -i -e "s/- python=.*/- python=${{ inputs.python-version }}/" ${{ inputs.filename }}
           echo "Updated Python spec in environment file:"
           grep "python=" ${{ inputs.filename }}
         fi

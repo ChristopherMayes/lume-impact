@@ -13,7 +13,6 @@ from typing import (
     Iterable,
     NamedTuple,
     Sequence,
-    TypeAlias,
     TypedDict,
     cast,
 )
@@ -25,7 +24,7 @@ from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.particles import c_light
 from pmd_beamphysics.species import charge_state, mass_of
 from pytao import Tao, TaoCommandError
-from typing_extensions import Literal
+from typing_extensions import Literal, TypeAlias
 
 from ..constants import (
     BoundaryType,
