@@ -4,17 +4,25 @@ channels:
   - conda-forge
 dependencies:
   - python=3.12
-  - pip
-  - openpmd-beamphysics
-  - lume-base
-  - distgen
-  - matplotlib
   - bokeh
-  - psutil
-  - jupyter_bokeh
+  - distgen
   - impact-t=*=mpi_openmpi*
   #- impact-t=*=mpi_mpich*
-# Developer
+  - impact-z=*=mpi_openmpi*
+  # - impact-z=*=mpi_mpich*
+  - jupyter_bokeh
+  - lume-base
+  - matplotlib
+  - openpmd-beamphysics
+  - polars
+  - prettytable
+  - psutil
+  - pydantic
+  - pydantic-settings
+  - rich
+  - tqdm
+  - pip
+  # Developer
   - bmad
   - pytao
   - jupyterlab>=3

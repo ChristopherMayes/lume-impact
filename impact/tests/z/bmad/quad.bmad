@@ -1,0 +1,13 @@
+! Lattice file adapted from simple.bmad
+no_digested
+beginning[beta_a] = 10.   ! m  a-mode beta function
+beginning[beta_b] = 10.   ! m  b-mode beta function
+beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
+
+parameter[geometry] = open          ! Or closed
+parameter[particle] = electron      ! Reference particle.
+
+quadrupole1:       quadrupole, l = 0.6, k1 = 1, num_steps = 10
+
+lat: line = (quadrupole1)
+use, lat

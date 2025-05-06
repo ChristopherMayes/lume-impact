@@ -1,19 +1,26 @@
+from __future__ import annotations
+import typing
+import warnings
+from collections import Counter
+from copy import deepcopy
+
+import numpy as np
 from pmd_beamphysics import FieldMesh
 from pmd_beamphysics.fields.analysis import accelerating_voltage_and_phase
-import numpy as np
-from copy import deepcopy
-from collections import Counter
-from impact.lattice import new_write_beam
-import warnings
+
+from ..lattice import new_write_beam
+
+if typing.TYPE_CHECKING:
+    from pytao import Tao
 
 
-def tao_unique_names(tao):
+def tao_unique_names(tao: Tao, ix_uni: int | str = "", ix_branch: int | str = ""):
     """
     Invent a unique name
 
     Parameters
     ----------
-    tao: Pytao.Tao instance
+    tao : pytao.Tao
 
     Returns
     -------
@@ -21,8 +28,18 @@ def tao_unique_names(tao):
         Mapping of ix_ele to a unique name
     """
     # Get all ixs
-    ixs = set(tao.lat_list("*", "ele.ix_ele"))
-    ixs.update(set(tao.lat_list("*", "ele.ix_ele", flags="-array_out -no_slaves")))
+    ixs = set(tao.lat_list("*", "ele.ix_ele", ix_uni=ix_uni, ix_branch=ix_branch))
+    ixs.update(
+        set(
+            tao.lat_list(
+                "*",
+                "ele.ix_ele",
+                flags="-array_out -no_slaves",
+                ix_uni=ix_uni,
+                ix_branch=ix_branch,
+            )
+        )
+    )
     ixs = list(sorted(ixs))
 
     names = [tao.ele_head(ix)["name"] for ix in ixs]
@@ -40,12 +57,12 @@ def tao_unique_names(tao):
     return unique_name
 
 
-def ele_info(tao, ele_id):
+def ele_info(tao: Tao, ele_id, which="model") -> dict[str, float | str | int]:
     """
     Returns a dict of element attributes from ele_head and ele_gen_attribs
     """
-    edat = tao.ele_head(ele_id)
-    edat.update(tao.ele_gen_attribs(ele_id))
+    edat = tao.ele_head(ele_id, which=which)
+    edat.update(tao.ele_gen_attribs(ele_id, which=which))
     s = edat["s"]
     L = edat["L"]
     edat["s_begin"] = s - L

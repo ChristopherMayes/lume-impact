@@ -1,0 +1,13 @@
+! Lattice file adapted from simple.bmad
+no_digested
+beginning[beta_a] = 10.   ! m  a-mode beta function
+beginning[beta_b] = 10.   ! m  b-mode beta function
+beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
+
+parameter[geometry] = open          ! Or closed
+parameter[particle] = electron      ! Reference particle.
+
+sbend1: sbend, l = 0.6, angle = 30 * pi/180, fringe_type=full
+
+lat: line = (sbend1)
+use, lat

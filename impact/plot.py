@@ -6,7 +6,25 @@ from .lattice import ele_shape, remove_element_types, ele_bounds, ele_overlaps_s
 from .fieldmaps import lattice_field, FIELD_CALC_ELE_TYPES
 import numpy as np
 
-from pmd_beamphysics.labels import mathlabel
+from pmd_beamphysics.labels import mathlabel as _mathlabel
+
+
+_label_hotfixes = {
+    "loadbalance_min_n_particle",
+    "loadbalance_max_n_particle",
+    "charge_state_n_particle",
+    "neg_cov_z__gammabeta_z",
+    "neg_cov_y__gammabeta_y",
+    "neg_cov_x__gammabeta_x",
+    "neg_cov_x__gammabeta_x",
+}
+
+
+def mathlabel(*keys: str, **kwargs):
+    fixed_keys = [
+        key.replace("_", "-") if key in _label_hotfixes else key for key in keys
+    ]
+    return _mathlabel(*fixed_keys, **kwargs)
 
 
 def plot_stat(impact_object, y="sigma_x", x="mean_z", nice=True):
@@ -218,6 +236,7 @@ def plot_stats_with_layout(
     include_particles=True,
     include_legend=True,
     return_figure=False,
+    ax=None,
     **kwargs,
 ):
     """
@@ -245,6 +264,9 @@ def plot_stats_with_layout(
         fig, all_axis = plt.subplots(2, gridspec_kw={"height_ratios": [4, 1]}, **kwargs)
         ax_layout = all_axis[-1]
         ax_plot = [all_axis[0]]
+    elif ax is not None:
+        ax_plot = [ax]
+        fig = ax.get_figure()
     else:
         fig, all_axis = plt.subplots(**kwargs)
         ax_plot = [all_axis]

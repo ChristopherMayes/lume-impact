@@ -3,48 +3,82 @@ repo_url: https://github.com/ChristopherMayes/lume-impact
 repo_name: ChristopherMayeslume-impact
 
 nav:
-    - Home: index.md
+  - Home: index.md
 
-    - Examples:
-        - Basic:
-            - examples/basic_impact_examples.ipynb
-            - examples/distgen_example.ipynb
-            - examples/parallel_run_example.ipynb
-            - examples/functional_impact_run.ipynb
-        - Fieldmaps:
-            - examples/fieldmap_reconstruction.ipynb
-            - examples/solrf_fieldmaps.ipynb
-        - Utilities:
-            - examples/autophase_example.ipynb
-            - examples/bmad_interface.ipynb
-            - examples/movie_example.ipynb
-            - examples/input_parsing_example.ipynb
-            - examples/output_parsing_example.ipynb
-            - examples/plotting_example.ipynb
-        - Conversion:
-            - examples/bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
-            - examples/bmad_to_impact/corrector_coil/compare.ipynb
-        - Elements:
-            - examples/elements/drift.ipynb
-            - examples/elements/apex_gun.ipynb
-            #- examples/elements/dipole.ipunb
-            - examples/elements/corrector_coil.ipynb
-            - examples/elements/quadrupole.ipynb
-            - examples/elements/solenoid.ipynb
-            - examples/elements/tesla_9cell_cavity.ipynb
-            - examples/elements/traveling_wave_cavity.ipynb
-            - examples/elements/wakefield.ipynb
-            - examples/elements/3d_field.ipynb
-            - examples/elements/awa_flatbeam.ipynb
+  - IMPACT-T:
+      - Examples:
+          - Basic:
+              - examples/basic_impact_examples.ipynb
+              - examples/distgen_example.ipynb
+              - examples/parallel_run_example.ipynb
+              - examples/functional_impact_run.ipynb
+          - Fieldmaps:
+              - examples/fieldmap_reconstruction.ipynb
+              - examples/solrf_fieldmaps.ipynb
+          - Utilities:
+              - examples/autophase_example.ipynb
+              - examples/bmad_interface.ipynb
+              - examples/movie_example.ipynb
+              - examples/input_parsing_example.ipynb
+              - examples/output_parsing_example.ipynb
+              - examples/plotting_example.ipynb
+          - Conversion:
+              - examples/bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
+              - examples/bmad_to_impact/corrector_coil/compare.ipynb
+          - Elements:
+              - examples/elements/drift.ipynb
+              - examples/elements/apex_gun.ipynb
+              #- examples/elements/dipole.ipunb
+              - examples/elements/corrector_coil.ipynb
+              - examples/elements/quadrupole.ipynb
+              - examples/elements/solenoid.ipynb
+              - examples/elements/tesla_9cell_cavity.ipynb
+              - examples/elements/traveling_wave_cavity.ipynb
+              - examples/elements/wakefield.ipynb
+              - examples/elements/3d_field.ipynb
+              - examples/elements/awa_flatbeam.ipynb
+
+      - API: api/impact_t.md
+
+  - IMPACT-Z:
+      - Basic:
+          - examples/z/basic/basic_impact_z.ipynb
+      - Elements:
+          - examples/z/elements/drift.ipynb
+          - examples/z/elements/dipole.ipynb
+      - Ji's Examples:
+          - examples/z/example1/example1.ipynb
+          - examples/z/example2/example2.ipynb
+          - examples/z/example3/example3.ipynb
+      - Space charge:
+          - examples/z/elements/spacecharge-benchmark.ipynb
+          - examples/z/elements/spacecharge-drift-bmad.ipynb
+      - CSR:
+          - examples/z/elements/csr-zeuthen.ipynb
+          - examples/z/elements/csr-bench-bmad.ipynb
+      - Bmad Comparison:
+          - examples/z/elements/decapole-bmad.ipynb
+          - examples/z/elements/dipole-bmad.ipynb
+          - examples/z/elements/drift-bmad.ipynb
+          - examples/z/elements/lcavity-bmad.ipynb
+          - examples/z/elements/octupole-bmad.ipynb
+          - examples/z/elements/optics-matching-bmad.ipynb
+          - examples/z/elements/quadrupole-bmad.ipynb
+          - examples/z/elements/sextupole-bmad.ipynb
+          - examples/z/elements/solenoid-bmad.ipynb
+          - examples/z/elements/swcavity-bmad.ipynb
 
 
-    - API:
-      - Impact: api/impact.md
+      - API:
+          - Main: api/z/api.md
+          - Input: api/z/input.md
+          - Output: api/z/output.md
 
 theme:
   icon:
     repo: fontawesome/brands/github
   name: material
+  navigation_depth: 3
 
   custom_dir: docs/overrides
   features:
@@ -70,6 +104,9 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.arithmatex: # Enable MathJAX https://squidfunk.github.io/mkdocs-material/reference/mathjax/
       generic: true
+  - toc:
+      permalink: true
+      toc_depth: 4
 
 extra_javascript:
   - javascripts/mathjax.js
@@ -95,12 +132,33 @@ plugins:
       default_handler: python
       handlers:
         python:
-          selection:
-            docstring_style: "numpy"
-            inherited_members: false
+          options:
             filters:
               - "!^_" # exclude all members starting with _
               - "^__init__$" # but always include __init__ modules and methods
-          rendering:
-            show_source: true
+            docstring_style: numpy
+            docstring_options:
+              ignore_init_summary: false
+            heading_level: 3
             show_root_heading: true
+            show_root_toc_entry: true
+            show_root_full_path: true
+            show_root_members_full_path: false
+            show_object_full_path: true
+            show_category_heading: true
+            show_if_no_docstring: false
+            show_signature: true
+            signature_crossrefs: true
+            show_signature_annotations: false
+            separate_signature: true
+            line_length: 100
+            merge_init_into_class: true
+            show_source: true
+            show_bases: true
+            show_submodules: false
+            group_by_category: true
+            unwrap_annotated: true
+            import:
+              - https://docs.python.org/3/objects.inv
+              - https://docs.h5py.org/en/stable/objects.inv
+              - https://slaclab.github.io/lume-base/objects.inv

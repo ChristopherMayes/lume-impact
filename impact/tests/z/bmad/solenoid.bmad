@@ -1,0 +1,14 @@
+! Lattice file adapted from simple.bmad
+no_digested
+beginning[beta_a] = 10.   ! m  a-mode beta function
+beginning[beta_b] = 10.   ! m  b-mode beta function
+beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
+
+parameter[geometry] = open          ! Or closed
+parameter[particle] = electron      ! Reference particle.
+
+solenoid1:         solenoid, l = 2.6, ks = 1, num_steps = 10
+! , x_offset = 0.05, y_pitch = 0.001, tilt = 0.1
+
+lat: line = (solenoid1)
+use, lat

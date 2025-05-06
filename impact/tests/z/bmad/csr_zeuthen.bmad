@@ -1,0 +1,118 @@
+no_digested
+beginning[beta_a]  =  40
+beginning[beta_b]  =  13
+beginning[alpha_a]  =  2.6
+beginning[alpha_b]  =  2.6
+
+parameter[geometry] = open
+parameter[particle] = electron
+parameter[e_tot] = 5000e6
+
+!bmad_com[csr_and_space_charge_on] = T
+
+!---------------------
+!---------------------
+! ZB Chicane
+
+!---------------------
+! Geometry
+
+ZB.angle0 = 0  ! Any extra angle on outer bends
+ZB.angle1 = - pi/180 * 2.77
+ZB.Lp_bend  = 0.5 ! m
+ZB.Lp_drift = 5 ! m
+ZB.Lp_mid = 1 ! m
+ZB_Lp_final = 1 ! m
+
+!---------------------
+! Markers
+
+ZB.Mar.BEG: marker
+ZB.Mar.MID: marker, superimpose, ref = ZB.Pip02
+ZB.Mar.END: marker
+
+!---------------------
+! Pipes
+
+
+ZB.Pip01: pipe
+ZB.Pip02: pipe, L = ZB.Lp_mid
+ZB.Pip03: pipe
+ZB.Pip04: pipe, L = ZB_Lp_final
+
+!---------------------
+! Bends
+
+
+ZB.Ben00: sbend, fringe_type = full
+
+ZB.Ben01: ZB.Ben00
+ZB.Ben02: ZB.Ben00
+ZB.Ben03: ZB.Ben00
+ZB.Ben04: ZB.Ben00
+
+!---------------------
+! Taylor (for chirp)
+
+ZB.TAYLOR: taylor
+
+!----------------------
+! Initial settings
+
+ZB.Ben01[g] = sin(ZB.angle1)/ZB.Lp_bend
+ZB.Ben01[L] = ZB.Lp_bend/sinc(ZB.angle1)
+ZB.Ben01[e2] = ZB.angle1
+
+ZB.Pip01[L] = ZB.Lp_drift/cos(ZB.angle1)
+ZB.Pip03[L] = ZB.Lp_drift/cos(ZB.angle1)
+
+ZB.Ben02[g] = -sin(ZB.angle1)/ZB.Lp_bend
+ZB.Ben02[L] = ZB.Lp_bend/sinc(ZB.angle1)
+ZB.Ben02[e1] = -ZB.angle1
+
+ZB.Ben03[g] = -sin(ZB.angle1)/ZB.Lp_bend
+ZB.Ben03[L] = ZB.Lp_bend/sinc(ZB.angle1)
+ZB.Ben03[e2] = -ZB.angle1
+
+ZB.Ben04[g] = sin(ZB.angle1)/ZB.Lp_bend
+ZB.Ben04[L] = ZB.Lp_bend/sinc(ZB.angle1)
+ZB.Ben04[e1] = ZB.angle1
+
+!---------------------
+! Lines
+
+
+ZB: line = (  ZB.TAYLOR,
+    ZB.Mar.BEG,
+    ZB.Ben01, ZB.Pip01,
+    ZB.Ben02, ZB.Pip02,
+    ZB.Ben03, ZB.Pip03,
+    ZB.Ben04, ZB.Pip04,
+    ZB.Mar.END)
+
+
+!---------------------
+! Overlays
+
+O_ZB.chicane: overlay={
+  ZB.Ben01[g]:sin(theta)/Lp,
+  ZB.Ben01[L]:Lp/sinc(theta),
+  ZB.Ben01[e2]:theta,
+
+  ZB.Pip01[L]: Lp_drift/cos(theta),
+  ZB.Pip03[L]: Lp_drift/cos(theta),
+
+  ZB.Ben02[g]:-sin(theta)/Lp,
+  ZB.Ben02[L]:Lp/sinc(theta),
+  ZB.Ben02[e1]:-theta,
+
+  ZB.Ben03[g]:-sin(theta)/Lp,
+  ZB.Ben03[L]:Lp/sinc(theta),
+  ZB.Ben03[e2]:-theta,
+
+  ZB.Ben04[g]:sin(theta)/Lp,
+  ZB.Ben04[L]:Lp/sinc(theta),
+  ZB.Ben04[e1]:theta}, var = {theta, Lp, Lp_drift}, theta=ZB.angle1, Lp=ZB.Lp_bend, Lp_drift=ZB.Lp_drift
+
+
+use, ZB

@@ -12,6 +12,7 @@ devel/*
 # Distribution / packaging
 .Python
 build/
+/build
 develop-eggs/
 dist/
 downloads/
@@ -108,3 +109,9 @@ venv.bak/
 .DS_Store
 
 /impact/_version.py
+
+# Bmad
+*.digested*
+
+# test suite artifacts
+artifacts/

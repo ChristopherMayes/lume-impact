@@ -1,3 +1,4 @@
+import pathlib
 from .parsers import (
     parse_impact_input,
     load_many_fort,
@@ -287,7 +288,7 @@ class Impact(CommandWrapper):
 
     def stat(self, key):
         """
-        Array from .output['stats'][key]
+        Array from `.output['stats'][key]`
 
         Additional keys are avalable:
             'mean_energy': mean energy
@@ -552,7 +553,7 @@ class Impact(CommandWrapper):
         if path is None:
             path = self.path
 
-        assert os.path.exists(path)
+        pathlib.Path(path).mkdir(exist_ok=True, parents=True)
 
         filePath = os.path.join(path, input_filename)
 
