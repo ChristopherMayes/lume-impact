@@ -31,10 +31,18 @@ runs:
       shell: bash -l {0}
       run: |
         if [ -f "${{ inputs.filename }}" ]; then
-          sed -i -e "s/- python>=.*/- python=${{ inputs.python-version }}/" ${{ inputs.filename }}
+          sed -i -e "s/- python=.*/- python=${{ inputs.python-version }}/" ${{ inputs.filename }}
           echo "Updated Python spec in environment file:"
           grep "python=" ${{ inputs.filename }}
+
+          if [[ "${{ inputs.python-version }}" == "3.9" ]]; then
+            if ! grep -q "eval_type_backport" ${{ inputs.filename }}; then
+              echo "  - eval_type_backport" >> ${{ inputs.filename }}
+              echo "** Added eval_type_backport for Python 3.9"
+            fi
+          fi
         fi
+
     - name: Set cache date
       shell: bash -l {0}
       run: |

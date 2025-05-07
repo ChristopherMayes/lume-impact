@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from inspect import isclass
 import pathlib
-from typing import Any, TypeAlias, Union
+from typing import Any, Union
 from collections.abc import Iterable, Sequence
 
 import annotated_types
@@ -12,7 +12,7 @@ import pydantic_core
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 from rich.pretty import pretty_repr
-from typing_extensions import Literal, NotRequired, TypedDict, override
+from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict, override
 from typing import Annotated
 
 from ..repr import detailed_html_repr
