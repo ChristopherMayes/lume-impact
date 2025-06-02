@@ -4,6 +4,7 @@ import logging
 import math
 import pathlib
 import tempfile
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import (
@@ -213,6 +214,31 @@ def get_ele_indices_by_pattern(
     return sorted(set(all_ids()))
 
 
+@contextmanager
+def with_universe(tao: Tao, universe_id: int):
+    """
+    Temporarily set the default universe in Tao.
+
+    Parameters
+    ----------
+    tao : Tao
+        The Tao instance.
+    universe_id : str
+        The universe ID to set as default during the context.
+
+    Notes
+    -----
+    The original default universe is restored upon exiting the context, even if
+    an exception occurs.
+    """
+    original_universe = tao.universe("")["ix_universe"]
+    try:
+        tao.cmd(f"set default universe = {universe_id}")
+        yield
+    finally:
+        tao.cmd(f"set default universe = {original_universe}")
+
+
 def export_particles(tao: Tao, ele_id: str | int):
     """
     Export particles for a given element to an HDF5 file.
@@ -220,22 +246,30 @@ def export_particles(tao: Tao, ele_id: str | int):
     Parameters
     ----------
     tao : Tao
-    ele_id : str
+        The Tao instance.
+    ele_id : str or int
         The element for which the particles are to be exported.
+        Can include a universe specification in the format
+        `"universe@branch>>element"`.
 
     Returns
     -------
     ParticleGroup
+        The ParticleGroup loaded from the exported file.
     """
     if "@" in str(ele_id):
         # TODO: https://github.com/bmad-sim/bmad-ecosystem/issues/1552
         ix_uni, ele_id = str(ele_id).split("@")
-        tao.cmd(f"set default universe = {ix_uni}")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fn = pathlib.Path(tmpdir) / "particles.h5"
-        logger.debug(f"Writing {ele_id} particles to: {fn}")
-        tao.cmd(f"write beam -at {ele_id} {fn}")
-        return ParticleGroup(h5=str(fn))
+        universe_context = with_universe(tao, int(ix_uni))
+    else:
+        universe_context = nullcontext()
+
+    with universe_context:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fn = pathlib.Path(tmpdir) / "particles.h5"
+            logger.debug(f"Writing {ele_id} particles to: {fn}")
+            tao.cmd(f"write beam -at {ele_id} {fn}")
+            return ParticleGroup(h5=str(fn))
 
 
 def print_ele_info(ele_id: str | int, ele_info: dict[str, Any]) -> None:
