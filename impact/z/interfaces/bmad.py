@@ -159,7 +159,7 @@ def get_index_to_name(
     track_end: str | int | None = None,
     ix_uni: int = 1,
     ix_branch: int = 0,
-) -> dict[int, str]:
+) -> dict[str, str]:
     """
     Get a mapping from element indices to element names.
 
@@ -189,7 +189,7 @@ def get_index_to_name(
     ix_start = get_element_index(tao, track_start) if track_start else ix_first
     ix_end = get_element_index(tao, track_end) if track_end else ix_last
     return {
-        ix_ele: name
+        f"{ix_uni}@{ix_branch}>>{ix_ele}": name
         for ix_ele, name in idx_to_name.items()
         if ix_start <= ix_ele <= ix_end
     }
@@ -1135,7 +1135,7 @@ class ConversionState:
                 tao_id_to_elems[ele_id] = z_elems
 
                 for ele in z_elems:
-                    ele.metadata["bmad_id"] = int(ele_id)
+                    ele.metadata["bmad_id"] = ele_id
 
                 if elem_data:
                     for key, value in elem_data.items():
@@ -1151,7 +1151,7 @@ class ConversionState:
                             WriteFull(
                                 name=f"WRITE_{name}",
                                 file_id=output_file_id,
-                                metadata={"bmad_id": int(ele_id)},
+                                metadata={"bmad_id": ele_id},
                             )
                         )
                         output_file_id += 1
