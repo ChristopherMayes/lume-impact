@@ -227,6 +227,10 @@ def export_particles(tao: Tao, ele_id: str | int):
     -------
     ParticleGroup
     """
+    if "@" in str(ele_id):
+        # TODO: https://github.com/bmad-sim/bmad-ecosystem/issues/1552
+        ix_uni, ele_id = str(ele_id).split("@")
+        tao.cmd(f"set default universe = {ix_uni}")
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = pathlib.Path(tmpdir) / "particles.h5"
         logger.debug(f"Writing {ele_id} particles to: {fn}")
