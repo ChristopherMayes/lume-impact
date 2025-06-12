@@ -364,13 +364,18 @@ def get_cavity_class(tracking_method: str, cavity_type: str) -> CavityClass:
 
     if cavity_type == "standing_wave":
         if tracking_method in {"bmad_standard"}:
-            return CCL
-            # return SuperconductingCavity
+            # TODO: this should return to be CCL once
+            # https://github.com/impact-lbl/IMPACT-Z/issues/16 is resolved.
+            # return CCL
+            return SolenoidWithRFCavity
         if tracking_method in {"runge_kutta", "time_runge_kutta"}:
             return SolenoidWithRFCavity
     elif cavity_type == "traveling_wave":
         if tracking_method in {"bmad_standard"}:
-            return CCL
+            # TODO: this should return to be CCL once
+            # https://github.com/impact-lbl/IMPACT-Z/issues/16 is resolved.
+            # return CCL
+            return SolenoidWithRFCavity
     raise NotImplementedError(
         f"No mapping of cavity type for {tracking_method=} {cavity_type=}"
     )
