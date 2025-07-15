@@ -4,6 +4,7 @@ import logging
 import math
 import pathlib
 import tempfile
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import (
@@ -159,7 +160,7 @@ def get_index_to_name(
     track_end: str | int | None = None,
     ix_uni: int = 1,
     ix_branch: int = 0,
-) -> dict[int, str]:
+) -> dict[str, str]:
     """
     Get a mapping from element indices to element names.
 
@@ -189,7 +190,7 @@ def get_index_to_name(
     ix_start = get_element_index(tao, track_start) if track_start else ix_first
     ix_end = get_element_index(tao, track_end) if track_end else ix_last
     return {
-        ix_ele: name
+        f"{ix_uni}@{ix_branch}>>{ix_ele}": name
         for ix_ele, name in idx_to_name.items()
         if ix_start <= ix_ele <= ix_end
     }
@@ -213,6 +214,31 @@ def get_ele_indices_by_pattern(
     return sorted(set(all_ids()))
 
 
+@contextmanager
+def with_universe(tao: Tao, universe_id: int):
+    """
+    Temporarily set the default universe in Tao.
+
+    Parameters
+    ----------
+    tao : Tao
+        The Tao instance.
+    universe_id : str
+        The universe ID to set as default during the context.
+
+    Notes
+    -----
+    The original default universe is restored upon exiting the context, even if
+    an exception occurs.
+    """
+    original_universe = tao.universe("")["ix_universe"]
+    try:
+        tao.cmd(f"set default universe = {universe_id}")
+        yield
+    finally:
+        tao.cmd(f"set default universe = {original_universe}")
+
+
 def export_particles(tao: Tao, ele_id: str | int):
     """
     Export particles for a given element to an HDF5 file.
@@ -220,18 +246,30 @@ def export_particles(tao: Tao, ele_id: str | int):
     Parameters
     ----------
     tao : Tao
-    ele_id : str
+        The Tao instance.
+    ele_id : str or int
         The element for which the particles are to be exported.
+        Can include a universe specification in the format
+        `"universe@branch>>element"`.
 
     Returns
     -------
     ParticleGroup
+        The ParticleGroup loaded from the exported file.
     """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fn = pathlib.Path(tmpdir) / "particles.h5"
-        logger.debug(f"Writing {ele_id} particles to: {fn}")
-        tao.cmd(f"write beam -at {ele_id} {fn}")
-        return ParticleGroup(h5=str(fn))
+    if "@" in str(ele_id):
+        # TODO: https://github.com/bmad-sim/bmad-ecosystem/issues/1552
+        ix_uni, ele_id = str(ele_id).split("@")
+        universe_context = with_universe(tao, int(ix_uni))
+    else:
+        universe_context = nullcontext()
+
+    with universe_context:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fn = pathlib.Path(tmpdir) / "particles.h5"
+            logger.debug(f"Writing {ele_id} particles to: {fn}")
+            tao.cmd(f"write beam -at {ele_id} {fn}")
+            return ParticleGroup(h5=str(fn))
 
 
 def print_ele_info(ele_id: str | int, ele_info: dict[str, Any]) -> None:
@@ -1135,7 +1173,7 @@ class ConversionState:
                 tao_id_to_elems[ele_id] = z_elems
 
                 for ele in z_elems:
-                    ele.metadata["bmad_id"] = int(ele_id)
+                    ele.metadata["bmad_id"] = ele_id
 
                 if elem_data:
                     for key, value in elem_data.items():
@@ -1151,7 +1189,7 @@ class ConversionState:
                             WriteFull(
                                 name=f"WRITE_{name}",
                                 file_id=output_file_id,
-                                metadata={"bmad_id": int(ele_id)},
+                                metadata={"bmad_id": ele_id},
                             )
                         )
                         output_file_id += 1
