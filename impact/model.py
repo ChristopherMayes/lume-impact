@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any
 from impact.impact import Impact
 from lume.model import LUMEModel
@@ -27,7 +28,8 @@ class ImpactSimulator:
         self.impact.run()
 
 
-class ImpactTransformer:
+class ImpactTransformer(ABC):
+    @abstractmethod
     def set_impact_property(
         self, simulator: ImpactSimulator, name: str, value: Any
     ) -> None:
@@ -46,6 +48,7 @@ class ImpactTransformer:
         # Implement logic to map variable names to Impact properties and set them accordingly
         pass
 
+    @abstractmethod
     def get_impact_property(self, simulator: ImpactSimulator, name: str) -> Any:
         """
         Retrieves a property from the Impact simulator based on the variable name.
