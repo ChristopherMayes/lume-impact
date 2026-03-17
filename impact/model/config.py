@@ -585,6 +585,9 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariab
             if attr_cfg is None:
                 continue
 
+            if field_name not in imp.ele[ele_name]:
+                continue
+
             attrib_token = attr_cfg.alias if attr_cfg.alias is not None else field_name
             variable_name = config.element_pattern.format(
                 type=ele_type, name=ele_name, attrib=attrib_token
@@ -593,7 +596,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariab
             variables.append(
                 ScalarVariable(
                     name=variable_name,
-                    default_value=imp.ele[ele_name].get(field_name),
+                    default_value=imp.ele[ele_name][field_name],
                     unit=attr_cfg.unit,
                     read_only=False,
                 )
