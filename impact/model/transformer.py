@@ -1,3 +1,4 @@
+import operator
 import re
 from typing import Any, Callable
 
@@ -33,12 +34,12 @@ class ImpactTransformer:
     transformer = ImpactTransformer()
 
     @transformer.setter("quad_{name}_k1")
-    def set_quad_k1(simulator, value, name):
-        simulator.ele[name]["k1"] = value
+    def set_quad_k1(imp, value, name):
+        imp.ele[name]["k1"] = value
 
     @transformer.getter("quad_{name}_k1")
-    def get_quad_k1(simulator, name):
-        return simulator.ele[name]["k1"]
+    def get_quad_k1(imp, name):
+        return imp.ele[name]["k1"]
 
     transformer.set_impact_property(sim, "quad_Q1_k1", 0.5)
     transformer.get_impact_property(sim, "quad_Q1_k1")
@@ -91,16 +92,92 @@ class ImpactTransformer:
                 return func, m.groupdict()
         return None, None
 
-    def set_impact_property(self, simulator: Any, name: str, value: Any) -> None:
+    def set_impact_property(self, imp: Any, name: str, value: Any) -> None:
         """Route to the most specific registered setter matching `name`."""
         func, kwargs = self._match(self._setters, name)
         if func is None:
             raise KeyError(f"No setter registered for '{name}'")
-        func(simulator, value, **kwargs)
+        func(imp, value, **kwargs)
 
-    def get_impact_property(self, simulator: Any, name: str) -> Any:
+    def get_impact_property(self, imp: Any, name: str) -> Any:
         """Route to the most specific registered getter matching `name`."""
         func, kwargs = self._match(self._getters, name)
         if func is None:
             raise KeyError(f"No getter registered for '{name}'")
-        return func(simulator, **kwargs)
+        return func(imp, **kwargs)
+
+    def add_particle_getter(self, pattern: str) -> None:
+        """Register a getter that returns ``imp.particles[name]``.
+
+        Pattern must contain ``{name}``, which is used as the particles key.
+        """
+        self.register_getter(pattern, lambda imp, name: imp.particles[name])
+
+    def add_stat_getter(self, pattern: str) -> None:
+        """Register a getter that returns ``imp.stat(name)``.
+
+        Pattern must contain ``{name}``, which is forwarded to ``stat()``.
+        """
+        self.register_getter(pattern, lambda imp, name: imp.stat(name))
+
+    def add_header_getter(self, pattern: str) -> None:
+        """Register a getter that returns ``imp.header[key]``.
+
+        Pattern must contain ``{key}``.
+        """
+        self.register_getter(pattern, lambda imp, key: imp.header[key])
+
+    def add_header_setter(self, pattern: str) -> None:
+        """Register a setter that writes ``imp.header[key] = value``.
+
+        Pattern must contain ``{key}``.
+
+        """
+        self.register_setter(
+            pattern,
+            lambda imp, value, key: operator.setitem(imp.header, key, value),
+        )
+
+    def add_ele_getter(self, pattern: str) -> None:
+        """Register a getter that returns ``imp.ele[name][attrib]``.
+
+        Pattern must contain ``{name}`` and ``{attrib}``.
+        """
+        self.register_getter(
+            pattern,
+            lambda imp, name, attrib: imp.ele[name][attrib],
+        )
+
+    def add_ele_setter(self, pattern: str) -> None:
+        """Register a setter that writes ``imp.ele[name][attrib] = value``.
+
+        Pattern must contain ``{name}`` and ``{attrib}``.
+        """
+        self.register_setter(
+            pattern,
+            lambda imp, value, name, attrib: operator.setitem(
+                imp.ele[name], attrib, value
+            ),
+        )
+
+    def add_group_getter(self, pattern: str) -> None:
+        """Register a getter that returns ``imp.group[name][attrib]``.
+
+        Pattern must contain ``{name}`` and ``{attrib}``.
+        """
+        self.register_getter(
+            pattern,
+            lambda imp, name, attrib: imp.group[name][attrib],
+        )
+
+    def add_group_setter(self, pattern: str) -> None:
+        """Register a setter that writes ``imp.group[name][attrib] = value``.
+
+        Pattern must contain ``{name}`` and ``{attrib}``.
+        """
+        self.register_setter(
+            pattern,
+            lambda imp, value, name, attrib: operator.setitem(
+                imp.group[name], attrib, value
+            ),
+        )
