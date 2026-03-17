@@ -196,8 +196,8 @@ class VariableMappingConfig(BaseModel):
         Within each type, attributes left as ``None`` are not registered.
     """
 
-    header_pattern: str = "{key}"
-    element_pattern: str = "{name}_{attrib}"
+    header_pattern: str = "header_{key}"
+    element_pattern: str = "ele_{name}_{attrib}"
 
     header: HeaderConfig | None = None
     drift: DriftConfig | None = None
@@ -216,7 +216,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariab
     variables = []
 
     if config.header is not None:
-        for field_name, field_info in config.header.model_fields.items():
+        for field_name, field_info in HeaderConfig.model_fields.items():
             attr_cfg: AttributeConfig | None = getattr(config.header, field_name)
             if attr_cfg is None:
                 continue

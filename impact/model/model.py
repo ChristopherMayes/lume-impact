@@ -4,27 +4,48 @@ from lume.model import LUMEModel
 from lume.variables import Variable
 
 from impact.model.transformer import ImpactTransformer
+from impact.model.config import VariableMappingConfig, make_variables
 
 
 class LUMEImpactModel(LUMEModel):
     def __init__(
         self,
         imp: Impact,
-        control_variables: dict[str, Variable],
-        output_variables: dict[str, Variable],
+        vars: list[Variable],
         transformer: ImpactTransformer,
     ):
         self.imp = imp
-        self.control_variables = control_variables
-        self.output_variables = output_variables
+        self.vars = vars
         self.transformer = transformer
 
         self._state = {}
         self.update_state()
 
     @classmethod
-    def from_impact(self, imp: Impact):
-        pass
+    def from_impact(
+        cls,
+        imp: Impact,
+        variable_mapping: VariableMappingConfig = VariableMappingConfig(),
+        transformer: ImpactTransformer | None = None,
+    ):
+        vars = make_variables(imp, variable_mapping)
+
+        if transformer is None:
+            _trans = ImpactTransformer()
+
+            _trans.add_header_getter(variable_mapping.header_pattern)
+            _trans.add_header_setter(variable_mapping.header_pattern)
+
+            _trans.add_ele_getter(variable_mapping.element_pattern)
+            _trans.add_ele_setter(variable_mapping.element_pattern)
+
+        elif isinstance(transformer, ImpactTransformer):
+            _trans = transformer
+
+        else:
+            raise ValueError(f"Unrecognized type for transformer: {type(transformer)}")
+
+        return cls(imp, vars, _trans)
 
     def supported_variables(self) -> dict[str, Variable]:
         """
@@ -35,7 +56,7 @@ class LUMEImpactModel(LUMEModel):
         dict[str, Variable]
             Dictionary mapping variable names to their corresponding Variable objects
         """
-        return {**self.control_variables, **self.output_variables}
+        return {var.name: var for var in self.vars}
 
     def _get(self, names: list[str]) -> dict[str, Any]:
         """
