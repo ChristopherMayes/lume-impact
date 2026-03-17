@@ -1,8 +1,11 @@
+import logging
 from typing import Any
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import ScalarVariable
+
+
+logger = logging.getLogger(__name__)
 
 
 class AttributeConfig(BaseModel):
@@ -47,16 +50,16 @@ class DriftConfig(BaseModel):
 
 
 class QuadrupoleConfig(BaseModel):
-    b1_gradient: AttributeConfig | None = None
-    L_effective: AttributeConfig | None = None
-    radius: AttributeConfig | None = None
-    rf_frequency: AttributeConfig | None = None
-    rf_phase_deg: AttributeConfig | None = None
-    x_offset: AttributeConfig | None = None
-    y_offset: AttributeConfig | None = None
-    x_rotation: AttributeConfig | None = None
-    y_rotation: AttributeConfig | None = None
-    z_rotation: AttributeConfig | None = None
+    b1_gradient: AttributeConfig | None = AttributeConfig()
+    L_effective: AttributeConfig | None = AttributeConfig()
+    radius: AttributeConfig | None = AttributeConfig()
+    rf_frequency: AttributeConfig | None = AttributeConfig()
+    rf_phase_deg: AttributeConfig | None = AttributeConfig()
+    x_offset: AttributeConfig | None = AttributeConfig()
+    y_offset: AttributeConfig | None = AttributeConfig()
+    x_rotation: AttributeConfig | None = AttributeConfig()
+    y_rotation: AttributeConfig | None = AttributeConfig()
+    z_rotation: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
     @classmethod
@@ -82,14 +85,14 @@ class QuadrupoleConfig(BaseModel):
 
 
 class SolenoidConfig(BaseModel):
-    b_field: AttributeConfig | None = None
-    filename: AttributeConfig | None = None
-    radius: AttributeConfig | None = None
-    x_offset: AttributeConfig | None = None
-    y_offset: AttributeConfig | None = None
-    x_rotation: AttributeConfig | None = None
-    y_rotation: AttributeConfig | None = None
-    z_rotation: AttributeConfig | None = None
+    b_field: AttributeConfig | None = AttributeConfig()
+    filename: AttributeConfig | None = AttributeConfig()
+    radius: AttributeConfig | None = AttributeConfig()
+    x_offset: AttributeConfig | None = AttributeConfig()
+    y_offset: AttributeConfig | None = AttributeConfig()
+    x_rotation: AttributeConfig | None = AttributeConfig()
+    y_rotation: AttributeConfig | None = AttributeConfig()
+    z_rotation: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
     @classmethod
@@ -112,10 +115,10 @@ class SolenoidConfig(BaseModel):
 
 
 class DipoleConfig(BaseModel):
-    b_field: AttributeConfig | None = None
-    b_field_x: AttributeConfig | None = None
-    filename: AttributeConfig | None = None
-    half_gap: AttributeConfig | None = None
+    b_field: AttributeConfig | None = AttributeConfig()
+    b_field_x: AttributeConfig | None = AttributeConfig()
+    filename: AttributeConfig | None = AttributeConfig()
+    half_gap: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
     @classmethod
@@ -134,17 +137,17 @@ class DipoleConfig(BaseModel):
 
 
 class SolrfConfig(BaseModel):
-    rf_field_scale: AttributeConfig | None = None
-    rf_frequency: AttributeConfig | None = None
-    theta0_deg: AttributeConfig | None = None
-    filename: AttributeConfig | None = None
-    radius: AttributeConfig | None = None
-    solenoid_field_scale: AttributeConfig | None = None
-    x_offset: AttributeConfig | None = None
-    y_offset: AttributeConfig | None = None
-    x_rotation: AttributeConfig | None = None
-    y_rotation: AttributeConfig | None = None
-    z_rotation: AttributeConfig | None = None
+    rf_field_scale: AttributeConfig | None = AttributeConfig()
+    rf_frequency: AttributeConfig | None = AttributeConfig()
+    theta0_deg: AttributeConfig | None = AttributeConfig()
+    filename: AttributeConfig | None = AttributeConfig()
+    radius: AttributeConfig | None = AttributeConfig()
+    solenoid_field_scale: AttributeConfig | None = AttributeConfig()
+    x_offset: AttributeConfig | None = AttributeConfig()
+    y_offset: AttributeConfig | None = AttributeConfig()
+    x_rotation: AttributeConfig | None = AttributeConfig()
+    y_rotation: AttributeConfig | None = AttributeConfig()
+    z_rotation: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
     @classmethod
@@ -168,16 +171,16 @@ class SolrfConfig(BaseModel):
 
 
 class EmfieldCartesianConfig(BaseModel):
-    rf_field_scale: AttributeConfig | None = None
-    rf_frequency: AttributeConfig | None = None
-    theta0_deg: AttributeConfig | None = None
-    filename: AttributeConfig | None = None
-    radius: AttributeConfig | None = None
-    x_offset: AttributeConfig | None = None
-    y_offset: AttributeConfig | None = None
-    x_rotation: AttributeConfig | None = None
-    y_rotation: AttributeConfig | None = None
-    z_rotation: AttributeConfig | None = None
+    rf_field_scale: AttributeConfig | None = AttributeConfig()
+    rf_frequency: AttributeConfig | None = AttributeConfig()
+    theta0_deg: AttributeConfig | None = AttributeConfig()
+    filename: AttributeConfig | None = AttributeConfig()
+    radius: AttributeConfig | None = AttributeConfig()
+    x_offset: AttributeConfig | None = AttributeConfig()
+    y_offset: AttributeConfig | None = AttributeConfig()
+    x_rotation: AttributeConfig | None = AttributeConfig()
+    y_rotation: AttributeConfig | None = AttributeConfig()
+    z_rotation: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
     @classmethod
@@ -201,16 +204,16 @@ class EmfieldCartesianConfig(BaseModel):
 
 
 class EmfieldCylindricalConfig(BaseModel):
-    rf_field_scale: AttributeConfig | None = None
-    rf_frequency: AttributeConfig | None = None
-    theta0_deg: AttributeConfig | None = None
-    filename: AttributeConfig | None = None
-    radius: AttributeConfig | None = None
-    x_offset: AttributeConfig | None = None
-    y_offset: AttributeConfig | None = None
-    x_rotation: AttributeConfig | None = None
-    y_rotation: AttributeConfig | None = None
-    z_rotation: AttributeConfig | None = None
+    rf_field_scale: AttributeConfig | None = AttributeConfig()
+    rf_frequency: AttributeConfig | None = AttributeConfig()
+    theta0_deg: AttributeConfig | None = AttributeConfig()
+    filename: AttributeConfig | None = AttributeConfig()
+    radius: AttributeConfig | None = AttributeConfig()
+    x_offset: AttributeConfig | None = AttributeConfig()
+    y_offset: AttributeConfig | None = AttributeConfig()
+    x_rotation: AttributeConfig | None = AttributeConfig()
+    y_rotation: AttributeConfig | None = AttributeConfig()
+    z_rotation: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
     @classmethod
@@ -242,63 +245,63 @@ class HeaderConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     # Processor domain
-    Npcol: AttributeConfig | None = None
-    Nprow: AttributeConfig | None = None
+    Npcol: AttributeConfig | None = AttributeConfig()
+    Nprow: AttributeConfig | None = AttributeConfig()
     # Time stepping
-    Dt: AttributeConfig | None = None
-    Ntstep: AttributeConfig | None = None
+    Dt: AttributeConfig | None = AttributeConfig()
+    Ntstep: AttributeConfig | None = AttributeConfig()
     # Beam / bunch
-    Nbunch: AttributeConfig | None = None
-    Np: AttributeConfig | None = None
-    Bcurr: AttributeConfig | None = None
-    Bkenergy: AttributeConfig | None = None
-    Bmass: AttributeConfig | None = None
-    Bcharge: AttributeConfig | None = None
-    Bfreq: AttributeConfig | None = None
-    Tini: AttributeConfig | None = None
+    Nbunch: AttributeConfig | None = AttributeConfig()
+    Np: AttributeConfig | None = AttributeConfig()
+    Bcurr: AttributeConfig | None = AttributeConfig()
+    Bkenergy: AttributeConfig | None = AttributeConfig()
+    Bmass: AttributeConfig | None = AttributeConfig()
+    Bcharge: AttributeConfig | None = AttributeConfig()
+    Bfreq: AttributeConfig | None = AttributeConfig()
+    Tini: AttributeConfig | None = AttributeConfig()
     # Flags
-    Flagmap: AttributeConfig | None = None
-    Flagerr: AttributeConfig | None = None
-    Flagdiag: AttributeConfig | None = None
-    Flagimg: AttributeConfig | None = None
-    Flagdist: AttributeConfig | None = None
-    Flagbc: AttributeConfig | None = None
-    Rstartflg: AttributeConfig | None = None
-    Flagsbstp: AttributeConfig | None = None
+    Flagmap: AttributeConfig | None = AttributeConfig()
+    Flagerr: AttributeConfig | None = AttributeConfig()
+    Flagdiag: AttributeConfig | None = AttributeConfig()
+    Flagimg: AttributeConfig | None = AttributeConfig()
+    Flagdist: AttributeConfig | None = AttributeConfig()
+    Flagbc: AttributeConfig | None = AttributeConfig()
+    Rstartflg: AttributeConfig | None = AttributeConfig()
+    Flagsbstp: AttributeConfig | None = AttributeConfig()
     # Grid
-    Dim: AttributeConfig | None = None
-    Nx: AttributeConfig | None = None
-    Ny: AttributeConfig | None = None
-    Nz: AttributeConfig | None = None
-    Xrad: AttributeConfig | None = None
-    Yrad: AttributeConfig | None = None
-    Perdlen: AttributeConfig | None = None
-    Zimage: AttributeConfig | None = None
+    Dim: AttributeConfig | None = AttributeConfig()
+    Nx: AttributeConfig | None = AttributeConfig()
+    Ny: AttributeConfig | None = AttributeConfig()
+    Nz: AttributeConfig | None = AttributeConfig()
+    Xrad: AttributeConfig | None = AttributeConfig()
+    Yrad: AttributeConfig | None = AttributeConfig()
+    Perdlen: AttributeConfig | None = AttributeConfig()
+    Zimage: AttributeConfig | None = AttributeConfig()
     # Emission
-    Nemission: AttributeConfig | None = None
-    Temission: AttributeConfig | None = None
+    Nemission: AttributeConfig | None = AttributeConfig()
+    Temission: AttributeConfig | None = AttributeConfig()
     # Distribution parameters
-    sigx_m: AttributeConfig | None = Field(None, alias="sigx(m)")
-    sigpx: AttributeConfig | None = None
-    muxpx: AttributeConfig | None = None
-    xscale: AttributeConfig | None = None
-    pxscale: AttributeConfig | None = None
-    xmu1_m: AttributeConfig | None = Field(None, alias="xmu1(m)")
-    xmu2: AttributeConfig | None = None
-    sigy_m: AttributeConfig | None = Field(None, alias="sigy(m)")
-    sigpy: AttributeConfig | None = None
-    muxpy: AttributeConfig | None = None
-    yscale: AttributeConfig | None = None
-    pyscale: AttributeConfig | None = None
-    ymu1_m: AttributeConfig | None = Field(None, alias="ymu1(m)")
-    ymu2: AttributeConfig | None = None
-    sigz_m: AttributeConfig | None = Field(None, alias="sigz(m)")
-    sigpz: AttributeConfig | None = None
-    muxpz: AttributeConfig | None = None
-    zscale: AttributeConfig | None = None
-    pzscale: AttributeConfig | None = None
-    zmu1_m: AttributeConfig | None = Field(None, alias="zmu1(m)")
-    zmu2: AttributeConfig | None = None
+    sigx_m: AttributeConfig | None = Field(AttributeConfig(), alias="sigx(m)")
+    sigpx: AttributeConfig | None = AttributeConfig()
+    muxpx: AttributeConfig | None = AttributeConfig()
+    xscale: AttributeConfig | None = AttributeConfig()
+    pxscale: AttributeConfig | None = AttributeConfig()
+    xmu1_m: AttributeConfig | None = Field(AttributeConfig(), alias="xmu1(m)")
+    xmu2: AttributeConfig | None = AttributeConfig()
+    sigy_m: AttributeConfig | None = Field(AttributeConfig(), alias="sigy(m)")
+    sigpy: AttributeConfig | None = AttributeConfig()
+    muxpy: AttributeConfig | None = AttributeConfig()
+    yscale: AttributeConfig | None = AttributeConfig()
+    pyscale: AttributeConfig | None = AttributeConfig()
+    ymu1_m: AttributeConfig | None = Field(AttributeConfig(), alias="ymu1(m)")
+    ymu2: AttributeConfig | None = AttributeConfig()
+    sigz_m: AttributeConfig | None = Field(AttributeConfig())
+    sigpz: AttributeConfig | None = AttributeConfig()
+    muxpz: AttributeConfig | None = AttributeConfig()
+    zscale: AttributeConfig | None = AttributeConfig()
+    pzscale: AttributeConfig | None = AttributeConfig()
+    zmu1_m: AttributeConfig | None = Field(AttributeConfig(), alias="zmu1(m)")
+    zmu2: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
     @classmethod
@@ -363,14 +366,14 @@ class VariableMappingConfig(BaseModel):
     header_pattern: str = "header_{key}"
     element_pattern: str = "ele_{name}_{attrib}"
 
-    header: HeaderConfig | None = None
-    drift: DriftConfig | None = None
-    quadrupole: QuadrupoleConfig | None = None
-    solenoid: SolenoidConfig | None = None
-    dipole: DipoleConfig | None = None
-    solrf: SolrfConfig | None = None
-    emfield_cartesian: EmfieldCartesianConfig | None = None
-    emfield_cylindrical: EmfieldCylindricalConfig | None = None
+    header: HeaderConfig | None = HeaderConfig()
+    drift: DriftConfig | None = DriftConfig()
+    quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
+    solenoid: SolenoidConfig | None = SolenoidConfig()
+    dipole: DipoleConfig | None = DipoleConfig()
+    solrf: SolrfConfig | None = SolrfConfig()
+    emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
+    emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
 
 
 def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariable]:
