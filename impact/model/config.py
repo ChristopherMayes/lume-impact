@@ -1,4 +1,8 @@
+from typing import Any
+
 from pydantic import BaseModel
+
+from lume.variables import ScalarVariable
 
 
 class AttributeConfig(BaseModel):
@@ -9,9 +13,12 @@ class AttributeConfig(BaseModel):
     alias : str, optional
         Name to substitute for ``{attrib}`` in the pattern.
         If omitted, the attribute name itself is used.
+    unit : str, optional
+        Physical unit string passed to ``ScalarVariable``.
     """
 
     alias: str | None = None
+    unit: str | None = None
 
 
 # ------------------------------------------------------------------
@@ -130,3 +137,51 @@ class VariableMappingConfig(BaseModel):
     solrf: SolrfConfig | None = None
     emfield_cartesian: EmfieldCartesianConfig | None = None
     emfield_cylindrical: EmfieldCylindricalConfig | None = None
+
+
+def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariable]:
+    """Build a ``ScalarVariable`` for every element attribute described by *config*.
+
+    The current value of each attribute in *imp* is used as ``default_value``.
+
+    Parameters
+    ----------
+    imp : Impact
+    config : VariableMappingConfig
+
+    Returns
+    -------
+    list[ScalarVariable]
+    """
+    variables = []
+
+    for ele in imp.lattice:
+        ele_type: str = ele.get("type", "")
+        ele_name: str = ele.get("name", "")
+
+        type_cfg = getattr(config, ele_type, None)
+        if type_cfg is None:
+            continue
+
+        for field_name in type_cfg.model_fields:
+            attr_cfg: AttributeConfig | None = getattr(type_cfg, field_name)
+            if attr_cfg is None:
+                continue
+
+            attrib_token = attr_cfg.alias if attr_cfg.alias is not None else field_name
+            variable_name = config.pattern.format(
+                type=ele_type, name=ele_name, attrib=attrib_token
+            )
+
+            default_value = imp.ele[ele_name].get(field_name)
+
+            variables.append(
+                ScalarVariable(
+                    name=variable_name,
+                    default_value=default_value,
+                    unit=attr_cfg.unit,
+                    read_only=False,
+                )
+            )
+
+    return variables
