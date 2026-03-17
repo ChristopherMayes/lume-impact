@@ -86,7 +86,7 @@ class QuadrupoleConfig(BaseModel):
 
 class SolenoidConfig(BaseModel):
     b_field: AttributeConfig | None = AttributeConfig()
-    filename: AttributeConfig | None = AttributeConfig()
+    #     filename: AttributeConfig | None = AttributeConfig()
     radius: AttributeConfig | None = AttributeConfig()
     x_offset: AttributeConfig | None = AttributeConfig()
     y_offset: AttributeConfig | None = AttributeConfig()
@@ -117,7 +117,7 @@ class SolenoidConfig(BaseModel):
 class DipoleConfig(BaseModel):
     b_field: AttributeConfig | None = AttributeConfig()
     b_field_x: AttributeConfig | None = AttributeConfig()
-    filename: AttributeConfig | None = AttributeConfig()
+    #     filename: AttributeConfig | None = AttributeConfig()
     half_gap: AttributeConfig | None = AttributeConfig()
 
     @model_validator(mode="before")
@@ -140,7 +140,7 @@ class SolrfConfig(BaseModel):
     rf_field_scale: AttributeConfig | None = AttributeConfig()
     rf_frequency: AttributeConfig | None = AttributeConfig()
     theta0_deg: AttributeConfig | None = AttributeConfig()
-    filename: AttributeConfig | None = AttributeConfig()
+    #     filename: AttributeConfig | None = AttributeConfig()
     radius: AttributeConfig | None = AttributeConfig()
     solenoid_field_scale: AttributeConfig | None = AttributeConfig()
     x_offset: AttributeConfig | None = AttributeConfig()
@@ -174,7 +174,7 @@ class EmfieldCartesianConfig(BaseModel):
     rf_field_scale: AttributeConfig | None = AttributeConfig()
     rf_frequency: AttributeConfig | None = AttributeConfig()
     theta0_deg: AttributeConfig | None = AttributeConfig()
-    filename: AttributeConfig | None = AttributeConfig()
+    #     filename: AttributeConfig | None = AttributeConfig()
     radius: AttributeConfig | None = AttributeConfig()
     x_offset: AttributeConfig | None = AttributeConfig()
     y_offset: AttributeConfig | None = AttributeConfig()
@@ -207,7 +207,7 @@ class EmfieldCylindricalConfig(BaseModel):
     rf_field_scale: AttributeConfig | None = AttributeConfig()
     rf_frequency: AttributeConfig | None = AttributeConfig()
     theta0_deg: AttributeConfig | None = AttributeConfig()
-    filename: AttributeConfig | None = AttributeConfig()
+    #     filename: AttributeConfig | None = AttributeConfig()
     radius: AttributeConfig | None = AttributeConfig()
     x_offset: AttributeConfig | None = AttributeConfig()
     y_offset: AttributeConfig | None = AttributeConfig()
@@ -295,7 +295,7 @@ class HeaderConfig(BaseModel):
     pyscale: AttributeConfig | None = AttributeConfig()
     ymu1_m: AttributeConfig | None = Field(AttributeConfig(), alias="ymu1(m)")
     ymu2: AttributeConfig | None = AttributeConfig()
-    sigz_m: AttributeConfig | None = Field(AttributeConfig())
+    sigz_m: AttributeConfig | None = Field(AttributeConfig(), alias="sigz(m)")
     sigpz: AttributeConfig | None = AttributeConfig()
     muxpz: AttributeConfig | None = AttributeConfig()
     zscale: AttributeConfig | None = AttributeConfig()
