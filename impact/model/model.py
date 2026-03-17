@@ -4,7 +4,7 @@ from lume.model import LUMEModel
 from lume.variables import Variable
 
 from impact.model.transformer import ImpactTransformer
-from impact.model.config import VariableMappingConfig, make_variables
+from impact.model.config import HeaderConfig, VariableMappingConfig, make_variables
 
 
 class LUMEImpactModel(LUMEModel):
@@ -33,11 +33,51 @@ class LUMEImpactModel(LUMEModel):
         if transformer is None:
             _trans = ImpactTransformer()
 
-            _trans.add_header_getter(variable_mapping.header_pattern)
-            _trans.add_header_setter(variable_mapping.header_pattern)
+            # Build a map from variable name token → actual imp.header key for any
+            # header field where the AttributeConfig alias differs from the header key.
+            key_map: dict[str, str] = {}
+            if variable_mapping.header is not None:
+                for field_name, field_info in HeaderConfig.model_fields.items():
+                    attr_cfg = getattr(variable_mapping.header, field_name)
+                    if attr_cfg is None:
+                        continue
+                    header_key = (
+                        field_info.alias if field_info.alias is not None else field_name
+                    )
+                    key_token = (
+                        attr_cfg.alias if attr_cfg.alias is not None else header_key
+                    )
+                    if key_token != header_key:
+                        key_map[key_token] = header_key
 
-            _trans.add_ele_getter(variable_mapping.element_pattern)
-            _trans.add_ele_setter(variable_mapping.element_pattern)
+            _trans.add_header_getter(variable_mapping.header_pattern, key_map or None)
+            _trans.add_header_setter(variable_mapping.header_pattern, key_map or None)
+
+            # Build a map from attrib token → actual imp.ele[name] key for any
+            # element field where the AttributeConfig alias differs from the field name.
+            attrib_map: dict[str, str] = {}
+            ele_type_fields = {
+                "drift",
+                "quadrupole",
+                "solenoid",
+                "dipole",
+                "solrf",
+                "emfield_cartesian",
+                "emfield_cylindrical",
+            }
+            for type_field in ele_type_fields:
+                type_cfg = getattr(variable_mapping, type_field, None)
+                if type_cfg is None:
+                    continue
+                for field_name in type_cfg.model_fields:
+                    attr_cfg = getattr(type_cfg, field_name)
+                    if attr_cfg is None or attr_cfg.alias is None:
+                        continue
+                    if attr_cfg.alias != field_name:
+                        attrib_map[attr_cfg.alias] = field_name
+
+            _trans.add_ele_getter(variable_mapping.element_pattern, attrib_map or None)
+            _trans.add_ele_setter(variable_mapping.element_pattern, attrib_map or None)
 
         elif isinstance(transformer, ImpactTransformer):
             _trans = transformer

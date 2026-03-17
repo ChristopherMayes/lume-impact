@@ -120,45 +120,89 @@ class ImpactTransformer:
         """
         self.register_getter(pattern, lambda imp, name: imp.stat(name))
 
-    def add_header_getter(self, pattern: str) -> None:
+    def add_header_getter(
+        self, pattern: str, key_map: dict[str, str] | None = None
+    ) -> None:
         """Register a getter that returns ``imp.header[key]``.
 
         Pattern must contain ``{key}``.
-        """
-        self.register_getter(pattern, lambda imp, key: imp.header[key])
 
-    def add_header_setter(self, pattern: str) -> None:
+        Parameters
+        ----------
+        key_map :
+            Optional mapping from the token extracted from the variable name to the
+            actual ``imp.header`` key (e.g. ``{"sigx": "sigx(m)"}``).
+        """
+
+        def getter(imp, key, _key_map=key_map):
+            return imp.header[_key_map.get(key, key) if _key_map else key]
+
+        self.register_getter(pattern, getter)
+
+    def add_header_setter(
+        self, pattern: str, key_map: dict[str, str] | None = None
+    ) -> None:
         """Register a setter that writes ``imp.header[key] = value``.
 
         Pattern must contain ``{key}``.
 
+        Parameters
+        ----------
+        key_map :
+            Optional mapping from the token extracted from the variable name to the
+            actual ``imp.header`` key (e.g. ``{"sigx": "sigx(m)"}``).
         """
-        self.register_setter(
-            pattern,
-            lambda imp, value, key: operator.setitem(imp.header, key, value),
-        )
 
-    def add_ele_getter(self, pattern: str) -> None:
+        def setter(imp, value, key, _key_map=key_map):
+            operator.setitem(
+                imp.header, _key_map.get(key, key) if _key_map else key, value
+            )
+
+        self.register_setter(pattern, setter)
+
+    def add_ele_getter(
+        self, pattern: str, attrib_map: dict[str, str] | None = None
+    ) -> None:
         """Register a getter that returns ``imp.ele[name][attrib]``.
 
         Pattern must contain ``{name}`` and ``{attrib}``.
-        """
-        self.register_getter(
-            pattern,
-            lambda imp, name, attrib: imp.ele[name][attrib],
-        )
 
-    def add_ele_setter(self, pattern: str) -> None:
+        Parameters
+        ----------
+        attrib_map :
+            Optional mapping from the token extracted from the variable name to the
+            actual ``imp.ele[name]`` key (e.g. ``{"rf_phase": "rf_phase_deg"}``).
+        """
+
+        def getter(imp, name, attrib, _attrib_map=attrib_map):
+            return imp.ele[name][
+                _attrib_map.get(attrib, attrib) if _attrib_map else attrib
+            ]
+
+        self.register_getter(pattern, getter)
+
+    def add_ele_setter(
+        self, pattern: str, attrib_map: dict[str, str] | None = None
+    ) -> None:
         """Register a setter that writes ``imp.ele[name][attrib] = value``.
 
         Pattern must contain ``{name}`` and ``{attrib}``.
+
+        Parameters
+        ----------
+        attrib_map :
+            Optional mapping from the token extracted from the variable name to the
+            actual ``imp.ele[name]`` key (e.g. ``{"rf_phase": "rf_phase_deg"}``).
         """
-        self.register_setter(
-            pattern,
-            lambda imp, value, name, attrib: operator.setitem(
-                imp.ele[name], attrib, value
-            ),
-        )
+
+        def setter(imp, value, name, attrib, _attrib_map=attrib_map):
+            operator.setitem(
+                imp.ele[name],
+                _attrib_map.get(attrib, attrib) if _attrib_map else attrib,
+                value,
+            )
+
+        self.register_setter(pattern, setter)
 
     def add_group_getter(self, pattern: str) -> None:
         """Register a getter that returns ``imp.group[name][attrib]``.
