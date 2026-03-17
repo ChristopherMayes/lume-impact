@@ -47,6 +47,7 @@ class LUMEImpactModel(LUMEModel):
 
         return cls(imp, vars, _trans)
 
+    @property
     def supported_variables(self) -> dict[str, Variable]:
         """
         Returns a dictionary of all supported variables (both control and output) for this model.
@@ -109,3 +110,6 @@ class LUMEImpactModel(LUMEModel):
         # Update state with current values from impact
         for name in self.supported_variables.keys():
             self._state[name] = self.transformer.get_impact_property(self.imp, name)
+
+    def reset(self) -> None:
+        raise NotImplementedError()

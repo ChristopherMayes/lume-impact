@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import ScalarVariable
 
@@ -31,6 +31,20 @@ class DriftConfig(BaseModel):
     zedge: AttributeConfig | None = None
     radius: AttributeConfig | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            "zedge": {"unit": "m"},
+            "radius": {"unit": "m"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
+
 
 class QuadrupoleConfig(BaseModel):
     b1_gradient: AttributeConfig | None = None
@@ -44,6 +58,28 @@ class QuadrupoleConfig(BaseModel):
     y_rotation: AttributeConfig | None = None
     z_rotation: AttributeConfig | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            "b1_gradient": {"unit": "T/m"},
+            "L_effective": {"unit": "m"},
+            "radius": {"unit": "m"},
+            "rf_frequency": {"unit": "Hz"},
+            "rf_phase_deg": {"unit": "deg", "alias": "rf_phase"},
+            "x_offset": {"unit": "m"},
+            "y_offset": {"unit": "m"},
+            "x_rotation": {"unit": "deg"},
+            "y_rotation": {"unit": "deg"},
+            "z_rotation": {"unit": "deg"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
+
 
 class SolenoidConfig(BaseModel):
     b_field: AttributeConfig | None = None
@@ -55,12 +91,46 @@ class SolenoidConfig(BaseModel):
     y_rotation: AttributeConfig | None = None
     z_rotation: AttributeConfig | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            "b_field": {"unit": "T"},
+            "radius": {"unit": "m"},
+            "x_offset": {"unit": "m"},
+            "y_offset": {"unit": "m"},
+            "x_rotation": {"unit": "deg"},
+            "y_rotation": {"unit": "deg"},
+            "z_rotation": {"unit": "deg"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
+
 
 class DipoleConfig(BaseModel):
     b_field: AttributeConfig | None = None
     b_field_x: AttributeConfig | None = None
     filename: AttributeConfig | None = None
     half_gap: AttributeConfig | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            "b_field": {"unit": "T"},
+            "b_field_x": {"unit": "T"},
+            "half_gap": {"unit": "m"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
 
 
 class SolrfConfig(BaseModel):
@@ -76,6 +146,26 @@ class SolrfConfig(BaseModel):
     y_rotation: AttributeConfig | None = None
     z_rotation: AttributeConfig | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            "rf_frequency": {"unit": "Hz"},
+            "theta0_deg": {"unit": "deg", "alias": "theta0"},
+            "radius": {"unit": "m"},
+            "x_offset": {"unit": "m"},
+            "y_offset": {"unit": "m"},
+            "x_rotation": {"unit": "deg"},
+            "y_rotation": {"unit": "deg"},
+            "z_rotation": {"unit": "deg"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
+
 
 class EmfieldCartesianConfig(BaseModel):
     rf_field_scale: AttributeConfig | None = None
@@ -89,6 +179,26 @@ class EmfieldCartesianConfig(BaseModel):
     y_rotation: AttributeConfig | None = None
     z_rotation: AttributeConfig | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            "rf_frequency": {"unit": "Hz"},
+            "theta0_deg": {"unit": "deg", "alias": "theta0"},
+            "radius": {"unit": "m"},
+            "x_offset": {"unit": "m"},
+            "y_offset": {"unit": "m"},
+            "x_rotation": {"unit": "deg"},
+            "y_rotation": {"unit": "deg"},
+            "z_rotation": {"unit": "deg"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
+
 
 class EmfieldCylindricalConfig(BaseModel):
     rf_field_scale: AttributeConfig | None = None
@@ -101,6 +211,26 @@ class EmfieldCylindricalConfig(BaseModel):
     x_rotation: AttributeConfig | None = None
     y_rotation: AttributeConfig | None = None
     z_rotation: AttributeConfig | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            "rf_frequency": {"unit": "Hz"},
+            "theta0_deg": {"unit": "deg", "alias": "theta0"},
+            "radius": {"unit": "m"},
+            "x_offset": {"unit": "m"},
+            "y_offset": {"unit": "m"},
+            "x_rotation": {"unit": "deg"},
+            "y_rotation": {"unit": "deg"},
+            "z_rotation": {"unit": "deg"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
 
 
 # ------------------------------------------------------------------
@@ -169,6 +299,40 @@ class HeaderConfig(BaseModel):
     pzscale: AttributeConfig | None = None
     zmu1_m: AttributeConfig | None = Field(None, alias="zmu1(m)")
     zmu2: AttributeConfig | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        defaults = {
+            # Time stepping
+            "Dt": {"unit": "s"},
+            # Beam / bunch
+            "Bcurr": {"unit": "A"},
+            "Bkenergy": {"unit": "eV"},
+            "Bmass": {"unit": "eV"},
+            "Bfreq": {"unit": "Hz"},
+            "Tini": {"unit": "s"},
+            # Grid
+            "Xrad": {"unit": "m"},
+            "Yrad": {"unit": "m"},
+            "Perdlen": {"unit": "m"},
+            "Zimage": {"unit": "m"},
+            # Emission
+            "Temission": {"unit": "s"},
+            # Distribution parameters — alias strips the "(m)" from the header key
+            "sigx_m": {"unit": "m", "alias": "sigx"},
+            "xmu1_m": {"unit": "m", "alias": "xmu1"},
+            "sigy_m": {"unit": "m", "alias": "sigy"},
+            "ymu1_m": {"unit": "m", "alias": "ymu1"},
+            "sigz_m": {"unit": "m", "alias": "sigz"},
+            "zmu1_m": {"unit": "m", "alias": "zmu1"},
+        }
+        for field, default in defaults.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
 
 
 # ------------------------------------------------------------------
