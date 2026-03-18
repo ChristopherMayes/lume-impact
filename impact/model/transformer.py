@@ -1,7 +1,22 @@
 import operator
 import re
+from abc import ABC, abstractmethod
 from typing import Any, Callable
 
+
+class ImpactTransformer(ABC):
+    """Abstract base class for Impact-T property transformers."""
+
+    @abstractmethod
+    def get_impact_property(self, imp: Any, name: str) -> Any:
+        """Return the current value of the named property from *imp*."""
+
+    @abstractmethod
+    def set_impact_property(self, imp: Any, name: str, value: Any) -> None:
+        """Write *value* to the named property on *imp*."""
+
+
+# ------------------------------------------------------------------
 
 _Route = tuple[str, re.Pattern, list[str], Callable]
 
@@ -25,13 +40,13 @@ def _specificity(pattern: str, param_names: list[str]) -> tuple:
     return (len(param_names), -len(pattern))
 
 
-class ImpactTransformer:
+class RoutingImpactTransformer(ImpactTransformer):
     """
     Routes get/set calls to registered handlers by pattern matching, similar to Flask/FastAPI.
 
     Usage
     -----
-    transformer = ImpactTransformer()
+    transformer = RoutingImpactTransformer()
 
     @transformer.setter("quad_{name}_k1")
     def set_quad_k1(imp, value, name):

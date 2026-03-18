@@ -3,7 +3,7 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.transformer import ImpactTransformer
+from impact.model.transformer import ImpactTransformer, RoutingImpactTransformer
 from impact.model.config import HeaderConfig, VariableMappingConfig, make_variables
 
 
@@ -31,7 +31,7 @@ class LUMEImpactModel(LUMEModel):
         vars = make_variables(imp, variable_mapping)
 
         if transformer is None:
-            _trans = ImpactTransformer()
+            _trans = RoutingImpactTransformer()
 
             # Build a map from variable name token → actual imp.header key for any
             # header field where the AttributeConfig alias differs from the header key.
