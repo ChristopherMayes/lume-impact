@@ -531,8 +531,8 @@ class VariableMappingConfig(BaseModel):
         Within each type, attributes left as ``None`` are not registered.
     """
 
-    header_pattern: str = "header_{key}"
-    element_pattern: str = "ele_{name}_{attrib}"
+    header_pattern: str = "header/{key}"
+    element_pattern: str = "ele/{name}/{attrib}"
 
     header: HeaderConfig | None = HeaderConfig()
     drift: DriftConfig | None = DriftConfig()
