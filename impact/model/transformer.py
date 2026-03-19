@@ -352,15 +352,15 @@ class RoutingImpactTransformer(ImpactTransformer):
         name: str,
         attrib: str,
         *,
+        type: str = "",
         name_map: dict[str, str] | None = None,
         attrib_map: dict[str, str] | None = None,
     ) -> Any:
         """Dispatch a getter call through ``_ele_getters``, falling back to ``imp.ele[mapped_name][mapped_attrib]``."""
         mapped_name = name_map.get(name, name) if name_map else name
         mapped_attrib = attrib_map.get(attrib, attrib) if attrib_map else attrib
-        ele_type = imp.ele.get(mapped_name, {}).get("type", "")
         for route in self._ele_getters:
-            if route.matches(ele_type, name, mapped_name, attrib):
+            if route.matches(type, name, mapped_name, attrib):
                 return route.func(imp, name, mapped_name, attrib)
         return imp.ele[mapped_name][mapped_attrib]
 
@@ -371,15 +371,15 @@ class RoutingImpactTransformer(ImpactTransformer):
         name: str,
         attrib: str,
         *,
+        type: str = "",
         name_map: dict[str, str] | None = None,
         attrib_map: dict[str, str] | None = None,
     ) -> None:
         """Dispatch a setter call through ``_ele_setters``, falling back to ``imp.ele[mapped_name][mapped_attrib] = value``."""
         mapped_name = name_map.get(name, name) if name_map else name
         mapped_attrib = attrib_map.get(attrib, attrib) if attrib_map else attrib
-        ele_type = imp.ele.get(mapped_name, {}).get("type", "")
         for route in self._ele_setters:
-            if route.matches(ele_type, name, mapped_name, attrib):
+            if route.matches(type, name, mapped_name, attrib):
                 route.func(imp, value, name, mapped_name, attrib)
                 return
         operator.setitem(imp.ele[mapped_name], mapped_attrib, value)
