@@ -28,6 +28,9 @@ class LUMEImpactModel(LUMEModel):
         variable_mapping: VariableMappingConfig = VariableMappingConfig(),
         transformer: ImpactTransformer | None = None,
         ele_pattern_override=None,
+        ele_regex_override=None,
+        header_pattern_override=None,
+        header_regex_override=None,
     ):
         var_mappings = make_variables(imp, variable_mapping)
 
@@ -51,11 +54,20 @@ class LUMEImpactModel(LUMEModel):
                     if key_token != header_key:
                         key_map[key_token] = header_key
 
+            if (header_pattern_override is not None) or (
+                header_regex_override is not None
+            ):
+                _header_pattern = header_pattern_override
+                _header_regex = header_regex_override
+            else:
+                _header_pattern = variable_mapping.header_pattern
+                _header_regex = None
+
             _trans.add_header_getter(
-                pattern=variable_mapping.header_pattern, key_map=key_map or None
+                pattern=_header_pattern, regex=_header_regex, key_map=key_map or None
             )
             _trans.add_header_setter(
-                pattern=variable_mapping.header_pattern, key_map=key_map or None
+                pattern=_header_pattern, regex=_header_regex, key_map=key_map or None
             )
 
             # Build a map from attrib token → actual imp.ele[name] key for any
@@ -81,13 +93,19 @@ class LUMEImpactModel(LUMEModel):
                     if attr_cfg.alias != field_name:
                         attrib_map[attr_cfg.alias] = field_name
 
-            ele_pattern = (
-                variable_mapping.element_pattern
-                if ele_pattern_override is None
-                else ele_pattern_override
+            if (ele_pattern_override is not None) or (ele_regex_override is not None):
+                _ele_pattern = ele_pattern_override
+                _ele_regex = ele_regex_override
+            else:
+                _ele_pattern = variable_mapping.element_pattern
+                _ele_regex = None
+
+            _trans.add_ele_getter(
+                pattern=_ele_pattern, regex=_ele_regex, attrib_map=attrib_map or None
             )
-            _trans.add_ele_getter(pattern=ele_pattern, attrib_map=attrib_map or None)
-            _trans.add_ele_setter(pattern=ele_pattern, attrib_map=attrib_map or None)
+            _trans.add_ele_setter(
+                pattern=_ele_pattern, regex=_ele_regex, attrib_map=attrib_map or None
+            )
 
         elif isinstance(transformer, ImpactTransformer):
             _trans = transformer
