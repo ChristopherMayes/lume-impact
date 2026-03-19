@@ -385,8 +385,9 @@ class RoutingImpactTransformer(ImpactTransformer):
         """Dispatch a getter call through ``_ele_getters``, falling back to ``imp.ele[mapped_name][mapped_attrib]``."""
         mapped_name = self._name_map.get(name, name)
         mapped_attrib = self._attrib_map.get(attrib, attrib)
+        mapped_type = self._ele_type_map.get(type, type)
         for route in self._ele_getters:
-            if route.matches(type, name, mapped_name, attrib):
+            if route.matches(mapped_type, name, mapped_name, attrib):
                 return route.func(imp, name, mapped_name, attrib)
         return imp.ele[mapped_name][mapped_attrib]
 
@@ -402,8 +403,9 @@ class RoutingImpactTransformer(ImpactTransformer):
         """Dispatch a setter call through ``_ele_setters``, falling back to ``imp.ele[mapped_name][mapped_attrib] = value``."""
         mapped_name = self._name_map.get(name, name)
         mapped_attrib = self._attrib_map.get(attrib, attrib)
+        mapped_type = self._ele_type_map.get(type, type)
         for route in self._ele_setters:
-            if route.matches(type, name, mapped_name, attrib):
+            if route.matches(mapped_type, name, mapped_name, attrib):
                 route.func(imp, value, name, mapped_name, attrib)
                 return
         operator.setitem(imp.ele[mapped_name], mapped_attrib, value)
