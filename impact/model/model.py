@@ -28,7 +28,7 @@ class LUMEImpactModel(LUMEModel):
         variable_mapping: VariableMappingConfig = VariableMappingConfig(),
         transformer: ImpactTransformer | None = None,
     ):
-        vars = make_variables(imp, variable_mapping)
+        var_mappings = make_variables(imp, variable_mapping)
 
         if transformer is None:
             _trans = RoutingImpactTransformer()
@@ -84,6 +84,11 @@ class LUMEImpactModel(LUMEModel):
 
         else:
             raise ValueError(f"Unrecognized type for transformer: {type(transformer)}")
+
+        # Get the vars
+        vars = [x.var for x in var_mappings.header_mappings] + [
+            x.var for x in var_mappings.ele_mappings
+        ]
 
         return cls(imp, vars, _trans)
 

@@ -544,11 +544,28 @@ class VariableMappingConfig(BaseModel):
     emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
 
 
+class EleVariableMapping(BaseModel):
+    ele_name: str
+    ele_attrib: str
+    var: ScalarVariable
+
+
+class HeaderVariableMapping(BaseModel):
+    key: str
+    var: ScalarVariable
+
+
+class VariableMappings(BaseModel):
+    ele_mappings: list[EleVariableMapping]
+    header_mappings: list[HeaderVariableMapping]
+
+
 def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariable]:
     """Build a ``ScalarVariable`` for every element attribute and header key
     described by *config*. The current value in *imp* is used as ``default_value``.
     """
-    variables = []
+    ele_vars = []
+    header_vars = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
@@ -563,12 +580,15 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariab
             key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
             variable_name = config.header_pattern.format(key=key_token)
 
-            variables.append(
-                ScalarVariable(
-                    name=variable_name,
-                    default_value=imp.header.get(header_key),
-                    unit=attr_cfg.unit,
-                    read_only=False,
+            header_vars.append(
+                HeaderVariableMapping(
+                    key=header_key,
+                    var=ScalarVariable(
+                        name=variable_name,
+                        default_value=imp.header.get(header_key),
+                        unit=attr_cfg.unit,
+                        read_only=False,
+                    ),
                 )
             )
 
@@ -593,13 +613,17 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariab
                 type=ele_type, name=ele_name, attrib=attrib_token
             )
 
-            variables.append(
-                ScalarVariable(
-                    name=variable_name,
-                    default_value=imp.ele[ele_name][field_name],
-                    unit=attr_cfg.unit,
-                    read_only=False,
+            ele_vars.append(
+                EleVariableMapping(
+                    ele_name=ele_name,
+                    ele_attrib=attrib_token,
+                    var=ScalarVariable(
+                        name=variable_name,
+                        default_value=imp.ele[ele_name][field_name],
+                        unit=attr_cfg.unit,
+                        read_only=False,
+                    ),
                 )
             )
 
-    return variables
+    return VariableMappings(header_mappings=header_vars, ele_mappings=ele_vars)
