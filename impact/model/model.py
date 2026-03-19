@@ -27,6 +27,7 @@ class LUMEImpactModel(LUMEModel):
         imp: Impact,
         variable_mapping: VariableMappingConfig = VariableMappingConfig(),
         transformer: ImpactTransformer | None = None,
+        ele_pattern_override=None,
     ):
         var_mappings = make_variables(imp, variable_mapping)
 
@@ -50,8 +51,12 @@ class LUMEImpactModel(LUMEModel):
                     if key_token != header_key:
                         key_map[key_token] = header_key
 
-            _trans.add_header_getter(variable_mapping.header_pattern, key_map or None)
-            _trans.add_header_setter(variable_mapping.header_pattern, key_map or None)
+            _trans.add_header_getter(
+                pattern=variable_mapping.header_pattern, key_map=key_map or None
+            )
+            _trans.add_header_setter(
+                pattern=variable_mapping.header_pattern, key_map=key_map or None
+            )
 
             # Build a map from attrib token → actual imp.ele[name] key for any
             # element field where the AttributeConfig alias differs from the field name.
@@ -76,8 +81,13 @@ class LUMEImpactModel(LUMEModel):
                     if attr_cfg.alias != field_name:
                         attrib_map[attr_cfg.alias] = field_name
 
-            _trans.add_ele_getter(variable_mapping.element_pattern, attrib_map or None)
-            _trans.add_ele_setter(variable_mapping.element_pattern, attrib_map or None)
+            ele_pattern = (
+                variable_mapping.element_pattern
+                if ele_pattern_override is None
+                else ele_pattern_override
+            )
+            _trans.add_ele_getter(pattern=ele_pattern, attrib_map=attrib_map or None)
+            _trans.add_ele_setter(pattern=ele_pattern, attrib_map=attrib_map or None)
 
         elif isinstance(transformer, ImpactTransformer):
             _trans = transformer

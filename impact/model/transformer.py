@@ -48,11 +48,11 @@ class RoutingImpactTransformer(ImpactTransformer):
     -----
     transformer = RoutingImpactTransformer()
 
-    @transformer.setter("quad_{name}_k1")
+    @transformer.setter(pattern="quad_{name}_k1")
     def set_quad_k1(imp, value, name):
         imp.ele[name]["k1"] = value
 
-    @transformer.getter("quad_{name}_k1")
+    @transformer.getter(pattern="quad_{name}_k1")
     def get_quad_k1(imp, name):
         return imp.ele[name]["k1"]
 
@@ -68,33 +68,91 @@ class RoutingImpactTransformer(ImpactTransformer):
         self._setters: list[_Route] = []
         self._getters: list[_Route] = []
 
-    def register_setter(self, pattern: str, func: Callable) -> Callable:
-        """Register a setter function for the given pattern. Returns func unchanged."""
-        regex, params = _pattern_to_regex(pattern)
-        self._setters.append((pattern, regex, params, func))
+    def register_setter(
+        self,
+        func: Callable,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> Callable:
+        """Register a setter function. Exactly one of *pattern* or *regex* must be given.
+
+        Parameters
+        ----------
+        pattern :
+            Template string like ``'quad_{name}_k1'``; ``{var}`` tokens become
+            named regex groups and are passed as kwargs to *func*.
+        regex :
+            A raw regex string or compiled ``re.Pattern``.  Named groups are
+            extracted and passed as kwargs to *func*.
+        """
+        if (pattern is None) == (regex is None):
+            raise ValueError("Exactly one of 'pattern' or 'regex' must be provided")
+        if pattern is not None:
+            compiled, params = _pattern_to_regex(pattern)
+            sort_key = pattern
+        else:
+            compiled = re.compile(regex) if isinstance(regex, str) else regex
+            params = list(compiled.groupindex.keys())
+            sort_key = compiled.pattern
+        self._setters.append((sort_key, compiled, params, func))
         self._setters.sort(key=lambda r: _specificity(r[0], r[2]))
         return func
 
-    def register_getter(self, pattern: str, func: Callable) -> Callable:
-        """Register a getter function for the given pattern. Returns func unchanged."""
-        regex, params = _pattern_to_regex(pattern)
-        self._getters.append((pattern, regex, params, func))
+    def register_getter(
+        self,
+        func: Callable,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> Callable:
+        """Register a getter function. Exactly one of *pattern* or *regex* must be given.
+
+        Parameters
+        ----------
+        pattern :
+            Template string like ``'quad_{name}_k1'``; ``{var}`` tokens become
+            named regex groups and are passed as kwargs to *func*.
+        regex :
+            A raw regex string or compiled ``re.Pattern``.  Named groups are
+            extracted and passed as kwargs to *func*.
+        """
+        if (pattern is None) == (regex is None):
+            raise ValueError("Exactly one of 'pattern' or 'regex' must be provided")
+        if pattern is not None:
+            compiled, params = _pattern_to_regex(pattern)
+            sort_key = pattern
+        else:
+            compiled = re.compile(regex) if isinstance(regex, str) else regex
+            params = list(compiled.groupindex.keys())
+            sort_key = compiled.pattern
+        self._getters.append((sort_key, compiled, params, func))
         self._getters.sort(key=lambda r: _specificity(r[0], r[2]))
         return func
 
-    def setter(self, pattern: str) -> Callable:
+    def setter(
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> Callable:
         """Decorator sugar for register_setter."""
 
         def decorator(func: Callable) -> Callable:
-            return self.register_setter(pattern, func)
+            return self.register_setter(func, pattern=pattern, regex=regex)
 
         return decorator
 
-    def getter(self, pattern: str) -> Callable:
+    def getter(
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> Callable:
         """Decorator sugar for register_getter."""
 
         def decorator(func: Callable) -> Callable:
-            return self.register_getter(pattern, func)
+            return self.register_getter(func, pattern=pattern, regex=regex)
 
         return decorator
 
@@ -121,26 +179,44 @@ class RoutingImpactTransformer(ImpactTransformer):
             raise KeyError(f"No getter registered for '{name}'")
         return func(imp, **kwargs)
 
-    def add_particle_getter(self, pattern: str) -> None:
+    def add_particle_getter(
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> None:
         """Register a getter that returns ``imp.particles[name]``.
 
-        Pattern must contain ``{name}``, which is used as the particles key.
+        The pattern/regex must contain a ``name`` named group.
         """
-        self.register_getter(pattern, lambda imp, name: imp.particles[name])
+        self.register_getter(
+            lambda imp, name: imp.particles[name], pattern=pattern, regex=regex
+        )
 
-    def add_stat_getter(self, pattern: str) -> None:
+    def add_stat_getter(
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> None:
         """Register a getter that returns ``imp.stat(name)``.
 
-        Pattern must contain ``{name}``, which is forwarded to ``stat()``.
+        The pattern/regex must contain a ``name`` named group.
         """
-        self.register_getter(pattern, lambda imp, name: imp.stat(name))
+        self.register_getter(
+            lambda imp, name: imp.stat(name), pattern=pattern, regex=regex
+        )
 
     def add_header_getter(
-        self, pattern: str, key_map: dict[str, str] | None = None
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+        key_map: dict[str, str] | None = None,
     ) -> None:
         """Register a getter that returns ``imp.header[key]``.
 
-        Pattern must contain ``{key}``.
+        The pattern/regex must contain a ``key`` named group.
 
         Parameters
         ----------
@@ -152,14 +228,18 @@ class RoutingImpactTransformer(ImpactTransformer):
         def getter(imp, key, _key_map=key_map):
             return imp.header[_key_map.get(key, key) if _key_map else key]
 
-        self.register_getter(pattern, getter)
+        self.register_getter(getter, pattern=pattern, regex=regex)
 
     def add_header_setter(
-        self, pattern: str, key_map: dict[str, str] | None = None
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+        key_map: dict[str, str] | None = None,
     ) -> None:
         """Register a setter that writes ``imp.header[key] = value``.
 
-        Pattern must contain ``{key}``.
+        The pattern/regex must contain a ``key`` named group.
 
         Parameters
         ----------
@@ -173,14 +253,18 @@ class RoutingImpactTransformer(ImpactTransformer):
                 imp.header, _key_map.get(key, key) if _key_map else key, value
             )
 
-        self.register_setter(pattern, setter)
+        self.register_setter(setter, pattern=pattern, regex=regex)
 
     def add_ele_getter(
-        self, pattern: str, attrib_map: dict[str, str] | None = None
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+        attrib_map: dict[str, str] | None = None,
     ) -> None:
         """Register a getter that returns ``imp.ele[name][attrib]``.
 
-        Pattern must contain ``{name}`` and ``{attrib}``.
+        The pattern/regex must contain ``name`` and ``attrib`` named groups.
 
         Parameters
         ----------
@@ -194,14 +278,18 @@ class RoutingImpactTransformer(ImpactTransformer):
                 _attrib_map.get(attrib, attrib) if _attrib_map else attrib
             ]
 
-        self.register_getter(pattern, getter)
+        self.register_getter(getter, pattern=pattern, regex=regex)
 
     def add_ele_setter(
-        self, pattern: str, attrib_map: dict[str, str] | None = None
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+        attrib_map: dict[str, str] | None = None,
     ) -> None:
         """Register a setter that writes ``imp.ele[name][attrib] = value``.
 
-        Pattern must contain ``{name}`` and ``{attrib}``.
+        The pattern/regex must contain ``name`` and ``attrib`` named groups.
 
         Parameters
         ----------
@@ -217,26 +305,38 @@ class RoutingImpactTransformer(ImpactTransformer):
                 value,
             )
 
-        self.register_setter(pattern, setter)
+        self.register_setter(setter, pattern=pattern, regex=regex)
 
-    def add_group_getter(self, pattern: str) -> None:
+    def add_group_getter(
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> None:
         """Register a getter that returns ``imp.group[name][attrib]``.
 
-        Pattern must contain ``{name}`` and ``{attrib}``.
+        The pattern/regex must contain ``name`` and ``attrib`` named groups.
         """
         self.register_getter(
-            pattern,
             lambda imp, name, attrib: imp.group[name][attrib],
+            pattern=pattern,
+            regex=regex,
         )
 
-    def add_group_setter(self, pattern: str) -> None:
+    def add_group_setter(
+        self,
+        *,
+        pattern: str | None = None,
+        regex: str | re.Pattern | None = None,
+    ) -> None:
         """Register a setter that writes ``imp.group[name][attrib] = value``.
 
-        Pattern must contain ``{name}`` and ``{attrib}``.
+        The pattern/regex must contain ``name`` and ``attrib`` named groups.
         """
         self.register_setter(
-            pattern,
             lambda imp, value, name, attrib: operator.setitem(
                 imp.group[name], attrib, value
             ),
+            pattern=pattern,
+            regex=regex,
         )
