@@ -52,18 +52,30 @@ def _compile_re(p: str | re.Pattern | None) -> re.Pattern | None:
 class _EleRoute:
     """Match criteria and handler for an element-specific getter or setter."""
 
-    type_re: re.Pattern | None
+    ele_type_re: re.Pattern | None
     name_re: re.Pattern | None
     mapped_name_re: re.Pattern | None
     attrib_re: re.Pattern | None
+    mapped_attrib_re: re.Pattern | None
     func: Callable
 
-    def matches(self, ele_type: str, name: str, mapped_name: str, attrib: str) -> bool:
+    def matches(
+        self,
+        ele_type: str,
+        name: str,
+        mapped_name: str,
+        attrib: str,
+        mapped_attrib: str,
+    ) -> bool:
         return (
-            (self.type_re is None or self.type_re.search(ele_type))
+            (self.ele_type_re is None or self.ele_type_re.search(ele_type))
             and (self.name_re is None or self.name_re.search(name))
             and (self.mapped_name_re is None or self.mapped_name_re.search(mapped_name))
             and (self.attrib_re is None or self.attrib_re.search(attrib))
+            and (
+                self.mapped_attrib_re is None
+                or self.mapped_attrib_re.search(mapped_attrib)
+            )
         )
 
 
@@ -99,10 +111,11 @@ class RoutingImpactTransformer(ImpactTransformer):
     ``ele_getter`` / ``ele_setter``). Handlers are matched in registration order
     (most-recently registered first) against four optional regex criteria:
 
-    * ``type``        -- element type string (``imp.ele[mapped_name].get("type", "")``)
+    * ``ele_type``    -- element type from Impact-T (``imp.ele[mapped_name].get("type", "")``)
     * ``name``        -- pre-mapped element name (the ``{name}`` token)
     * ``mapped_name`` -- post-mapped element name (key into ``imp.ele``)
     * ``attrib``      -- attribute token (the ``{attrib}`` token)
+    * ``mapped_attrib`` -- post-mapped attribute (after ``ele_attrib_map``)
 
     Element getter handler signature: ``func(imp, name, mapped_name, attrib) -> value``
     Element setter handler signature: ``func(imp, value, name, mapped_name, attrib)``
@@ -114,14 +127,11 @@ class RoutingImpactTransformer(ImpactTransformer):
         ele_regex=None,
         ele_name_map: dict[str, str] | None = None,
         ele_attrib_map: dict[str, str] | None = None,
-        ele_type_map: dict[str, str] | None = None,
     ):
         if ele_name_map is None:
             ele_name_map = {}
         if ele_attrib_map is None:
             ele_attrib_map = {}
-        if ele_type_map is None:
-            ele_type_map = {}
 
         self._setters: list[_Route] = []
         self._getters: list[_Route] = []
@@ -129,7 +139,6 @@ class RoutingImpactTransformer(ImpactTransformer):
         self._ele_getters: list[_EleRoute] = []
         self._ele_name_map = ele_name_map
         self._ele_attrib_map = ele_attrib_map
-        self._ele_type_map = ele_type_map
 
         if ele_pattern is not None or ele_regex is not None:
             self.register_getter(
@@ -264,36 +273,41 @@ class RoutingImpactTransformer(ImpactTransformer):
         self,
         func: Callable,
         *,
-        type: str | re.Pattern | None = None,
-        name: str | re.Pattern | None = None,
-        mapped_name: str | re.Pattern | None = None,
-        attrib: str | re.Pattern | None = None,
+        ele_type: str | re.Pattern | None = ".*",
+        name: str | re.Pattern | None = ".*",
+        mapped_name: str | re.Pattern | None = ".*",
+        attrib: str | re.Pattern | None = ".*",
+        mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
         """Register an element getter. Most-recently registered handler wins.
 
-        All criteria are optional regexes; a ``None`` criterion matches anything.
+        All criteria default to ``".*"`` (match anything); pass a narrower regex
+        to restrict matching.
 
         Parameters
         ----------
-        type :
-            Regex matched against the element type string
+        ele_type :
+            Regex matched against the element type reported by Impact-T
             (``imp.ele[mapped_name].get("type", "")``).
         name :
             Regex matched against the pre-mapped element name (``{name}`` token).
         mapped_name :
             Regex matched against the post-mapped element name (key in ``imp.ele``).
         attrib :
-            Regex matched against the attribute token (``{attrib}`` token).
+            Regex matched against the pre-mapped attribute token (``{attrib}`` token).
+        mapped_attrib :
+            Regex matched against the post-mapped attribute (after ``ele_attrib_map``).
 
-        Handler signature: ``func(imp, name, mapped_name, attrib) -> value``
+        Handler signature: ``func(imp, name, mapped_name, attrib, **kwargs) -> value``
         """
         self._ele_getters.insert(
             0,
             _EleRoute(
-                type_re=_compile_re(type),
+                ele_type_re=_compile_re(ele_type),
                 name_re=_compile_re(name),
                 mapped_name_re=_compile_re(mapped_name),
                 attrib_re=_compile_re(attrib),
+                mapped_attrib_re=_compile_re(mapped_attrib),
                 func=func,
             ),
         )
@@ -303,35 +317,40 @@ class RoutingImpactTransformer(ImpactTransformer):
         self,
         func: Callable,
         *,
-        type: str | re.Pattern | None = None,
-        name: str | re.Pattern | None = None,
-        mapped_name: str | re.Pattern | None = None,
-        attrib: str | re.Pattern | None = None,
+        ele_type: str | re.Pattern | None = ".*",
+        name: str | re.Pattern | None = ".*",
+        mapped_name: str | re.Pattern | None = ".*",
+        attrib: str | re.Pattern | None = ".*",
+        mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
         """Register an element setter. Most-recently registered handler wins.
 
-        All criteria are optional regexes; a ``None`` criterion matches anything.
+        All criteria default to ``".*"`` (match anything); pass a narrower regex
+        to restrict matching.
 
         Parameters
         ----------
-        type :
-            Regex matched against the element type string.
+        ele_type :
+            Regex matched against the element type reported by Impact-T.
         name :
             Regex matched against the pre-mapped element name.
         mapped_name :
             Regex matched against the post-mapped element name.
         attrib :
-            Regex matched against the attribute token.
+            Regex matched against the pre-mapped attribute token.
+        mapped_attrib :
+            Regex matched against the post-mapped attribute (after ``ele_attrib_map``).
 
-        Handler signature: ``func(imp, value, name, mapped_name, attrib)``
+        Handler signature: ``func(imp, value, name, mapped_name, attrib, **kwargs)``
         """
         self._ele_setters.insert(
             0,
             _EleRoute(
-                type_re=_compile_re(type),
+                ele_type_re=_compile_re(ele_type),
                 name_re=_compile_re(name),
                 mapped_name_re=_compile_re(mapped_name),
                 attrib_re=_compile_re(attrib),
+                mapped_attrib_re=_compile_re(mapped_attrib),
                 func=func,
             ),
         )
@@ -340,16 +359,22 @@ class RoutingImpactTransformer(ImpactTransformer):
     def ele_getter(
         self,
         *,
-        type: str | re.Pattern | None = None,
-        name: str | re.Pattern | None = None,
-        mapped_name: str | re.Pattern | None = None,
-        attrib: str | re.Pattern | None = None,
+        ele_type: str | re.Pattern | None = ".*",
+        name: str | re.Pattern | None = ".*",
+        mapped_name: str | re.Pattern | None = ".*",
+        attrib: str | re.Pattern | None = ".*",
+        mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
         """Decorator sugar for register_ele_getter."""
 
         def decorator(func: Callable) -> Callable:
             return self.register_ele_getter(
-                func, type=type, name=name, mapped_name=mapped_name, attrib=attrib
+                func,
+                ele_type=ele_type,
+                name=name,
+                mapped_name=mapped_name,
+                attrib=attrib,
+                mapped_attrib=mapped_attrib,
             )
 
         return decorator
@@ -357,16 +382,22 @@ class RoutingImpactTransformer(ImpactTransformer):
     def ele_setter(
         self,
         *,
-        type: str | re.Pattern | None = None,
-        name: str | re.Pattern | None = None,
-        mapped_name: str | re.Pattern | None = None,
-        attrib: str | re.Pattern | None = None,
+        ele_type: str | re.Pattern | None = ".*",
+        name: str | re.Pattern | None = ".*",
+        mapped_name: str | re.Pattern | None = ".*",
+        attrib: str | re.Pattern | None = ".*",
+        mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
         """Decorator sugar for register_ele_setter."""
 
         def decorator(func: Callable) -> Callable:
             return self.register_ele_setter(
-                func, type=type, name=name, mapped_name=mapped_name, attrib=attrib
+                func,
+                ele_type=ele_type,
+                name=name,
+                mapped_name=mapped_name,
+                attrib=attrib,
+                mapped_attrib=mapped_attrib,
             )
 
         return decorator
@@ -379,16 +410,15 @@ class RoutingImpactTransformer(ImpactTransformer):
         imp: Any,
         name: str,
         attrib: str,
-        *,
-        type: str = "",
+        **kwargs,
     ) -> Any:
         """Dispatch a getter call through ``_ele_getters``, falling back to ``imp.ele[mapped_name][mapped_attrib]``."""
-        mapped_name = self._name_map.get(name, name)
-        mapped_attrib = self._attrib_map.get(attrib, attrib)
-        mapped_type = self._ele_type_map.get(type, type)
+        mapped_name = self._ele_name_map.get(name, name)
+        mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
+        ele_type = imp.ele.get(mapped_name, {}).get("type", "")
         for route in self._ele_getters:
-            if route.matches(mapped_type, name, mapped_name, attrib):
-                return route.func(imp, name, mapped_name, attrib)
+            if route.matches(ele_type, name, mapped_name, attrib, mapped_attrib):
+                return route.func(imp, name, mapped_name, attrib, **kwargs)
         return imp.ele[mapped_name][mapped_attrib]
 
     def _ele_setter(
@@ -397,16 +427,15 @@ class RoutingImpactTransformer(ImpactTransformer):
         value: Any,
         name: str,
         attrib: str,
-        *,
-        type: str = "",
+        **kwargs,
     ) -> None:
         """Dispatch a setter call through ``_ele_setters``, falling back to ``imp.ele[mapped_name][mapped_attrib] = value``."""
-        mapped_name = self._name_map.get(name, name)
-        mapped_attrib = self._attrib_map.get(attrib, attrib)
-        mapped_type = self._ele_type_map.get(type, type)
+        mapped_name = self._ele_name_map.get(name, name)
+        mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
+        ele_type = imp.ele.get(mapped_name, {}).get("type", "")
         for route in self._ele_setters:
-            if route.matches(mapped_type, name, mapped_name, attrib):
-                route.func(imp, value, name, mapped_name, attrib)
+            if route.matches(ele_type, name, mapped_name, attrib, mapped_attrib):
+                route.func(imp, value, name, mapped_name, attrib, **kwargs)
                 return
         operator.setitem(imp.ele[mapped_name], mapped_attrib, value)
 

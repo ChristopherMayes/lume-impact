@@ -560,9 +560,25 @@ class VariableMappings(BaseModel):
     header_mappings: list[HeaderVariableMapping]
 
 
-def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariable]:
+def make_variables(
+    imp: Any,
+    config: VariableMappingConfig,
+    ele_name_map: dict[str, str] | None = None,
+    ele_type_map: dict[str, str] | None = None,
+) -> list[ScalarVariable]:
     """Build a ``ScalarVariable`` for every element attribute and header key
     described by *config*. The current value in *imp* is used as ``default_value``.
+
+    Parameters
+    ----------
+    ele_name_map :
+        Optional mapping from actual ``imp.ele`` key to the label used in the
+        ``{name}`` token of ``config.element_pattern``
+        (e.g. ``{"QE01": "Q1"}`` makes the variable name use ``Q1``).
+    ele_type_map :
+        Optional mapping from actual element type string to the label used in
+        the ``{type}`` token of ``config.element_pattern``
+        (e.g. ``{"quadrupole": "quad"}``).
     """
     ele_vars = []
     header_vars = []
@@ -600,6 +616,9 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariab
         if type_cfg is None:
             continue
 
+        name_token = ele_name_map.get(ele_name, ele_name) if ele_name_map else ele_name
+        type_token = ele_type_map.get(ele_type, ele_type) if ele_type_map else ele_type
+
         for field_name in type_cfg.model_fields:
             attr_cfg: AttributeConfig | None = getattr(type_cfg, field_name)
             if attr_cfg is None:
@@ -610,7 +629,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> list[ScalarVariab
 
             attrib_token = attr_cfg.alias if attr_cfg.alias is not None else field_name
             variable_name = config.element_pattern.format(
-                type=ele_type, name=ele_name, attrib=attrib_token
+                type=type_token, name=name_token, attrib=attrib_token
             )
 
             ele_vars.append(

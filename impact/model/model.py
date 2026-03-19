@@ -13,10 +13,12 @@ class LUMEImpactModel(LUMEModel):
         imp: Impact,
         vars: list[Variable],
         transformer: ImpactTransformer,
+        dummy_run: bool = False,
     ):
         self.imp = imp
         self.vars = vars
         self.transformer = transformer
+        self.dummy_run = dummy_run
 
         self._state = {}
         self.update_state()
@@ -31,15 +33,60 @@ class LUMEImpactModel(LUMEModel):
         ele_regex_override=None,
         header_pattern_override=None,
         header_regex_override=None,
-        ele_mappings: dict[str, str] = None,
-        type_mappings: dict[str, str] = None,
+        ele_name_mappings: dict[str, str] | None = None,
+        ele_type_mappings: dict[str, str] | None = None,
+        **kwargs,
     ):
-        var_mappings = make_variables(imp, variable_mapping)
+        var_mappings = make_variables(
+            imp,
+            variable_mapping,
+            ele_name_map={v: k for k, v in ele_name_mappings.items()}
+            if ele_name_mappings
+            else None,
+            ele_type_map={v: k for k, v in ele_type_mappings.items()}
+            if ele_type_mappings
+            else None,
+        )
 
         if transformer is None:
-            _trans = RoutingImpactTransformer()
+            # Build a map from attrib token -> actual imp.ele[name] key for any
+            # element field where the AttributeConfig alias differs from the field name.
+            attrib_map: dict[str, str] = {}
+            ele_type_fields = {
+                "drift",
+                "quadrupole",
+                "solenoid",
+                "dipole",
+                "solrf",
+                "emfield_cartesian",
+                "emfield_cylindrical",
+            }
+            for type_field in ele_type_fields:
+                type_cfg = getattr(variable_mapping, type_field, None)
+                if type_cfg is None:
+                    continue
+                for field_name in type_cfg.model_fields:
+                    attr_cfg = getattr(type_cfg, field_name)
+                    if attr_cfg is None or attr_cfg.alias is None:
+                        continue
+                    if attr_cfg.alias != field_name:
+                        attrib_map[attr_cfg.alias] = field_name
 
-            # Build a map from variable name token → actual imp.header key for any
+            if (ele_pattern_override is not None) or (ele_regex_override is not None):
+                _ele_pattern = ele_pattern_override
+                _ele_regex = ele_regex_override
+            else:
+                _ele_pattern = variable_mapping.element_pattern
+                _ele_regex = None
+
+            _trans = RoutingImpactTransformer(
+                ele_pattern=_ele_pattern,
+                ele_regex=_ele_regex,
+                ele_name_map=ele_name_mappings or {},
+                ele_attrib_map=attrib_map or {},
+            )
+
+            # Build a map from variable name token -> actual imp.header key for any
             # header field where the AttributeConfig alias differs from the header key.
             key_map: dict[str, str] = {}
             if variable_mapping.header is not None:
@@ -72,43 +119,6 @@ class LUMEImpactModel(LUMEModel):
                 pattern=_header_pattern, regex=_header_regex, key_map=key_map or None
             )
 
-            # Build a map from attrib token → actual imp.ele[name] key for any
-            # element field where the AttributeConfig alias differs from the field name.
-            attrib_map: dict[str, str] = {}
-            ele_type_fields = {
-                "drift",
-                "quadrupole",
-                "solenoid",
-                "dipole",
-                "solrf",
-                "emfield_cartesian",
-                "emfield_cylindrical",
-            }
-            for type_field in ele_type_fields:
-                type_cfg = getattr(variable_mapping, type_field, None)
-                if type_cfg is None:
-                    continue
-                for field_name in type_cfg.model_fields:
-                    attr_cfg = getattr(type_cfg, field_name)
-                    if attr_cfg is None or attr_cfg.alias is None:
-                        continue
-                    if attr_cfg.alias != field_name:
-                        attrib_map[attr_cfg.alias] = field_name
-
-            if (ele_pattern_override is not None) or (ele_regex_override is not None):
-                _ele_pattern = ele_pattern_override
-                _ele_regex = ele_regex_override
-            else:
-                _ele_pattern = variable_mapping.element_pattern
-                _ele_regex = None
-
-            _trans.add_ele_getter(
-                pattern=_ele_pattern, regex=_ele_regex, attrib_map=attrib_map or None
-            )
-            _trans.add_ele_setter(
-                pattern=_ele_pattern, regex=_ele_regex, attrib_map=attrib_map or None
-            )
-
         elif isinstance(transformer, ImpactTransformer):
             _trans = transformer
 
@@ -120,7 +130,7 @@ class LUMEImpactModel(LUMEModel):
             x.var for x in var_mappings.ele_mappings
         ]
 
-        return cls(imp, vars, _trans)
+        return cls(imp, vars, _trans, **kwargs)
 
     @property
     def supported_variables(self) -> dict[str, Variable]:
@@ -170,7 +180,8 @@ class LUMEImpactModel(LUMEModel):
             self.transformer.set_impact_property(self.imp, control_name, value)
 
         # run simulation
-        self.imp.run()
+        if not self.dummy_run:
+            self.imp.run()
 
         # update state with new output values
         self.update_state()
