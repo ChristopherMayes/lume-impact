@@ -31,6 +31,8 @@ class LUMEImpactModel(LUMEModel):
         ele_regex_override=None,
         header_pattern_override=None,
         header_regex_override=None,
+        ele_mappings: dict[str, str] = None,
+        type_mappings: dict[str, str] = None,
     ):
         var_mappings = make_variables(imp, variable_mapping)
 
