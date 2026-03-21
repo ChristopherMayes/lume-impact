@@ -3,7 +3,7 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.transformer import ImpactTransformer, RoutingImpactTransformer
+from impact.model.transformer import Transformer, RoutingImpactTransformer
 from impact.model.config import HeaderConfig, VariableMappingConfig, make_variables
 
 
@@ -12,7 +12,7 @@ class LUMEImpactModel(LUMEModel):
         self,
         imp: Impact,
         vars: list[Variable],
-        transformer: ImpactTransformer,
+        transformer: Transformer,
         dummy_run: bool = False,
     ):
         self.imp = imp
@@ -28,7 +28,7 @@ class LUMEImpactModel(LUMEModel):
         cls,
         imp: Impact,
         variable_mapping: VariableMappingConfig = VariableMappingConfig(),
-        transformer: ImpactTransformer | None = None,
+        transformer: Transformer | None = None,
         ele_pattern_override=None,
         ele_regex_override=None,
         header_pattern_override=None,
@@ -119,7 +119,7 @@ class LUMEImpactModel(LUMEModel):
                 pattern=_header_pattern, regex=_header_regex, key_map=key_map or None
             )
 
-        elif isinstance(transformer, ImpactTransformer):
+        elif isinstance(transformer, Transformer):
             _trans = transformer
 
         else:
