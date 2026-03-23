@@ -233,15 +233,21 @@ class RoutingEleTransformer(RoutingTransformer):
     Handlers are matched in registration order (most-recently registered first)
     against five optional regex criteria:
 
-    * ``ele_type``      -- element type (``tool.ele[mapped_name].get("type", "")``)
+    * ``ele_type``      -- element type (resolved via ``get_ele_type``)
     * ``name``          -- pre-mapped element name (the ``{name}`` token)
-    * ``mapped_name``   -- post-mapped element name (key into ``tool.ele``)
+    * ``mapped_name``   -- post-mapped element name (key into the element store)
     * ``attrib``        -- attribute token (the ``{attrib}`` token)
     * ``mapped_attrib`` -- post-mapped attribute (after ``ele_attrib_map``)
 
     Element getter handler signature: ``func(tool, name, mapped_name, attrib) -> value``
     Element setter handler signature: ``func(tool, value, name, mapped_name, attrib)``
+
+    Subclasses must implement ``get_ele_type``.
     """
+
+    @abstractmethod
+    def get_ele_type(self, tool: Any, mapped_name: str) -> str:
+        """Return the element type string for the element identified by *mapped_name*."""
 
     def __init__(
         self,
@@ -417,11 +423,13 @@ class RoutingEleTransformer(RoutingTransformer):
         """Dispatch a getter call through ``_ele_getters``, falling back to ``tool.ele[mapped_name][mapped_attrib]``."""
         mapped_name = self._ele_name_map.get(name, name)
         mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
-        ele_type = tool.ele.get(mapped_name, {}).get("type", "")
+        ele_type = self.get_ele_type(tool, mapped_name)
         for route in self._ele_getters:
             if route.matches(ele_type, name, mapped_name, attrib, mapped_attrib):
                 return route.func(tool, name, mapped_name, attrib, **kwargs)
-        return tool.ele[mapped_name][mapped_attrib]
+        raise KeyError(
+            f"No element getter matched for name={name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+        )
 
     def _ele_setter(
         self,
@@ -431,15 +439,17 @@ class RoutingEleTransformer(RoutingTransformer):
         attrib: str,
         **kwargs,
     ) -> None:
-        """Dispatch a setter call through ``_ele_setters``, falling back to ``tool.ele[mapped_name][mapped_attrib] = value``."""
+        """Dispatch a setter call through ``_ele_setters``, raising if no handler matches."""
         mapped_name = self._ele_name_map.get(name, name)
         mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
-        ele_type = tool.ele.get(mapped_name, {}).get("type", "")
+        ele_type = self.get_ele_type(tool, mapped_name)
         for route in self._ele_setters:
             if route.matches(ele_type, name, mapped_name, attrib, mapped_attrib):
                 route.func(tool, value, name, mapped_name, attrib, **kwargs)
                 return
-        operator.setitem(tool.ele[mapped_name], mapped_attrib, value)
+        raise KeyError(
+            f"No element setter matched for name={name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+        )
 
 
 class RoutingImpactTransformer(RoutingEleTransformer):
@@ -451,6 +461,9 @@ class RoutingImpactTransformer(RoutingEleTransformer):
     setters that target common Impact-T data structures (particles, stats, header,
     group, and elements).
     """
+
+    def get_ele_type(self, tool: Any, mapped_name: str) -> str:
+        return tool.ele.get(mapped_name, {}).get("type", "")
 
     def get_impact_property(self, imp: Any, name: str) -> Any:
         """Return the current value of the named property from *imp*."""
