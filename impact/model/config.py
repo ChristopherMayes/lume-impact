@@ -18,10 +18,13 @@ class AttributeConfig(BaseModel):
         If omitted, the attribute name itself is used.
     unit : str, optional
         Physical unit string passed to ``ScalarVariable``.
+    read_only : bool, optional
+        Whether the variable is read-only.  Defaults to ``False``.
     """
 
     alias: str | None = None
     unit: str | None = None
+    read_only: bool = False
 
 
 # ------------------------------------------------------------------
@@ -605,7 +608,7 @@ def make_variables(
                         name=variable_name,
                         default_value=imp.header.get(header_key),
                         unit=attr_cfg.unit,
-                        read_only=False,
+                        read_only=attr_cfg.read_only,
                     ),
                 )
             )
@@ -644,7 +647,7 @@ def make_variables(
                         name=variable_name,
                         default_value=imp.ele[ele_name][field_name],
                         unit=attr_cfg.unit,
-                        read_only=False,
+                        read_only=attr_cfg.read_only,
                     ),
                 )
             )
