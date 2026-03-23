@@ -53,8 +53,8 @@ class _EleRoute:
     """Match criteria and handler for an element-specific getter or setter."""
 
     ele_type_re: re.Pattern | None
-    name_re: re.Pattern | None
-    mapped_name_re: re.Pattern | None
+    control_name_re: re.Pattern | None
+    tool_name_re: re.Pattern | None
     attrib_re: re.Pattern | None
     mapped_attrib_re: re.Pattern | None
     func: Callable
@@ -62,15 +62,18 @@ class _EleRoute:
     def matches(
         self,
         ele_type: str,
-        name: str,
-        mapped_name: str,
+        control_name: str,
+        tool_name: str,
         attrib: str,
         mapped_attrib: str,
     ) -> bool:
         return (
             (self.ele_type_re is None or self.ele_type_re.search(ele_type))
-            and (self.name_re is None or self.name_re.search(name))
-            and (self.mapped_name_re is None or self.mapped_name_re.search(mapped_name))
+            and (
+                self.control_name_re is None
+                or self.control_name_re.search(control_name)
+            )
+            and (self.tool_name_re is None or self.tool_name_re.search(tool_name))
             and (self.attrib_re is None or self.attrib_re.search(attrib))
             and (
                 self.mapped_attrib_re is None
@@ -228,26 +231,25 @@ class RoutingEleTransformer(RoutingTransformer):
 
     Element getters and setters registered via ``register_ele_getter`` /
     ``register_ele_setter`` (or their decorator equivalents ``ele_getter`` /
-    ``ele_setter``) dispatch through a separate queue of element-level handlers
-    before falling back to the default ``tool.ele[name][attrib]`` behaviour.
+    ``ele_setter``) dispatch through a separate queue of element-level handlers.
     Handlers are matched in registration order (most-recently registered first)
     against five optional regex criteria:
 
     * ``ele_type``      -- element type (resolved via ``get_ele_type``)
-    * ``name``          -- pre-mapped element name (the ``{name}`` token)
-    * ``mapped_name``   -- post-mapped element name (key into the element store)
-    * ``attrib``        -- attribute token (the ``{attrib}`` token)
+    * ``control_name``  -- pre-mapped element name (the ``{name}`` token from the pattern)
+    * ``tool_name``     -- post-mapped element name (key into the element store)
+    * ``attrib``        -- attribute token (the ``{attrib}`` token from the pattern)
     * ``mapped_attrib`` -- post-mapped attribute (after ``ele_attrib_map``)
 
-    Element getter handler signature: ``func(tool, name, mapped_name, attrib) -> value``
-    Element setter handler signature: ``func(tool, value, name, mapped_name, attrib)``
+    Element getter handler signature: ``func(tool, control_name, tool_name, attrib) -> value``
+    Element setter handler signature: ``func(tool, value, control_name, tool_name, attrib)``
 
     Subclasses must implement ``get_ele_type``.
     """
 
     @abstractmethod
-    def get_ele_type(self, tool: Any, mapped_name: str) -> str:
-        """Return the element type string for the element identified by *mapped_name*."""
+    def get_ele_type(self, tool: Any, tool_name: str) -> str:
+        """Return the element type string for the element identified by *tool_name*."""
 
     def __init__(
         self,
@@ -282,8 +284,8 @@ class RoutingEleTransformer(RoutingTransformer):
         func: Callable,
         *,
         ele_type: str | re.Pattern | None = ".*",
-        name: str | re.Pattern | None = ".*",
-        mapped_name: str | re.Pattern | None = ".*",
+        control_name: str | re.Pattern | None = ".*",
+        tool_name: str | re.Pattern | None = ".*",
         attrib: str | re.Pattern | None = ".*",
         mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
@@ -295,25 +297,24 @@ class RoutingEleTransformer(RoutingTransformer):
         Parameters
         ----------
         ele_type :
-            Regex matched against the element type
-            (``tool.ele[mapped_name].get("type", "")``).
-        name :
+            Regex matched against the element type (via ``get_ele_type``).
+        control_name :
             Regex matched against the pre-mapped element name (``{name}`` token).
-        mapped_name :
-            Regex matched against the post-mapped element name (key in ``tool.ele``).
+        tool_name :
+            Regex matched against the post-mapped element name (key in the element store).
         attrib :
             Regex matched against the pre-mapped attribute token (``{attrib}`` token).
         mapped_attrib :
             Regex matched against the post-mapped attribute (after ``ele_attrib_map``).
 
-        Handler signature: ``func(tool, name, mapped_name, attrib, **kwargs) -> value``
+        Handler signature: ``func(tool, control_name, tool_name, attrib, **kwargs) -> value``
         """
         self._ele_getters.insert(
             0,
             _EleRoute(
                 ele_type_re=_compile_re(ele_type),
-                name_re=_compile_re(name),
-                mapped_name_re=_compile_re(mapped_name),
+                control_name_re=_compile_re(control_name),
+                tool_name_re=_compile_re(tool_name),
                 attrib_re=_compile_re(attrib),
                 mapped_attrib_re=_compile_re(mapped_attrib),
                 func=func,
@@ -326,8 +327,8 @@ class RoutingEleTransformer(RoutingTransformer):
         func: Callable,
         *,
         ele_type: str | re.Pattern | None = ".*",
-        name: str | re.Pattern | None = ".*",
-        mapped_name: str | re.Pattern | None = ".*",
+        control_name: str | re.Pattern | None = ".*",
+        tool_name: str | re.Pattern | None = ".*",
         attrib: str | re.Pattern | None = ".*",
         mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
@@ -340,23 +341,23 @@ class RoutingEleTransformer(RoutingTransformer):
         ----------
         ele_type :
             Regex matched against the element type.
-        name :
+        control_name :
             Regex matched against the pre-mapped element name.
-        mapped_name :
+        tool_name :
             Regex matched against the post-mapped element name.
         attrib :
             Regex matched against the pre-mapped attribute token.
         mapped_attrib :
             Regex matched against the post-mapped attribute (after ``ele_attrib_map``).
 
-        Handler signature: ``func(tool, value, name, mapped_name, attrib, **kwargs)``
+        Handler signature: ``func(tool, value, control_name, tool_name, attrib, **kwargs)``
         """
         self._ele_setters.insert(
             0,
             _EleRoute(
                 ele_type_re=_compile_re(ele_type),
-                name_re=_compile_re(name),
-                mapped_name_re=_compile_re(mapped_name),
+                control_name_re=_compile_re(control_name),
+                tool_name_re=_compile_re(tool_name),
                 attrib_re=_compile_re(attrib),
                 mapped_attrib_re=_compile_re(mapped_attrib),
                 func=func,
@@ -368,8 +369,8 @@ class RoutingEleTransformer(RoutingTransformer):
         self,
         *,
         ele_type: str | re.Pattern | None = ".*",
-        name: str | re.Pattern | None = ".*",
-        mapped_name: str | re.Pattern | None = ".*",
+        control_name: str | re.Pattern | None = ".*",
+        tool_name: str | re.Pattern | None = ".*",
         attrib: str | re.Pattern | None = ".*",
         mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
@@ -379,8 +380,8 @@ class RoutingEleTransformer(RoutingTransformer):
             return self.register_ele_getter(
                 func,
                 ele_type=ele_type,
-                name=name,
-                mapped_name=mapped_name,
+                control_name=control_name,
+                tool_name=tool_name,
                 attrib=attrib,
                 mapped_attrib=mapped_attrib,
             )
@@ -391,8 +392,8 @@ class RoutingEleTransformer(RoutingTransformer):
         self,
         *,
         ele_type: str | re.Pattern | None = ".*",
-        name: str | re.Pattern | None = ".*",
-        mapped_name: str | re.Pattern | None = ".*",
+        control_name: str | re.Pattern | None = ".*",
+        tool_name: str | re.Pattern | None = ".*",
         attrib: str | re.Pattern | None = ".*",
         mapped_attrib: str | re.Pattern | None = ".*",
     ) -> Callable:
@@ -402,8 +403,8 @@ class RoutingEleTransformer(RoutingTransformer):
             return self.register_ele_setter(
                 func,
                 ele_type=ele_type,
-                name=name,
-                mapped_name=mapped_name,
+                control_name=control_name,
+                tool_name=tool_name,
                 attrib=attrib,
                 mapped_attrib=mapped_attrib,
             )
@@ -420,15 +421,16 @@ class RoutingEleTransformer(RoutingTransformer):
         attrib: str,
         **kwargs,
     ) -> Any:
-        """Dispatch a getter call through ``_ele_getters``, falling back to ``tool.ele[mapped_name][mapped_attrib]``."""
-        mapped_name = self._ele_name_map.get(name, name)
+        """Dispatch a getter call through ``_ele_getters``, raising if no handler matches."""
+        control_name = name
+        tool_name = self._ele_name_map.get(control_name, control_name)
         mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
-        ele_type = self.get_ele_type(tool, mapped_name)
+        ele_type = self.get_ele_type(tool, tool_name)
         for route in self._ele_getters:
-            if route.matches(ele_type, name, mapped_name, attrib, mapped_attrib):
-                return route.func(tool, name, mapped_name, attrib, **kwargs)
+            if route.matches(ele_type, control_name, tool_name, attrib, mapped_attrib):
+                return route.func(tool, control_name, tool_name, attrib, **kwargs)
         raise KeyError(
-            f"No element getter matched for name={name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+            f"No element getter matched for control_name={control_name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
         )
 
     def _ele_setter(
@@ -440,15 +442,16 @@ class RoutingEleTransformer(RoutingTransformer):
         **kwargs,
     ) -> None:
         """Dispatch a setter call through ``_ele_setters``, raising if no handler matches."""
-        mapped_name = self._ele_name_map.get(name, name)
+        control_name = name
+        tool_name = self._ele_name_map.get(control_name, control_name)
         mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
-        ele_type = self.get_ele_type(tool, mapped_name)
+        ele_type = self.get_ele_type(tool, tool_name)
         for route in self._ele_setters:
-            if route.matches(ele_type, name, mapped_name, attrib, mapped_attrib):
-                route.func(tool, value, name, mapped_name, attrib, **kwargs)
+            if route.matches(ele_type, control_name, tool_name, attrib, mapped_attrib):
+                route.func(tool, value, control_name, tool_name, attrib, **kwargs)
                 return
         raise KeyError(
-            f"No element setter matched for name={name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+            f"No element setter matched for control_name={control_name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
         )
 
 
@@ -462,8 +465,8 @@ class RoutingImpactTransformer(RoutingEleTransformer):
     group, and elements).
     """
 
-    def get_ele_type(self, tool: Any, mapped_name: str) -> str:
-        return tool.ele.get(mapped_name, {}).get("type", "")
+    def get_ele_type(self, tool: Any, tool_name: str) -> str:
+        return tool.ele.get(tool_name, {}).get("type", "")
 
     def get_impact_property(self, imp: Any, name: str) -> Any:
         """Return the current value of the named property from *imp*."""
