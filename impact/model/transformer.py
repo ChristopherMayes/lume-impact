@@ -1,3 +1,4 @@
+import dataclasses
 import operator
 import re
 from abc import ABC, abstractmethod
@@ -242,9 +243,9 @@ class RoutingEleTransformer(RoutingTransformer):
     * ``tool_attrib``    -- post-mapped attribute (after ``ele_attrib_map``)
 
     Element getter handler signature:
-        ``func(tool, control_name, tool_name, control_attrib, **kwargs) -> value``
+        ``func(tool, control_name, tool_name, control_attrib, tool_attrib, **kwargs) -> value``
     Element setter handler signature:
-        ``func(tool, value, control_name, tool_name, control_attrib, **kwargs)``
+        ``func(tool, value, control_name, tool_name, control_attrib, tool_attrib, **kwargs)``
 
     Subclasses must implement ``get_ele_type``.
     """
@@ -310,7 +311,7 @@ class RoutingEleTransformer(RoutingTransformer):
             Regex matched against the post-mapped attribute (after ``ele_attrib_map``).
 
         Handler signature:
-            ``func(tool, control_name, tool_name, control_attrib, **kwargs) -> value``
+            ``func(tool, control_name, tool_name, control_attrib, tool_attrib, **kwargs) -> value``
         """
         self._ele_getters.insert(
             0,
@@ -354,7 +355,7 @@ class RoutingEleTransformer(RoutingTransformer):
             Regex matched against the post-mapped attribute (after ``ele_attrib_map``).
 
         Handler signature:
-            ``func(tool, value, control_name, tool_name, control_attrib, **kwargs)``
+            ``func(tool, value, control_name, tool_name, control_attrib, tool_attrib, **kwargs)``
         """
         self._ele_setters.insert(
             0,
@@ -470,7 +471,7 @@ class RoutingEleTransformer(RoutingTransformer):
                 ele_type, control_name, tool_name, control_attrib, tool_attrib
             ):
                 return route.func(
-                    tool, control_name, tool_name, control_attrib, **kwargs
+                    tool, control_name, tool_name, control_attrib, tool_attrib, **kwargs
                 )
         result = self.default_ele_getter(
             tool, control_name, tool_name, control_attrib, tool_attrib
@@ -501,7 +502,13 @@ class RoutingEleTransformer(RoutingTransformer):
                 ele_type, control_name, tool_name, control_attrib, tool_attrib
             ):
                 route.func(
-                    tool, value, control_name, tool_name, control_attrib, **kwargs
+                    tool,
+                    value,
+                    control_name,
+                    tool_name,
+                    control_attrib,
+                    tool_attrib,
+                    **kwargs,
                 )
                 return
         result = self.default_ele_setter(
@@ -512,6 +519,118 @@ class RoutingEleTransformer(RoutingTransformer):
                 f"No element setter matched for control_name={control_name!r}, "
                 f"control_attrib={control_attrib!r}, ele_type={ele_type!r}"
             )
+
+    def check_ele_routes(
+        self,
+        tool: Any,
+        mappings: list,
+    ) -> None:
+        """Pre-flight check that element variable mappings route to the correct handlers.
+
+        Temporarily replaces all element getter/setter route functions and the default
+        fallbacks with mocks that record the ``control_name``, ``tool_name``,
+        ``control_attrib``, and ``tool_attrib`` they receive, keyed by the full
+        variable name.  Then calls ``get_property`` and ``set_property`` for every
+        mapping's variable name and compares the recorded arguments against the
+        expected values on each mapping.
+
+        Raises ``ValueError`` listing every mismatch if any are found.
+
+        Parameters
+        ----------
+        tool :
+            The tool object passed through to route handlers (needed so that
+            ``get_ele_type`` can resolve element types for route matching).
+        mappings :
+            List of ``EleVariableMapping`` objects to verify.  Each must expose
+            ``control_name``, ``tool_name``, ``control_attrib``, ``tool_attrib``,
+            and ``var.name``.
+        """
+        received_get: dict[str, dict] = {}
+        received_set: dict[str, dict] = {}
+        current_var: list[str] = [None]  # mutable cell updated before each call
+
+        def mock_getter(
+            t: Any,
+            control_name: str,
+            tool_name: str,
+            control_attrib: str,
+            tool_attrib: str,
+            **kwargs,
+        ) -> None:
+            received_get[current_var[0]] = dict(
+                control_name=control_name,
+                tool_name=tool_name,
+                control_attrib=control_attrib,
+                tool_attrib=tool_attrib,
+            )
+            return None
+
+        def mock_setter(
+            t: Any,
+            value: Any,
+            control_name: str,
+            tool_name: str,
+            control_attrib: str,
+            tool_attrib: str,
+            **kwargs,
+        ) -> None:
+            received_set[current_var[0]] = dict(
+                control_name=control_name,
+                tool_name=tool_name,
+                control_attrib=control_attrib,
+                tool_attrib=tool_attrib,
+            )
+
+        old_getters = self._ele_getters
+        old_setters = self._ele_setters
+        old_dget = self.default_ele_getter
+        old_dset = self.default_ele_setter
+        try:
+            self.default_ele_getter = mock_getter  # type: ignore[assignment]
+            self.default_ele_setter = mock_setter  # type: ignore[assignment]
+            self._ele_getters = [
+                dataclasses.replace(r, func=mock_getter) for r in old_getters
+            ]
+            self._ele_setters = [
+                dataclasses.replace(r, func=mock_setter) for r in old_setters
+            ]
+
+            for mapping in mappings:
+                current_var[0] = mapping.var.name
+                self.get_property(tool, mapping.var.name)
+                self.set_property(tool, mapping.var.name, None)
+
+            mismatches: list[str] = []
+            for mapping in mappings:
+                expected = dict(
+                    control_name=mapping.control_name,
+                    tool_name=mapping.tool_name,
+                    control_attrib=mapping.control_attrib,
+                    tool_attrib=mapping.tool_attrib,
+                )
+                for label, log in (("get", received_get), ("set", received_set)):
+                    received = log.get(mapping.var.name)
+                    if received is None:
+                        mismatches.append(
+                            f"[{label}] {mapping.var.name!r}: no handler was called"
+                        )
+                    elif received != expected:
+                        mismatches.append(
+                            f"[{label}] {mapping.var.name!r}: "
+                            f"expected {expected!r}, got {received!r}"
+                        )
+
+            if mismatches:
+                raise ValueError(
+                    "Element route pre-flight check failed:\n"
+                    + "\n".join(f"  {m}" for m in mismatches)
+                )
+        finally:
+            self._ele_getters = old_getters
+            self._ele_setters = old_setters
+            self.default_ele_getter = old_dget  # type: ignore[assignment]
+            self.default_ele_setter = old_dset  # type: ignore[assignment]
 
 
 class RoutingImpactTransformer(RoutingEleTransformer):

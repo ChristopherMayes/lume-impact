@@ -130,7 +130,10 @@ class LUMEImpactModel(LUMEModel):
             x.var for x in var_mappings.ele_mappings
         ]
 
-        return cls(imp, vars, _trans, **kwargs)
+        # Construct model and check compatibility of variable names and transformer routes before sending out
+        model = cls(imp, vars, _trans, **kwargs)
+        model.transformer.check_ele_routes(imp, var_mappings.ele_mappings)
+        return model
 
     @property
     def supported_variables(self) -> dict[str, Variable]:

@@ -545,8 +545,10 @@ class VariableMappingConfig(BaseModel):
 
 
 class EleVariableMapping(BaseModel):
-    ele_name: str
-    ele_attrib: str
+    control_name: str
+    tool_name: str
+    control_attrib: str
+    tool_attrib: str
     var: ScalarVariable
 
 
@@ -634,8 +636,10 @@ def make_variables(
 
             ele_vars.append(
                 EleVariableMapping(
-                    ele_name=ele_name,
-                    ele_attrib=attrib_token,
+                    control_name=name_token,
+                    tool_name=ele_name,
+                    control_attrib=attrib_token,
+                    tool_attrib=field_name,
                     var=ScalarVariable(
                         name=variable_name,
                         default_value=imp.ele[ele_name][field_name],
