@@ -412,6 +412,40 @@ class RoutingEleTransformer(RoutingTransformer):
         return decorator
 
     # ------------------------------------------------------------------
+    # Default element getter / setter (override in subclasses for fallback behaviour)
+
+    def default_ele_getter(
+        self,
+        tool: Any,
+        control_name: str,
+        tool_name: str,
+        attrib: str,
+        mapped_attrib: str,
+    ) -> Any:
+        """Fallback getter called when no registered route matches.
+
+        Return ``NotImplemented`` (the default) to have the dispatcher raise a
+        ``KeyError``. Override in a subclass to provide a real fallback.
+        """
+        return NotImplemented
+
+    def default_ele_setter(
+        self,
+        tool: Any,
+        value: Any,
+        control_name: str,
+        tool_name: str,
+        attrib: str,
+        mapped_attrib: str,
+    ) -> Any:
+        """Fallback setter called when no registered route matches.
+
+        Return ``NotImplemented`` (the default) to have the dispatcher raise a
+        ``KeyError``. Override in a subclass to provide a real fallback.
+        """
+        return NotImplemented
+
+    # ------------------------------------------------------------------
     # Element dispatch methods
 
     def _ele_getter(
@@ -421,7 +455,7 @@ class RoutingEleTransformer(RoutingTransformer):
         attrib: str,
         **kwargs,
     ) -> Any:
-        """Dispatch a getter call through ``_ele_getters``, raising if no handler matches."""
+        """Dispatch a getter call through ``_ele_getters``, then ``default_ele_getter``."""
         control_name = name
         tool_name = self._ele_name_map.get(control_name, control_name)
         mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
@@ -429,9 +463,14 @@ class RoutingEleTransformer(RoutingTransformer):
         for route in self._ele_getters:
             if route.matches(ele_type, control_name, tool_name, attrib, mapped_attrib):
                 return route.func(tool, control_name, tool_name, attrib, **kwargs)
-        raise KeyError(
-            f"No element getter matched for control_name={control_name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+        result = self.default_ele_getter(
+            tool, control_name, tool_name, attrib, mapped_attrib
         )
+        if result is NotImplemented:
+            raise KeyError(
+                f"No element getter matched for control_name={control_name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+            )
+        return result
 
     def _ele_setter(
         self,
@@ -441,7 +480,7 @@ class RoutingEleTransformer(RoutingTransformer):
         attrib: str,
         **kwargs,
     ) -> None:
-        """Dispatch a setter call through ``_ele_setters``, raising if no handler matches."""
+        """Dispatch a setter call through ``_ele_setters``, then ``default_ele_setter``."""
         control_name = name
         tool_name = self._ele_name_map.get(control_name, control_name)
         mapped_attrib = self._ele_attrib_map.get(attrib, attrib)
@@ -450,9 +489,13 @@ class RoutingEleTransformer(RoutingTransformer):
             if route.matches(ele_type, control_name, tool_name, attrib, mapped_attrib):
                 route.func(tool, value, control_name, tool_name, attrib, **kwargs)
                 return
-        raise KeyError(
-            f"No element setter matched for control_name={control_name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+        result = self.default_ele_setter(
+            tool, value, control_name, tool_name, attrib, mapped_attrib
         )
+        if result is NotImplemented:
+            raise KeyError(
+                f"No element setter matched for control_name={control_name!r}, attrib={attrib!r}, ele_type={ele_type!r}"
+            )
 
 
 class RoutingImpactTransformer(RoutingEleTransformer):
@@ -467,6 +510,14 @@ class RoutingImpactTransformer(RoutingEleTransformer):
 
     def get_ele_type(self, tool: Any, tool_name: str) -> str:
         return tool.ele.get(tool_name, {}).get("type", "")
+
+    def default_ele_getter(self, tool, control_name, tool_name, attrib, mapped_attrib):
+        return tool.ele[tool_name][mapped_attrib]
+
+    def default_ele_setter(
+        self, tool, value, control_name, tool_name, attrib, mapped_attrib
+    ):
+        operator.setitem(tool.ele[tool_name], mapped_attrib, value)
 
     def get_impact_property(self, imp: Any, name: str) -> Any:
         """Return the current value of the named property from *imp*."""
