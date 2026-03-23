@@ -3,7 +3,7 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.transformer import Transformer, RoutingImpactTransformer
+from impact.model.transformer.transformer import Transformer, RoutingImpactTransformer
 from impact.model.config import HeaderConfig, VariableMappingConfig, make_variables
 
 
