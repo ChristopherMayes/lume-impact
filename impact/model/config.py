@@ -2,7 +2,7 @@ import logging
 from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from lume.variables import ScalarVariable
+from lume.variables import NDVariable, ScalarVariable
 
 
 logger = logging.getLogger(__name__)
@@ -510,32 +510,100 @@ class HeaderConfig(BaseModel):
 
 
 # ------------------------------------------------------------------
+# Stats config
+# ------------------------------------------------------------------
+
+_STATS_DEFAULTS: dict[str, dict] = {
+    "mean_kinetic_energy": {"unit": "eV"},
+    "mean_x": {"unit": "m"},
+    "mean_y": {"unit": "m"},
+    "mean_z": {"unit": "m"},
+    "sigma_x": {"unit": "m"},
+    "sigma_y": {"unit": "m"},
+    "sigma_z": {"unit": "m"},
+    "norm_emit_x": {"unit": "m"},
+    "norm_emit_y": {"unit": "m"},
+    "norm_emit_z": {"unit": "m"},
+}
+
+
+class StatConfig(BaseModel):
+    """Config for a single output stat variable.
+
+    Parameters
+    ----------
+    unit : str, optional
+        Physical unit string passed to ``ScalarVariable``.
+    """
+
+    unit: str | None = None
+
+
+class StatsConfig(BaseModel):
+    mean_kinetic_energy: StatConfig | None = StatConfig(
+        **_STATS_DEFAULTS.get("mean_kinetic_energy", {})
+    )
+    mean_x: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("mean_x", {}))
+    mean_y: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("mean_y", {}))
+    mean_z: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("mean_z", {}))
+    sigma_x: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("sigma_x", {}))
+    sigma_y: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("sigma_y", {}))
+    sigma_z: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("sigma_z", {}))
+    norm_emit_x: StatConfig | None = StatConfig(
+        **_STATS_DEFAULTS.get("norm_emit_x", {})
+    )
+    norm_emit_y: StatConfig | None = StatConfig(
+        **_STATS_DEFAULTS.get("norm_emit_y", {})
+    )
+    norm_emit_z: StatConfig | None = StatConfig(
+        **_STATS_DEFAULTS.get("norm_emit_z", {})
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        for field, default in _STATS_DEFAULTS.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
+
+
+# ------------------------------------------------------------------
 # Top-level mapping config
 # ------------------------------------------------------------------
 
 
 class VariableMappingConfig(BaseModel):
-    """Maps Impact-T element attributes and header keys to model variable names.
+    """Maps Impact-T element attributes, header keys, and output stats to model variable names.
 
     Parameters
     ----------
     header_pattern : str
         Format string for header variable names. Available token: ``{key}``.
-        Example: ``"header_{key}"`` -> ``"header_Np"``.
+        Example: ``"header/{key}"`` -> ``"header/Np"``.
     element_pattern : str
         Format string for element variable names.
         Available tokens: ``{type}``, ``{name}``, ``{attrib}``.
-        Example: ``"{name}_{attrib}"`` -> ``"Q1_b1_gradient"``.
+        Example: ``"ele/{name}/{attrib}"`` -> ``"ele/Q1/b1_gradient"``.
+    stats_pattern : str
+        Format string for output stat variable names. Available token: ``{name}``.
+        Example: ``"stat/{name}"`` -> ``"stat/sigma_x"``.
 
     header :
         Header key mappings. ``None`` skips all header variables.
     drift, quadrupole, solenoid, dipole, solrf, emfield_cartesian, emfield_cylindrical :
         Per-type config. ``None`` skips that element type entirely.
         Within each type, attributes left as ``None`` are not registered.
+    stats :
+        Output stat mappings. ``None`` skips all stat variables.
+        Individual stats can be disabled by setting their field to ``None``.
     """
 
     header_pattern: str = "header/{key}"
     element_pattern: str = "ele/{name}/{attrib}"
+    stats_pattern: str = "stat/{name}"
 
     header: HeaderConfig | None = HeaderConfig()
     drift: DriftConfig | None = DriftConfig()
@@ -545,6 +613,7 @@ class VariableMappingConfig(BaseModel):
     solrf: SolrfConfig | None = SolrfConfig()
     emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
     emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
+    stats: StatsConfig | None = StatsConfig()
 
 
 class EleVariableMapping(BaseModel):
@@ -560,9 +629,15 @@ class HeaderVariableMapping(BaseModel):
     var: ScalarVariable
 
 
+class StatVariableMapping(BaseModel):
+    name: str  # the key passed to ``imp.stat(name)``
+    var: NDVariable
+
+
 class VariableMappings(BaseModel):
     ele_mappings: list[EleVariableMapping]
     header_mappings: list[HeaderVariableMapping]
+    stat_mappings: list[StatVariableMapping]
 
 
 def make_variables(
@@ -587,6 +662,7 @@ def make_variables(
     """
     ele_vars = []
     header_vars = []
+    stat_vars = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
@@ -652,4 +728,28 @@ def make_variables(
                 )
             )
 
-    return VariableMappings(header_mappings=header_vars, ele_mappings=ele_vars)
+    if config.stats is not None:
+        for field_name in StatsConfig.model_fields:
+            stat_cfg: StatConfig | None = getattr(config.stats, field_name)
+            if stat_cfg is None:
+                continue
+            variable_name = config.stats_pattern.format(name=field_name)
+            stat_array = imp.stat(field_name)
+            stat_vars.append(
+                StatVariableMapping(
+                    name=field_name,
+                    var=NDVariable(
+                        name=variable_name,
+                        shape=stat_array.shape,
+                        default_value=stat_array,
+                        unit=stat_cfg.unit,
+                        read_only=True,
+                    ),
+                )
+            )
+
+    return VariableMappings(
+        header_mappings=header_vars,
+        ele_mappings=ele_vars,
+        stat_mappings=stat_vars,
+    )

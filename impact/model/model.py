@@ -119,6 +119,12 @@ class LUMEImpactModel(LUMEModel):
                 pattern=_header_pattern, regex=_header_regex, key_map=key_map or None
             )
 
+            if variable_mapping.stats is not None:
+                _trans.register_getter(
+                    lambda imp, name, **kwargs: imp.stat(name),
+                    pattern=variable_mapping.stats_pattern,
+                )
+
         elif isinstance(transformer, Transformer):
             _trans = transformer
 
@@ -126,9 +132,11 @@ class LUMEImpactModel(LUMEModel):
             raise ValueError(f"Unrecognized type for transformer: {type(transformer)}")
 
         # Get the vars
-        vars = [x.var for x in var_mappings.header_mappings] + [
-            x.var for x in var_mappings.ele_mappings
-        ]
+        vars = (
+            [x.var for x in var_mappings.header_mappings]
+            + [x.var for x in var_mappings.ele_mappings]
+            + [x.var for x in var_mappings.stat_mappings]
+        )
 
         # Construct model and check compatibility of variable names and transformer routes before sending out
         model = cls(imp, vars, _trans, **kwargs)
