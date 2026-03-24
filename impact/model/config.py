@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 from impact.model.transformer.transformer import RoutingImpactTransformer
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -828,13 +827,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
             )
 
     if config.particles_pattern is not None:
-        particle_names = []
-        if imp.initial_particles:
-            particle_names.append("initial_particles")
-        for e in imp.lattice:
-            if e.get("type") == "write_beam":
-                particle_names.append(e["name"])
-        particle_names.append("final_particles")
+        particle_names = list(imp.particles.keys())
 
         particles_data = imp.output.get("particles", {})
         for name in particle_names:
