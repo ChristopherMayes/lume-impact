@@ -678,22 +678,6 @@ class ElementsConfig(BaseModel):
     name_mappings: dict[str, str] | None = None  # control_name -> tool_name
     type_mappings: dict[str, str] | None = None  # control_type -> tool_type
 
-    @property
-    def attrib_map(self) -> dict[str, str]:
-        """Maps attrib token (alias) -> actual imp.ele field name, for aliased attributes."""
-        result = {}
-        for type_field in self.model_fields:
-            type_cfg = getattr(self, type_field)
-            if not isinstance(type_cfg, BaseModel):
-                continue
-            for field_name in type_cfg.model_fields:
-                attr_cfg = getattr(type_cfg, field_name)
-                if not isinstance(attr_cfg, AttributeConfig):
-                    continue
-                if attr_cfg.alias is not None and attr_cfg.alias != field_name:
-                    result[attr_cfg.alias] = field_name
-        return result
-
     drift: DriftConfig | None = DriftConfig()
     quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
     solenoid: SolenoidConfig | None = SolenoidConfig()
@@ -701,6 +685,22 @@ class ElementsConfig(BaseModel):
     solrf: SolrfConfig | None = SolrfConfig()
     emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
     emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
+
+    @property
+    def attrib_map(self) -> dict[str, str]:
+        """Maps attrib token (alias) -> actual imp.ele field name, for aliased attributes."""
+        result = {}
+        for type_field in ElementsConfig.model_fields:
+            type_cfg = getattr(self, type_field)
+            if not isinstance(type_cfg, BaseModel):
+                continue
+            for field_name in type(type_cfg).model_fields:
+                attr_cfg = getattr(type_cfg, field_name)
+                if not isinstance(attr_cfg, AttributeConfig):
+                    continue
+                if attr_cfg.alias is not None and attr_cfg.alias != field_name:
+                    result[attr_cfg.alias] = field_name
+        return result
 
 
 class ParticlesConfig(BaseModel):
