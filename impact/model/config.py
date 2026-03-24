@@ -383,6 +383,25 @@ _HEADER_DEFAULTS: dict[str, dict] = {
 class HeaderConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    pattern: str = "header/{key}"
+    regex: str | None = None
+
+    @property
+    def key_map(self) -> dict[str, str]:
+        """Maps variable token (alias) -> actual imp.header key, for aliased fields."""
+        result = {}
+        for field_name, field_info in self.model_fields.items():
+            attr_cfg = getattr(self, field_name)
+            if not isinstance(attr_cfg, AttributeConfig):
+                continue
+            header_key = (
+                field_info.alias if field_info.alias is not None else field_name
+            )
+            key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
+            if key_token != header_key:
+                result[key_token] = header_key
+        return result
+
     # Processor domain
     Npcol: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Npcol", {}))
     Nprow: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Nprow", {}))
@@ -527,7 +546,7 @@ _STATS_DEFAULTS: dict[str, dict] = {
 }
 
 
-class StatConfig(BaseModel):
+class StatAttributeConfig(BaseModel):
     """Config for a single output stat variable.
 
     Parameters
@@ -544,22 +563,48 @@ class StatConfig(BaseModel):
 
 
 class StatsConfig(BaseModel):
-    mean_kinetic_energy: StatConfig | None = StatConfig(
+    pattern: str = "stat/{name}"
+
+    @property
+    def name_map(self) -> dict[str, str]:
+        """Maps variable token (alias) -> actual Impact stat key, for aliased stats."""
+        result = {}
+        for field_name in self.model_fields:
+            stat_cfg = getattr(self, field_name)
+            if not isinstance(stat_cfg, StatAttributeConfig):
+                continue
+            if stat_cfg.alias is not None and stat_cfg.alias != field_name:
+                result[stat_cfg.alias] = field_name
+        return result
+
+    mean_kinetic_energy: StatAttributeConfig | None = StatAttributeConfig(
         **_STATS_DEFAULTS.get("mean_kinetic_energy", {})
     )
-    mean_x: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("mean_x", {}))
-    mean_y: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("mean_y", {}))
-    mean_z: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("mean_z", {}))
-    sigma_x: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("sigma_x", {}))
-    sigma_y: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("sigma_y", {}))
-    sigma_z: StatConfig | None = StatConfig(**_STATS_DEFAULTS.get("sigma_z", {}))
-    norm_emit_x: StatConfig | None = StatConfig(
+    mean_x: StatAttributeConfig | None = StatAttributeConfig(
+        **_STATS_DEFAULTS.get("mean_x", {})
+    )
+    mean_y: StatAttributeConfig | None = StatAttributeConfig(
+        **_STATS_DEFAULTS.get("mean_y", {})
+    )
+    mean_z: StatAttributeConfig | None = StatAttributeConfig(
+        **_STATS_DEFAULTS.get("mean_z", {})
+    )
+    sigma_x: StatAttributeConfig | None = StatAttributeConfig(
+        **_STATS_DEFAULTS.get("sigma_x", {})
+    )
+    sigma_y: StatAttributeConfig | None = StatAttributeConfig(
+        **_STATS_DEFAULTS.get("sigma_y", {})
+    )
+    sigma_z: StatAttributeConfig | None = StatAttributeConfig(
+        **_STATS_DEFAULTS.get("sigma_z", {})
+    )
+    norm_emit_x: StatAttributeConfig | None = StatAttributeConfig(
         **_STATS_DEFAULTS.get("norm_emit_x", {})
     )
-    norm_emit_y: StatConfig | None = StatConfig(
+    norm_emit_y: StatAttributeConfig | None = StatAttributeConfig(
         **_STATS_DEFAULTS.get("norm_emit_y", {})
     )
-    norm_emit_z: StatConfig | None = StatConfig(
+    norm_emit_z: StatAttributeConfig | None = StatAttributeConfig(
         **_STATS_DEFAULTS.get("norm_emit_z", {})
     )
 
@@ -585,8 +630,26 @@ _RUN_INFO_DEFAULTS: dict[str, dict] = {
 
 
 class RunInfoConfig(BaseModel):
-    run_time: StatConfig | None = StatConfig(**_RUN_INFO_DEFAULTS.get("run_time", {}))
-    error: StatConfig | None = StatConfig(**_RUN_INFO_DEFAULTS.get("error", {}))
+    pattern: str = "run_info/{key}"
+
+    @property
+    def key_map(self) -> dict[str, str]:
+        """Maps variable token (alias) -> actual run_info key, for aliased fields."""
+        result = {}
+        for field_name in self.model_fields:
+            stat_cfg = getattr(self, field_name)
+            if not isinstance(stat_cfg, StatAttributeConfig):
+                continue
+            if stat_cfg.alias is not None and stat_cfg.alias != field_name:
+                result[stat_cfg.alias] = field_name
+        return result
+
+    run_time: StatAttributeConfig | None = StatAttributeConfig(
+        **_RUN_INFO_DEFAULTS.get("run_time", {})
+    )
+    error: StatAttributeConfig | None = StatAttributeConfig(
+        **_RUN_INFO_DEFAULTS.get("error", {})
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -605,10 +668,31 @@ class RunInfoConfig(BaseModel):
 
 
 class ElementsConfig(BaseModel):
-    """Groups all per-element-type attribute configs.
+    """Groups all per-element-type attribute configs and element routing settings.
 
     Set a type to ``None`` to skip all variables for that element type.
     """
+
+    pattern: str = "ele/{name}/{attrib}"
+    regex: str | None = None
+    name_mappings: dict[str, str] | None = None  # control_name -> tool_name
+    type_mappings: dict[str, str] | None = None  # control_type -> tool_type
+
+    @property
+    def attrib_map(self) -> dict[str, str]:
+        """Maps attrib token (alias) -> actual imp.ele field name, for aliased attributes."""
+        result = {}
+        for type_field in self.model_fields:
+            type_cfg = getattr(self, type_field)
+            if not isinstance(type_cfg, BaseModel):
+                continue
+            for field_name in type_cfg.model_fields:
+                attr_cfg = getattr(type_cfg, field_name)
+                if not isinstance(attr_cfg, AttributeConfig):
+                    continue
+                if attr_cfg.alias is not None and attr_cfg.alias != field_name:
+                    result[attr_cfg.alias] = field_name
+        return result
 
     drift: DriftConfig | None = DriftConfig()
     quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
@@ -619,124 +703,29 @@ class ElementsConfig(BaseModel):
     emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
 
 
+class ParticlesConfig(BaseModel):
+    """Config for particle group variables."""
+
+    pattern: str = "particles/{name}"
+    name_mappings: dict[str, str] | None = None  # control_name -> tool_name
+
+    @property
+    def name_map(self) -> dict[str, str]:
+        """Maps particle variable token (control name) -> actual key in imp.particles."""
+        return self.name_mappings or {}
+
+
 class VariableMappingConfig(BaseModel):
     """Maps Impact-T element attributes, header keys, and output stats to model variable names.
 
-    Parameters
-    ----------
-    header_pattern : str
-        Format string for header variable names. Available token: ``{key}``.
-        Example: ``"header/{key}"`` -> ``"header/Np"``.
-    element_pattern : str
-        Format string for element variable names.
-        Available tokens: ``{type}``, ``{name}``, ``{attrib}``.
-        Example: ``"ele/{name}/{attrib}"`` -> ``"ele/Q1/b1_gradient"``.
-    stats_pattern : str
-        Format string for output stat variable names. Available token: ``{name}``.
-        Example: ``"stat/{name}"`` -> ``"stat/sigma_x"``.
-    run_info_pattern : str
-        Format string for run info variable names. Available token: ``{key}``.
-        Example: ``"run_info/{key}"`` -> ``"run_info/run_time"``.
-
-    header :
-        Header key mappings. ``None`` skips all header variables.
-    drift, quadrupole, solenoid, dipole, solrf, emfield_cartesian, emfield_cylindrical :
-        Per-type config. ``None`` skips that element type entirely.
-        Within each type, attributes left as ``None`` are not registered.
-    stats :
-        Output stat mappings. ``None`` skips all stat variables.
-        Individual stats can be disabled by setting their field to ``None``.
-    run_info :
-        Run info mappings (``run_time``, ``error``). ``None`` skips all run info variables.
+    Set any sub-config to ``None`` to skip that category entirely.
     """
-
-    header_pattern: str = "header/{key}"
-    element_pattern: str = "ele/{name}/{attrib}"
-    stats_pattern: str = "stat/{name}"
-    run_info_pattern: str = "run_info/{key}"
-    particles_pattern: str | None = "particles/{name}"
-
-    ele_name_mappings: dict[str, str] | None = None  # control_name -> tool_name
-    ele_type_mappings: dict[str, str] | None = None  # control_type -> tool_type
-    particle_name_mappings: dict[str, str] | None = None  # control_name -> tool_name
-    ele_regex: str | None = None  # if set, used instead of element_pattern for routing
-    header_regex: str | None = (
-        None  # if set, used instead of header_pattern for routing
-    )
 
     header: HeaderConfig | None = HeaderConfig()
     elements: ElementsConfig | None = ElementsConfig()
     stats: StatsConfig | None = StatsConfig()
     run_info: RunInfoConfig | None = RunInfoConfig()
-
-    @property
-    def stats_name_map(self) -> dict[str, str]:
-        """Maps stat variable token (alias or field name) -> actual Impact stat key."""
-        if self.stats is None:
-            return {}
-        result = {}
-        for field_name in StatsConfig.model_fields:
-            stat_cfg: StatConfig | None = getattr(self.stats, field_name)
-            if stat_cfg is None or stat_cfg.alias is None:
-                continue
-            if stat_cfg.alias != field_name:
-                result[stat_cfg.alias] = field_name
-        return result
-
-    @property
-    def run_info_key_map(self) -> dict[str, str]:
-        """Maps run_info variable token (alias or field name) -> actual run_info key."""
-        if self.run_info is None:
-            return {}
-        result = {}
-        for field_name in RunInfoConfig.model_fields:
-            stat_cfg: StatConfig | None = getattr(self.run_info, field_name)
-            if stat_cfg is None or stat_cfg.alias is None:
-                continue
-            if stat_cfg.alias != field_name:
-                result[stat_cfg.alias] = field_name
-        return result
-
-    @property
-    def particle_name_map(self) -> dict[str, str]:
-        """Maps particle variable token (control name) -> actual key in imp.particles."""
-        return self.particle_name_mappings or {}
-
-    @property
-    def header_key_map(self) -> dict[str, str]:
-        """Maps header variable token (alias) -> actual imp.header key, for aliased fields."""
-        if self.header is None:
-            return {}
-        result = {}
-        for field_name, field_info in HeaderConfig.model_fields.items():
-            attr_cfg: AttributeConfig | None = getattr(self.header, field_name)
-            if attr_cfg is None:
-                continue
-            header_key = (
-                field_info.alias if field_info.alias is not None else field_name
-            )
-            key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
-            if key_token != header_key:
-                result[key_token] = header_key
-        return result
-
-    @property
-    def ele_attrib_map(self) -> dict[str, str]:
-        """Maps element attrib token (alias) -> actual imp.ele field name, for aliased attributes."""
-        if self.elements is None:
-            return {}
-        result = {}
-        for type_field in ElementsConfig.model_fields:
-            type_cfg = getattr(self.elements, type_field, None)
-            if type_cfg is None:
-                continue
-            for field_name in type_cfg.model_fields:
-                attr_cfg: AttributeConfig | None = getattr(type_cfg, field_name)
-                if attr_cfg is None or attr_cfg.alias is None:
-                    continue
-                if attr_cfg.alias != field_name:
-                    result[attr_cfg.alias] = field_name
-        return result
+    particles: ParticlesConfig | None = ParticlesConfig()
 
 
 class EleVariableMapping(BaseModel):
@@ -790,13 +779,13 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
     The current value in *imp* is used as ``default_value``.
     """
     ele_name_map = (
-        {v: k for k, v in config.ele_name_mappings.items()}
-        if config.ele_name_mappings
+        {v: k for k, v in config.elements.name_mappings.items()}
+        if config.elements and config.elements.name_mappings
         else None
     )
     ele_type_map = (
-        {v: k for k, v in config.ele_type_mappings.items()}
-        if config.ele_type_mappings
+        {v: k for k, v in config.elements.type_mappings.items()}
+        if config.elements and config.elements.type_mappings
         else None
     )
 
@@ -808,8 +797,8 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
-            attr_cfg: AttributeConfig | None = getattr(config.header, field_name)
-            if attr_cfg is None:
+            attr_cfg = getattr(config.header, field_name)
+            if not isinstance(attr_cfg, AttributeConfig):
                 continue
 
             # Field alias is the actual Impact-T header key (e.g. "sigx(m)")
@@ -817,7 +806,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                 field_info.alias if field_info.alias is not None else field_name
             )
             key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
-            variable_name = config.header_pattern.format(key=key_token)
+            variable_name = config.header.pattern.format(key=key_token)
 
             header_vars.append(
                 HeaderVariableMapping(
@@ -831,56 +820,59 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                 )
             )
 
-    for ele in imp.lattice:
-        ele_type: str = ele.get("type", "")
-        ele_name: str = ele.get("name", "")
+    if config.elements is not None:
+        for ele in imp.lattice:
+            ele_type: str = ele.get("type", "")
+            ele_name: str = ele.get("name", "")
 
-        type_cfg = (
-            getattr(config.elements, ele_type, None)
-            if config.elements is not None
-            else None
-        )
-        if type_cfg is None:
-            continue
-
-        name_token = ele_name_map.get(ele_name, ele_name) if ele_name_map else ele_name
-        type_token = ele_type_map.get(ele_type, ele_type) if ele_type_map else ele_type
-
-        for field_name in type_cfg.model_fields:
-            attr_cfg: AttributeConfig | None = getattr(type_cfg, field_name)
-            if attr_cfg is None:
+            type_cfg = getattr(config.elements, ele_type, None)
+            if not isinstance(type_cfg, BaseModel):
                 continue
 
-            if field_name not in imp.ele[ele_name]:
-                continue
-
-            attrib_token = attr_cfg.alias if attr_cfg.alias is not None else field_name
-            variable_name = config.element_pattern.format(
-                type=type_token, name=name_token, attrib=attrib_token
+            name_token = (
+                ele_name_map.get(ele_name, ele_name) if ele_name_map else ele_name
+            )
+            type_token = (
+                ele_type_map.get(ele_type, ele_type) if ele_type_map else ele_type
             )
 
-            ele_vars.append(
-                EleVariableMapping(
-                    control_name=name_token,
-                    tool_name=ele_name,
-                    control_attrib=attrib_token,
-                    tool_attrib=field_name,
-                    var=ScalarVariable(
-                        name=variable_name,
-                        default_value=imp.ele[ele_name][field_name],
-                        unit=attr_cfg.unit,
-                        read_only=attr_cfg.read_only,
-                    ),
+            for field_name in type_cfg.model_fields:
+                attr_cfg = getattr(type_cfg, field_name)
+                if not isinstance(attr_cfg, AttributeConfig):
+                    continue
+
+                if field_name not in imp.ele[ele_name]:
+                    continue
+
+                attrib_token = (
+                    attr_cfg.alias if attr_cfg.alias is not None else field_name
                 )
-            )
+                variable_name = config.elements.pattern.format(
+                    type=type_token, name=name_token, attrib=attrib_token
+                )
+
+                ele_vars.append(
+                    EleVariableMapping(
+                        control_name=name_token,
+                        tool_name=ele_name,
+                        control_attrib=attrib_token,
+                        tool_attrib=field_name,
+                        var=ScalarVariable(
+                            name=variable_name,
+                            default_value=imp.ele[ele_name][field_name],
+                            unit=attr_cfg.unit,
+                            read_only=attr_cfg.read_only,
+                        ),
+                    )
+                )
 
     if config.stats is not None:
         for field_name in StatsConfig.model_fields:
-            stat_cfg: StatConfig | None = getattr(config.stats, field_name)
-            if stat_cfg is None:
+            stat_cfg = getattr(config.stats, field_name)
+            if not isinstance(stat_cfg, StatAttributeConfig):
                 continue
             name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
-            variable_name = config.stats_pattern.format(name=name_token)
+            variable_name = config.stats.pattern.format(name=name_token)
             stat_array = imp.stat(field_name)
             stat_vars.append(
                 StatVariableMapping(
@@ -898,13 +890,13 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
     if config.run_info is not None:
         run_info_data = imp.output.get("run_info", {})
         for field_name in RunInfoConfig.model_fields:
-            run_info_cfg: StatConfig | None = getattr(config.run_info, field_name)
-            if run_info_cfg is None:
+            run_info_cfg = getattr(config.run_info, field_name)
+            if not isinstance(run_info_cfg, StatAttributeConfig):
                 continue
             key_token = (
                 run_info_cfg.alias if run_info_cfg.alias is not None else field_name
             )
-            variable_name = config.run_info_pattern.format(key=key_token)
+            variable_name = config.run_info.pattern.format(key=key_token)
             run_info_vars.append(
                 RunInfoVariableMapping(
                     key=field_name,
@@ -917,12 +909,12 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                 )
             )
 
-    if config.particles_pattern is not None:
-        reverse_particle_map = {v: k for k, v in config.particle_name_map.items()}
+    if config.particles is not None:
+        reverse_particle_map = {v: k for k, v in config.particles.name_map.items()}
         particles_data = imp.output.get("particles", {})
         for tool_name in imp.particles.keys():
             control_name = reverse_particle_map.get(tool_name, tool_name)
-            variable_name = config.particles_pattern.format(name=control_name)
+            variable_name = config.particles.pattern.format(name=control_name)
             default_val = (
                 getattr(imp, "initial_particles", None)
                 if tool_name == "initial_particles"
@@ -953,58 +945,55 @@ def make_transformer(
 ) -> RoutingImpactTransformer:
     """Build a :class:`RoutingImpactTransformer` from a :class:`VariableMappingConfig`."""
 
+    ele = variable_mapping.elements
     _trans = RoutingImpactTransformer(
-        ele_pattern=variable_mapping.element_pattern
-        if variable_mapping.ele_regex is None
-        else None,
-        ele_regex=variable_mapping.ele_regex,
-        ele_name_map=variable_mapping.ele_name_mappings or {},
-        ele_attrib_map=variable_mapping.ele_attrib_map,
+        ele_pattern=ele.pattern if ele is not None and ele.regex is None else None,
+        ele_regex=ele.regex if ele is not None else None,
+        ele_name_map=ele.name_mappings or {} if ele is not None else {},
+        ele_attrib_map=ele.attrib_map if ele is not None else {},
     )
 
-    _header_pattern = (
-        variable_mapping.header_pattern
-        if variable_mapping.header_regex is None
-        else None
-    )
-    _trans.add_header_getter(
-        pattern=_header_pattern,
-        regex=variable_mapping.header_regex,
-        key_map=variable_mapping.header_key_map or None,
-    )
-    _trans.add_header_setter(
-        pattern=_header_pattern,
-        regex=variable_mapping.header_regex,
-        key_map=variable_mapping.header_key_map or None,
-    )
+    hdr = variable_mapping.header
+    if hdr is not None:
+        _header_pattern = hdr.pattern if hdr.regex is None else None
+        _trans.add_header_getter(
+            pattern=_header_pattern,
+            regex=hdr.regex,
+            key_map=hdr.key_map or None,
+        )
+        _trans.add_header_setter(
+            pattern=_header_pattern,
+            regex=hdr.regex,
+            key_map=hdr.key_map or None,
+        )
 
     if variable_mapping.stats is not None:
-        stats_map = variable_mapping.stats_name_map
+        stats_map = variable_mapping.stats.name_map
         _trans.register_getter(
             lambda imp, name, _m=stats_map, **kwargs: imp.stat(_m.get(name, name)),
-            pattern=variable_mapping.stats_pattern,
+            pattern=variable_mapping.stats.pattern,
         )
 
     if variable_mapping.run_info is not None:
-        ri_map = variable_mapping.run_info_key_map
+        ri_map = variable_mapping.run_info.key_map
         _trans.register_getter(
             lambda imp, key, _m=ri_map, **kwargs: imp.output["run_info"][
                 _m.get(key, key)
             ],
-            pattern=variable_mapping.run_info_pattern,
+            pattern=variable_mapping.run_info.pattern,
         )
 
-    if variable_mapping.particles_pattern is not None:
-        p_map = variable_mapping.particle_name_map
+    if variable_mapping.particles is not None:
+        p_map = variable_mapping.particles.name_map
         _trans.register_getter(
             lambda imp, name, _m=p_map, **kwargs: imp.particles[_m.get(name, name)],
-            pattern=variable_mapping.particles_pattern,
+            pattern=variable_mapping.particles.pattern,
         )
         reverse_p_map = {v: k for k, v in p_map.items()}
         initial_control = reverse_p_map.get("initial_particles", "initial_particles")
         _trans.register_setter(
             lambda imp, value, **kwargs: setattr(imp, "initial_particles", value),
-            pattern=variable_mapping.particles_pattern.format(name=initial_control),
+            pattern=variable_mapping.particles.pattern.format(name=initial_control),
         )
 
     return _trans
