@@ -131,22 +131,29 @@ class LUMEImpactModel(LUMEModel):
                     pattern=variable_mapping.run_info_pattern,
                 )
 
+            if variable_mapping.particles_pattern is not None:
+                _trans.register_getter(
+                    lambda imp, name, **kwargs: imp.particles[name],
+                    pattern=variable_mapping.particles_pattern,
+                )
+                initial_particles_name = variable_mapping.particles_pattern.format(
+                    name="initial_particles"
+                )
+                _trans.register_setter(
+                    lambda imp, value, **kwargs: setattr(
+                        imp, "initial_particles", value
+                    ),
+                    pattern=initial_particles_name,
+                )
+
         elif isinstance(transformer, Transformer):
             _trans = transformer
 
         else:
             raise ValueError(f"Unrecognized type for transformer: {type(transformer)}")
 
-        # Get the vars
-        vars = (
-            [x.var for x in var_mappings.header_mappings]
-            + [x.var for x in var_mappings.ele_mappings]
-            + [x.var for x in var_mappings.stat_mappings]
-            + [x.var for x in var_mappings.run_info_mappings]
-        )
-
         # Construct model and check compatibility of variable names and transformer routes before sending out
-        model = cls(imp, vars, _trans, **kwargs)
+        model = cls(imp, var_mappings.all_vars, _trans, **kwargs)
         model.transformer.check_ele_routes(imp, var_mappings.ele_mappings)
         return model
 

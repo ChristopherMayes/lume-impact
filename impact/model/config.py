@@ -2,7 +2,7 @@ import logging
 from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from lume.variables import NDVariable, ScalarVariable
+from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 
 
 logger = logging.getLogger(__name__)
@@ -635,6 +635,7 @@ class VariableMappingConfig(BaseModel):
     element_pattern: str = "ele/{name}/{attrib}"
     stats_pattern: str = "stat/{name}"
     run_info_pattern: str = "run_info/{key}"
+    particles_pattern: str | None = "particles/{name}"
 
     header: HeaderConfig | None = HeaderConfig()
     drift: DriftConfig | None = DriftConfig()
@@ -671,11 +672,27 @@ class RunInfoVariableMapping(BaseModel):
     var: ScalarVariable
 
 
+class ParticleGroupVariableMapping(BaseModel):
+    name: str  # the key in ``imp.particles`` (e.g. "final_particles", "Q1")
+    var: ParticleGroupVariable
+
+
 class VariableMappings(BaseModel):
     ele_mappings: list[EleVariableMapping]
     header_mappings: list[HeaderVariableMapping]
     stat_mappings: list[StatVariableMapping]
     run_info_mappings: list[RunInfoVariableMapping]
+    particle_mappings: list[ParticleGroupVariableMapping]
+
+    @property
+    def all_vars(self):
+        return (
+            [x.var for x in self.header_mappings]
+            + [x.var for x in self.ele_mappings]
+            + [x.var for x in self.stat_mappings]
+            + [x.var for x in self.run_info_mappings]
+            + [x.var for x in self.particle_mappings]
+        )
 
 
 def make_variables(
@@ -702,6 +719,7 @@ def make_variables(
     header_vars = []
     stat_vars = []
     run_info_vars = []
+    particle_vars = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
@@ -806,9 +824,38 @@ def make_variables(
                 )
             )
 
+    if config.particles_pattern is not None:
+        particle_names = []
+        if imp.initial_particles:
+            particle_names.append("initial_particles")
+        for e in imp.lattice:
+            if e.get("type") == "write_beam":
+                particle_names.append(e["name"])
+        particle_names.append("final_particles")
+
+        particles_data = imp.output.get("particles", {})
+        for name in particle_names:
+            variable_name = config.particles_pattern.format(name=name)
+            default_val = (
+                getattr(imp, "initial_particles", None)
+                if name == "initial_particles"
+                else particles_data.get(name)
+            )
+            particle_vars.append(
+                ParticleGroupVariableMapping(
+                    name=name,
+                    var=ParticleGroupVariable(
+                        name=variable_name,
+                        default_value=default_val,
+                        read_only=name != "initial_particles",
+                    ),
+                )
+            )
+
     return VariableMappings(
         header_mappings=header_vars,
         ele_mappings=ele_vars,
         stat_mappings=stat_vars,
         run_info_mappings=run_info_vars,
+        particle_mappings=particle_vars,
     )
