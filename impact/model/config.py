@@ -534,9 +534,13 @@ class StatConfig(BaseModel):
     ----------
     unit : str, optional
         Physical unit string passed to ``ScalarVariable``.
+    alias : str, optional
+        Override the token used in the variable name pattern. If omitted the
+        field name is used (e.g. ``"mean_x"``).
     """
 
     unit: str | None = None
+    alias: str | None = None
 
 
 class StatsConfig(BaseModel):
@@ -639,10 +643,44 @@ class VariableMappingConfig(BaseModel):
 
     ele_name_mappings: dict[str, str] | None = None  # control_name -> tool_name
     ele_type_mappings: dict[str, str] | None = None  # control_type -> tool_type
+    particle_name_mappings: dict[str, str] | None = None  # control_name -> tool_name
     ele_regex: str | None = None  # if set, used instead of element_pattern for routing
     header_regex: str | None = (
         None  # if set, used instead of header_pattern for routing
     )
+
+    @property
+    def stats_name_map(self) -> dict[str, str]:
+        """Maps stat variable token (alias or field name) -> actual Impact stat key."""
+        if self.stats is None:
+            return {}
+        result = {}
+        for field_name in StatsConfig.model_fields:
+            stat_cfg: StatConfig | None = getattr(self.stats, field_name)
+            if stat_cfg is None or stat_cfg.alias is None:
+                continue
+            if stat_cfg.alias != field_name:
+                result[stat_cfg.alias] = field_name
+        return result
+
+    @property
+    def run_info_key_map(self) -> dict[str, str]:
+        """Maps run_info variable token (alias or field name) -> actual run_info key."""
+        if self.run_info is None:
+            return {}
+        result = {}
+        for field_name in RunInfoConfig.model_fields:
+            stat_cfg: StatConfig | None = getattr(self.run_info, field_name)
+            if stat_cfg is None or stat_cfg.alias is None:
+                continue
+            if stat_cfg.alias != field_name:
+                result[stat_cfg.alias] = field_name
+        return result
+
+    @property
+    def particle_name_map(self) -> dict[str, str]:
+        """Maps particle variable token (control name) -> actual key in imp.particles."""
+        return self.particle_name_mappings or {}
 
     header: HeaderConfig | None = HeaderConfig()
     drift: DriftConfig | None = DriftConfig()
@@ -792,7 +830,8 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
             stat_cfg: StatConfig | None = getattr(config.stats, field_name)
             if stat_cfg is None:
                 continue
-            variable_name = config.stats_pattern.format(name=field_name)
+            name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
+            variable_name = config.stats_pattern.format(name=name_token)
             stat_array = imp.stat(field_name)
             stat_vars.append(
                 StatVariableMapping(
@@ -813,7 +852,10 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
             run_info_cfg: StatConfig | None = getattr(config.run_info, field_name)
             if run_info_cfg is None:
                 continue
-            variable_name = config.run_info_pattern.format(key=field_name)
+            key_token = (
+                run_info_cfg.alias if run_info_cfg.alias is not None else field_name
+            )
+            variable_name = config.run_info_pattern.format(key=key_token)
             run_info_vars.append(
                 RunInfoVariableMapping(
                     key=field_name,
@@ -827,23 +869,23 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
             )
 
     if config.particles_pattern is not None:
-        particle_names = list(imp.particles.keys())
-
+        reverse_particle_map = {v: k for k, v in config.particle_name_map.items()}
         particles_data = imp.output.get("particles", {})
-        for name in particle_names:
-            variable_name = config.particles_pattern.format(name=name)
+        for tool_name in imp.particles.keys():
+            control_name = reverse_particle_map.get(tool_name, tool_name)
+            variable_name = config.particles_pattern.format(name=control_name)
             default_val = (
                 getattr(imp, "initial_particles", None)
-                if name == "initial_particles"
-                else particles_data.get(name)
+                if tool_name == "initial_particles"
+                else particles_data.get(tool_name)
             )
             particle_vars.append(
                 ParticleGroupVariableMapping(
-                    name=name,
+                    name=tool_name,
                     var=ParticleGroupVariable(
                         name=variable_name,
                         default_value=default_val,
-                        read_only=name != "initial_particles",
+                        read_only=tool_name != "initial_particles",
                     ),
                 )
             )
@@ -926,25 +968,32 @@ def make_transformer(
     )
 
     if variable_mapping.stats is not None:
+        stats_map = variable_mapping.stats_name_map
         _trans.register_getter(
-            lambda imp, name, **kwargs: imp.stat(name),
+            lambda imp, name, _m=stats_map, **kwargs: imp.stat(_m.get(name, name)),
             pattern=variable_mapping.stats_pattern,
         )
 
     if variable_mapping.run_info is not None:
+        ri_map = variable_mapping.run_info_key_map
         _trans.register_getter(
-            lambda imp, key, **kwargs: imp.output["run_info"][key],
+            lambda imp, key, _m=ri_map, **kwargs: imp.output["run_info"][
+                _m.get(key, key)
+            ],
             pattern=variable_mapping.run_info_pattern,
         )
 
     if variable_mapping.particles_pattern is not None:
+        p_map = variable_mapping.particle_name_map
         _trans.register_getter(
-            lambda imp, name, **kwargs: imp.particles[name],
+            lambda imp, name, _m=p_map, **kwargs: imp.particles[_m.get(name, name)],
             pattern=variable_mapping.particles_pattern,
         )
+        reverse_p_map = {v: k for k, v in p_map.items()}
+        initial_control = reverse_p_map.get("initial_particles", "initial_particles")
         _trans.register_setter(
             lambda imp, value, **kwargs: setattr(imp, "initial_particles", value),
-            pattern=variable_mapping.particles_pattern.format(name="initial_particles"),
+            pattern=variable_mapping.particles_pattern.format(name=initial_control),
         )
 
     return _trans
