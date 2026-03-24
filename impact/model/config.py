@@ -603,6 +603,16 @@ class RunInfoConfig(BaseModel):
 # Top-level mapping config
 # ------------------------------------------------------------------
 
+_ELE_TYPE_FIELDS = {
+    "drift",
+    "quadrupole",
+    "solenoid",
+    "dipole",
+    "solrf",
+    "emfield_cartesian",
+    "emfield_cylindrical",
+}
+
 
 class VariableMappingConfig(BaseModel):
     """Maps Impact-T element attributes, header keys, and output stats to model variable names.
@@ -649,6 +659,17 @@ class VariableMappingConfig(BaseModel):
         None  # if set, used instead of header_pattern for routing
     )
 
+    header: HeaderConfig | None = HeaderConfig()
+    drift: DriftConfig | None = DriftConfig()
+    quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
+    solenoid: SolenoidConfig | None = SolenoidConfig()
+    dipole: DipoleConfig | None = DipoleConfig()
+    solrf: SolrfConfig | None = SolrfConfig()
+    emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
+    emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
+    stats: StatsConfig | None = StatsConfig()
+    run_info: RunInfoConfig | None = RunInfoConfig()
+
     @property
     def stats_name_map(self) -> dict[str, str]:
         """Maps stat variable token (alias or field name) -> actual Impact stat key."""
@@ -682,16 +703,39 @@ class VariableMappingConfig(BaseModel):
         """Maps particle variable token (control name) -> actual key in imp.particles."""
         return self.particle_name_mappings or {}
 
-    header: HeaderConfig | None = HeaderConfig()
-    drift: DriftConfig | None = DriftConfig()
-    quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
-    solenoid: SolenoidConfig | None = SolenoidConfig()
-    dipole: DipoleConfig | None = DipoleConfig()
-    solrf: SolrfConfig | None = SolrfConfig()
-    emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
-    emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
-    stats: StatsConfig | None = StatsConfig()
-    run_info: RunInfoConfig | None = RunInfoConfig()
+    @property
+    def header_key_map(self) -> dict[str, str]:
+        """Maps header variable token (alias) -> actual imp.header key, for aliased fields."""
+        if self.header is None:
+            return {}
+        result = {}
+        for field_name, field_info in HeaderConfig.model_fields.items():
+            attr_cfg: AttributeConfig | None = getattr(self.header, field_name)
+            if attr_cfg is None:
+                continue
+            header_key = (
+                field_info.alias if field_info.alias is not None else field_name
+            )
+            key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
+            if key_token != header_key:
+                result[key_token] = header_key
+        return result
+
+    @property
+    def ele_attrib_map(self) -> dict[str, str]:
+        """Maps element attrib token (alias) -> actual imp.ele field name, for aliased attributes."""
+        result = {}
+        for type_field in _ELE_TYPE_FIELDS:
+            type_cfg = getattr(self, type_field, None)
+            if type_cfg is None:
+                continue
+            for field_name in type_cfg.model_fields:
+                attr_cfg: AttributeConfig | None = getattr(type_cfg, field_name)
+                if attr_cfg is None or attr_cfg.alias is None:
+                    continue
+                if attr_cfg.alias != field_name:
+                    result[attr_cfg.alias] = field_name
+        return result
 
 
 class EleVariableMapping(BaseModel):
@@ -899,34 +943,10 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
     )
 
 
-_ELE_TYPE_FIELDS = {
-    "drift",
-    "quadrupole",
-    "solenoid",
-    "dipole",
-    "solrf",
-    "emfield_cartesian",
-    "emfield_cylindrical",
-}
-
-
 def make_transformer(
     variable_mapping: VariableMappingConfig,
 ) -> RoutingImpactTransformer:
     """Build a :class:`RoutingImpactTransformer` from a :class:`VariableMappingConfig`."""
-
-    # attrib token -> actual imp.ele[name] key (where alias differs from field name)
-    attrib_map: dict[str, str] = {}
-    for type_field in _ELE_TYPE_FIELDS:
-        type_cfg = getattr(variable_mapping, type_field, None)
-        if type_cfg is None:
-            continue
-        for field_name in type_cfg.model_fields:
-            attr_cfg = getattr(type_cfg, field_name)
-            if attr_cfg is None or attr_cfg.alias is None:
-                continue
-            if attr_cfg.alias != field_name:
-                attrib_map[attr_cfg.alias] = field_name
 
     _trans = RoutingImpactTransformer(
         ele_pattern=variable_mapping.element_pattern
@@ -934,22 +954,8 @@ def make_transformer(
         else None,
         ele_regex=variable_mapping.ele_regex,
         ele_name_map=variable_mapping.ele_name_mappings or {},
-        ele_attrib_map=attrib_map,
+        ele_attrib_map=variable_mapping.ele_attrib_map,
     )
-
-    # variable name token -> actual imp.header key (where alias differs from header key)
-    key_map: dict[str, str] = {}
-    if variable_mapping.header is not None:
-        for field_name, field_info in HeaderConfig.model_fields.items():
-            attr_cfg = getattr(variable_mapping.header, field_name)
-            if attr_cfg is None:
-                continue
-            header_key = (
-                field_info.alias if field_info.alias is not None else field_name
-            )
-            key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
-            if key_token != header_key:
-                key_map[key_token] = header_key
 
     _header_pattern = (
         variable_mapping.header_pattern
@@ -959,12 +965,12 @@ def make_transformer(
     _trans.add_header_getter(
         pattern=_header_pattern,
         regex=variable_mapping.header_regex,
-        key_map=key_map or None,
+        key_map=variable_mapping.header_key_map or None,
     )
     _trans.add_header_setter(
         pattern=_header_pattern,
         regex=variable_mapping.header_regex,
-        key_map=key_map or None,
+        key_map=variable_mapping.header_key_map or None,
     )
 
     if variable_mapping.stats is not None:
