@@ -390,7 +390,7 @@ class HeaderConfig(BaseModel):
     def key_map(self) -> dict[str, str]:
         """Maps variable token (alias) -> actual imp.header key, for aliased fields."""
         result = {}
-        for field_name, field_info in self.model_fields.items():
+        for field_name, field_info in HeaderConfig.model_fields.items():
             attr_cfg = getattr(self, field_name)
             if not isinstance(attr_cfg, AttributeConfig):
                 continue
@@ -569,7 +569,7 @@ class StatsConfig(BaseModel):
     def name_map(self) -> dict[str, str]:
         """Maps variable token (alias) -> actual Impact stat key, for aliased stats."""
         result = {}
-        for field_name in self.model_fields:
+        for field_name in StatsConfig.model_fields:
             stat_cfg = getattr(self, field_name)
             if not isinstance(stat_cfg, StatAttributeConfig):
                 continue
@@ -636,7 +636,7 @@ class RunInfoConfig(BaseModel):
     def key_map(self) -> dict[str, str]:
         """Maps variable token (alias) -> actual run_info key, for aliased fields."""
         result = {}
-        for field_name in self.model_fields:
+        for field_name in RunInfoConfig.model_fields:
             stat_cfg = getattr(self, field_name)
             if not isinstance(stat_cfg, StatAttributeConfig):
                 continue
@@ -836,7 +836,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                 ele_type_map.get(ele_type, ele_type) if ele_type_map else ele_type
             )
 
-            for field_name in type_cfg.model_fields:
+            for field_name in type(type_cfg).model_fields:
                 attr_cfg = getattr(type_cfg, field_name)
                 if not isinstance(attr_cfg, AttributeConfig):
                     continue
