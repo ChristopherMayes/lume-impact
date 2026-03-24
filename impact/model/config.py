@@ -600,18 +600,23 @@ class RunInfoConfig(BaseModel):
 
 
 # ------------------------------------------------------------------
-# Top-level mapping config
+# Element container + top-level mapping config
 # ------------------------------------------------------------------
 
-_ELE_TYPE_FIELDS = {
-    "drift",
-    "quadrupole",
-    "solenoid",
-    "dipole",
-    "solrf",
-    "emfield_cartesian",
-    "emfield_cylindrical",
-}
+
+class ElementsConfig(BaseModel):
+    """Groups all per-element-type attribute configs.
+
+    Set a type to ``None`` to skip all variables for that element type.
+    """
+
+    drift: DriftConfig | None = DriftConfig()
+    quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
+    solenoid: SolenoidConfig | None = SolenoidConfig()
+    dipole: DipoleConfig | None = DipoleConfig()
+    solrf: SolrfConfig | None = SolrfConfig()
+    emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
+    emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
 
 
 class VariableMappingConfig(BaseModel):
@@ -660,13 +665,7 @@ class VariableMappingConfig(BaseModel):
     )
 
     header: HeaderConfig | None = HeaderConfig()
-    drift: DriftConfig | None = DriftConfig()
-    quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
-    solenoid: SolenoidConfig | None = SolenoidConfig()
-    dipole: DipoleConfig | None = DipoleConfig()
-    solrf: SolrfConfig | None = SolrfConfig()
-    emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
-    emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
+    elements: ElementsConfig | None = ElementsConfig()
     stats: StatsConfig | None = StatsConfig()
     run_info: RunInfoConfig | None = RunInfoConfig()
 
@@ -724,9 +723,11 @@ class VariableMappingConfig(BaseModel):
     @property
     def ele_attrib_map(self) -> dict[str, str]:
         """Maps element attrib token (alias) -> actual imp.ele field name, for aliased attributes."""
+        if self.elements is None:
+            return {}
         result = {}
-        for type_field in _ELE_TYPE_FIELDS:
-            type_cfg = getattr(self, type_field, None)
+        for type_field in ElementsConfig.model_fields:
+            type_cfg = getattr(self.elements, type_field, None)
             if type_cfg is None:
                 continue
             for field_name in type_cfg.model_fields:
@@ -834,7 +835,11 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
         ele_type: str = ele.get("type", "")
         ele_name: str = ele.get("name", "")
 
-        type_cfg = getattr(config, ele_type, None)
+        type_cfg = (
+            getattr(config.elements, ele_type, None)
+            if config.elements is not None
+            else None
+        )
         if type_cfg is None:
             continue
 
