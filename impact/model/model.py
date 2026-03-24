@@ -125,6 +125,12 @@ class LUMEImpactModel(LUMEModel):
                     pattern=variable_mapping.stats_pattern,
                 )
 
+            if variable_mapping.run_info is not None:
+                _trans.register_getter(
+                    lambda imp, key, **kwargs: imp.output["run_info"][key],
+                    pattern=variable_mapping.run_info_pattern,
+                )
+
         elif isinstance(transformer, Transformer):
             _trans = transformer
 
@@ -136,6 +142,7 @@ class LUMEImpactModel(LUMEModel):
             [x.var for x in var_mappings.header_mappings]
             + [x.var for x in var_mappings.ele_mappings]
             + [x.var for x in var_mappings.stat_mappings]
+            + [x.var for x in var_mappings.run_info_mappings]
         )
 
         # Construct model and check compatibility of variable names and transformer routes before sending out

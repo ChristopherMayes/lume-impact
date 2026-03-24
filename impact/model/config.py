@@ -571,6 +571,31 @@ class StatsConfig(BaseModel):
 
 
 # ------------------------------------------------------------------
+# Run info config
+# ------------------------------------------------------------------
+
+_RUN_INFO_DEFAULTS: dict[str, dict] = {
+    "run_time": {"unit": "s"},
+    "error": {},
+}
+
+
+class RunInfoConfig(BaseModel):
+    run_time: StatConfig | None = StatConfig(**_RUN_INFO_DEFAULTS.get("run_time", {}))
+    error: StatConfig | None = StatConfig(**_RUN_INFO_DEFAULTS.get("error", {}))
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        for field, default in _RUN_INFO_DEFAULTS.items():
+            if field in data and isinstance(data[field], dict):
+                data[field] = {**default, **data[field]}
+        return data
+
+
+# ------------------------------------------------------------------
 # Top-level mapping config
 # ------------------------------------------------------------------
 
@@ -590,6 +615,9 @@ class VariableMappingConfig(BaseModel):
     stats_pattern : str
         Format string for output stat variable names. Available token: ``{name}``.
         Example: ``"stat/{name}"`` -> ``"stat/sigma_x"``.
+    run_info_pattern : str
+        Format string for run info variable names. Available token: ``{key}``.
+        Example: ``"run_info/{key}"`` -> ``"run_info/run_time"``.
 
     header :
         Header key mappings. ``None`` skips all header variables.
@@ -599,11 +627,14 @@ class VariableMappingConfig(BaseModel):
     stats :
         Output stat mappings. ``None`` skips all stat variables.
         Individual stats can be disabled by setting their field to ``None``.
+    run_info :
+        Run info mappings (``run_time``, ``error``). ``None`` skips all run info variables.
     """
 
     header_pattern: str = "header/{key}"
     element_pattern: str = "ele/{name}/{attrib}"
     stats_pattern: str = "stat/{name}"
+    run_info_pattern: str = "run_info/{key}"
 
     header: HeaderConfig | None = HeaderConfig()
     drift: DriftConfig | None = DriftConfig()
@@ -614,6 +645,7 @@ class VariableMappingConfig(BaseModel):
     emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
     emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
     stats: StatsConfig | None = StatsConfig()
+    run_info: RunInfoConfig | None = RunInfoConfig()
 
 
 class EleVariableMapping(BaseModel):
@@ -634,10 +666,16 @@ class StatVariableMapping(BaseModel):
     var: NDVariable
 
 
+class RunInfoVariableMapping(BaseModel):
+    key: str  # the key in ``imp.output["run_info"]``
+    var: ScalarVariable
+
+
 class VariableMappings(BaseModel):
     ele_mappings: list[EleVariableMapping]
     header_mappings: list[HeaderVariableMapping]
     stat_mappings: list[StatVariableMapping]
+    run_info_mappings: list[RunInfoVariableMapping]
 
 
 def make_variables(
@@ -663,6 +701,7 @@ def make_variables(
     ele_vars = []
     header_vars = []
     stat_vars = []
+    run_info_vars = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
@@ -748,8 +787,28 @@ def make_variables(
                 )
             )
 
+    if config.run_info is not None:
+        run_info_data = imp.output.get("run_info", {})
+        for field_name in RunInfoConfig.model_fields:
+            run_info_cfg: StatConfig | None = getattr(config.run_info, field_name)
+            if run_info_cfg is None:
+                continue
+            variable_name = config.run_info_pattern.format(key=field_name)
+            run_info_vars.append(
+                RunInfoVariableMapping(
+                    key=field_name,
+                    var=ScalarVariable(
+                        name=variable_name,
+                        default_value=run_info_data.get(field_name),
+                        unit=run_info_cfg.unit,
+                        read_only=True,
+                    ),
+                )
+            )
+
     return VariableMappings(
         header_mappings=header_vars,
         ele_mappings=ele_vars,
         stat_mappings=stat_vars,
+        run_info_mappings=run_info_vars,
     )
