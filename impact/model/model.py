@@ -110,4 +110,10 @@ class LUMEImpactModel(LUMEModel):
             self._state[name] = self.transformer.get_impact_property(self.imp, name)
 
     def reset(self) -> None:
-        raise NotImplementedError()
+        self.set(
+            {
+                var.name: var.default_value
+                for var in self.supported_variables
+                if not var.read_only and hasattr(var, "default_value")
+            }
+        )
