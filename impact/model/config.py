@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
+from impact.model.transformer.transformer import RoutingImpactTransformer
 
 
 logger = logging.getLogger(__name__)
@@ -637,6 +638,13 @@ class VariableMappingConfig(BaseModel):
     run_info_pattern: str = "run_info/{key}"
     particles_pattern: str | None = "particles/{name}"
 
+    ele_name_mappings: dict[str, str] | None = None  # control_name -> tool_name
+    ele_type_mappings: dict[str, str] | None = None  # control_type -> tool_type
+    ele_regex: str | None = None  # if set, used instead of element_pattern for routing
+    header_regex: str | None = (
+        None  # if set, used instead of header_pattern for routing
+    )
+
     header: HeaderConfig | None = HeaderConfig()
     drift: DriftConfig | None = DriftConfig()
     quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
@@ -695,26 +703,21 @@ class VariableMappings(BaseModel):
         )
 
 
-def make_variables(
-    imp: Any,
-    config: VariableMappingConfig,
-    ele_name_map: dict[str, str] | None = None,
-    ele_type_map: dict[str, str] | None = None,
-) -> list[ScalarVariable]:
-    """Build a ``ScalarVariable`` for every element attribute and header key
-    described by *config*. The current value in *imp* is used as ``default_value``.
-
-    Parameters
-    ----------
-    ele_name_map :
-        Optional mapping from actual ``imp.ele`` key to the label used in the
-        ``{name}`` token of ``config.element_pattern``
-        (e.g. ``{"QE01": "Q1"}`` makes the variable name use ``Q1``).
-    ele_type_map :
-        Optional mapping from actual element type string to the label used in
-        the ``{type}`` token of ``config.element_pattern``
-        (e.g. ``{"quadrupole": "quad"}``).
+def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
+    """Build variables for every element attribute, header key, and output described by *config*.
+    The current value in *imp* is used as ``default_value``.
     """
+    ele_name_map = (
+        {v: k for k, v in config.ele_name_mappings.items()}
+        if config.ele_name_mappings
+        else None
+    )
+    ele_type_map = (
+        {v: k for k, v in config.ele_type_mappings.items()}
+        if config.ele_type_mappings
+        else None
+    )
+
     ele_vars = []
     header_vars = []
     stat_vars = []
@@ -859,3 +862,96 @@ def make_variables(
         run_info_mappings=run_info_vars,
         particle_mappings=particle_vars,
     )
+
+
+_ELE_TYPE_FIELDS = {
+    "drift",
+    "quadrupole",
+    "solenoid",
+    "dipole",
+    "solrf",
+    "emfield_cartesian",
+    "emfield_cylindrical",
+}
+
+
+def make_transformer(
+    variable_mapping: VariableMappingConfig,
+) -> RoutingImpactTransformer:
+    """Build a :class:`RoutingImpactTransformer` from a :class:`VariableMappingConfig`."""
+
+    # attrib token -> actual imp.ele[name] key (where alias differs from field name)
+    attrib_map: dict[str, str] = {}
+    for type_field in _ELE_TYPE_FIELDS:
+        type_cfg = getattr(variable_mapping, type_field, None)
+        if type_cfg is None:
+            continue
+        for field_name in type_cfg.model_fields:
+            attr_cfg = getattr(type_cfg, field_name)
+            if attr_cfg is None or attr_cfg.alias is None:
+                continue
+            if attr_cfg.alias != field_name:
+                attrib_map[attr_cfg.alias] = field_name
+
+    _trans = RoutingImpactTransformer(
+        ele_pattern=variable_mapping.element_pattern
+        if variable_mapping.ele_regex is None
+        else None,
+        ele_regex=variable_mapping.ele_regex,
+        ele_name_map=variable_mapping.ele_name_mappings or {},
+        ele_attrib_map=attrib_map,
+    )
+
+    # variable name token -> actual imp.header key (where alias differs from header key)
+    key_map: dict[str, str] = {}
+    if variable_mapping.header is not None:
+        for field_name, field_info in HeaderConfig.model_fields.items():
+            attr_cfg = getattr(variable_mapping.header, field_name)
+            if attr_cfg is None:
+                continue
+            header_key = (
+                field_info.alias if field_info.alias is not None else field_name
+            )
+            key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
+            if key_token != header_key:
+                key_map[key_token] = header_key
+
+    _header_pattern = (
+        variable_mapping.header_pattern
+        if variable_mapping.header_regex is None
+        else None
+    )
+    _trans.add_header_getter(
+        pattern=_header_pattern,
+        regex=variable_mapping.header_regex,
+        key_map=key_map or None,
+    )
+    _trans.add_header_setter(
+        pattern=_header_pattern,
+        regex=variable_mapping.header_regex,
+        key_map=key_map or None,
+    )
+
+    if variable_mapping.stats is not None:
+        _trans.register_getter(
+            lambda imp, name, **kwargs: imp.stat(name),
+            pattern=variable_mapping.stats_pattern,
+        )
+
+    if variable_mapping.run_info is not None:
+        _trans.register_getter(
+            lambda imp, key, **kwargs: imp.output["run_info"][key],
+            pattern=variable_mapping.run_info_pattern,
+        )
+
+    if variable_mapping.particles_pattern is not None:
+        _trans.register_getter(
+            lambda imp, name, **kwargs: imp.particles[name],
+            pattern=variable_mapping.particles_pattern,
+        )
+        _trans.register_setter(
+            lambda imp, value, **kwargs: setattr(imp, "initial_particles", value),
+            pattern=variable_mapping.particles_pattern.format(name="initial_particles"),
+        )
+
+    return _trans
