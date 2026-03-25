@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
-from impact.model.transformer.transformer import RoutingImpactTransformer
+from impact.model.impact_transformer import ImpactTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -942,11 +942,11 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
 
 def make_transformer(
     variable_mapping: VariableMappingConfig,
-) -> RoutingImpactTransformer:
-    """Build a :class:`RoutingImpactTransformer` from a :class:`VariableMappingConfig`."""
+) -> ImpactTransformer:
+    """Build a :class:`ImpactTransformer` from a :class:`VariableMappingConfig`."""
 
     ele = variable_mapping.elements
-    _trans = RoutingImpactTransformer(
+    _trans = ImpactTransformer(
         ele_pattern=ele.pattern if ele is not None and ele.regex is None else None,
         ele_regex=ele.regex if ele is not None else None,
         ele_name_map=ele.name_mappings or {} if ele is not None else {},

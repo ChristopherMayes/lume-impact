@@ -3,7 +3,7 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.transformer.transformer import Transformer
+from impact.model.transformer.base import Transformer
 from impact.model.config import VariableMappingConfig, make_transformer, make_variables
 
 
