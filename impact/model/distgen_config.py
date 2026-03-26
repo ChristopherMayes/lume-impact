@@ -12,8 +12,10 @@ class DistgenParamConfig(BaseModel):
 
     Parameters
     ----------
+    name : str, optional
+        Override the full variable name, bypassing the pattern entirely.
     alias : str, optional
-        Override the variable name token.
+        Override the variable name token within the pattern.
     distgen_param : str, optional
         Override the distgen parameter key (e.g. ``"sigma_t"`` instead of derived name).
     unit : str, optional
@@ -22,6 +24,7 @@ class DistgenParamConfig(BaseModel):
         Whether the variable is read-only.  Defaults to ``False``.
     """
 
+    name: str | None = None
     alias: str | None = None
     distgen_param: str | None = None
     unit: str | None = None
@@ -275,7 +278,9 @@ def _process_dist_config(
         has_units = _is_quantity(raw)
         default_unit = raw.get("units") if has_units else None
         token = val.alias or field
-        var_name = dist_pattern.format(slot=slot, dist_type=dist_type, token=token)
+        var_name = val.name or dist_pattern.format(
+            slot=slot, dist_type=dist_type, token=token
+        )
         full_key = f"{slot}:{distgen_key}"
         if has_units:
             full_key += ":value"
@@ -340,7 +345,9 @@ def _process_start_config(
             has_units = _is_quantity(raw)
             default_unit = raw.get("units") if has_units else None
             token = param_cfg.alias or field
-            var_name = start_cfg.pattern.format(type=type_field, key=token)
+            var_name = param_cfg.name or start_cfg.pattern.format(
+                type=type_field, key=token
+            )
             full_key = f"start:{distgen_key}"
             if has_units:
                 full_key += ":value"
@@ -398,7 +405,7 @@ def make_variables(
             has_units = _is_quantity(raw)
             default_unit = raw.get("units") if has_units else None
             token = param_cfg.alias or field
-            var_name = root_cfg.pattern.format(key=token)
+            var_name = param_cfg.name or root_cfg.pattern.format(key=token)
             full_key = distgen_key
             if has_units:
                 full_key += ":value"
