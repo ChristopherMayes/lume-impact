@@ -99,6 +99,7 @@ class CathodeStartConfig(BaseModel):
 
 class StartConfig(BaseModel):
     pattern: str = "distgen/start/{type}/{key}"
+    key_map: dict[str, str] = {}
     cathode: CathodeStartConfig | None = CathodeStartConfig()
 
 
@@ -109,6 +110,7 @@ class StartConfig(BaseModel):
 
 class DistgenRootConfig(BaseModel):
     pattern: str = "distgen/{key}"
+    key_map: dict[str, str] = {}
     n_particle: DistgenParamConfig | None = DistgenParamConfig()
     total_charge: DistgenParamConfig | None = DistgenParamConfig()
 
@@ -325,7 +327,7 @@ def _process_start_config(
         return
     active_type = start_params.get("type", "")
     for type_field in type(start_cfg).model_fields:
-        if type_field == "pattern":
+        if type_field in ("pattern", "key_map"):
             continue
         cfg = getattr(start_cfg, type_field)
         if cfg is None or not isinstance(cfg, BaseModel):
@@ -340,7 +342,7 @@ def _process_start_config(
                 or param_cfg.exclude
             ):
                 continue
-            distgen_key = param_cfg.distgen_param or field
+            distgen_key = param_cfg.distgen_param or start_cfg.key_map.get(field, field)
             raw = start_params.get(distgen_key)
             if raw is None:
                 continue
@@ -393,19 +395,20 @@ def make_variables(
     if inp_cfg.root is not None:
         root_cfg = inp_cfg.root
         for field in type(root_cfg).model_fields:
-            if field == "pattern":
+            if field in ("pattern", "key_map"):
                 continue
             param_cfg: DistgenParamConfig | None = getattr(root_cfg, field)
             if param_cfg is None or param_cfg.exclude:
                 continue
-            raw = gen_input.get(field)
+            distgen_key = param_cfg.distgen_param or root_cfg.key_map.get(field, field)
+            raw = gen_input.get(distgen_key)
             if raw is None:
                 continue
             has_units = _is_quantity(raw)
             default_unit = raw.get("units") if has_units else None
             token = param_cfg.alias or field
             var_name = root_cfg.pattern.format(key=token)
-            full_key = field
+            full_key = distgen_key
             if has_units:
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
