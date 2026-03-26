@@ -98,59 +98,55 @@ class CathodeStartConfig(BaseModel):
 
 
 class StartConfig(BaseModel):
+    pattern: str = "distgen/start/{type}/{key}"
     cathode: CathodeStartConfig | None = CathodeStartConfig()
 
 
 # ------------------------------------------------------------------
-# Per-slot dist configs (one per coordinate slot in gen.input)
+# Root params config
 # ------------------------------------------------------------------
 
 
-class RDistConfig(BaseModel):
+class DistgenRootConfig(BaseModel):
+    pattern: str = "distgen/{key}"
+    n_particle: DistgenParamConfig | None = DistgenParamConfig()
+    total_charge: DistgenParamConfig | None = DistgenParamConfig()
+
+
+# ------------------------------------------------------------------
+# Dist config — shared across all distribution slots
+# ------------------------------------------------------------------
+
+
+class DistConfig(BaseModel):
+    """Config for a single distribution slot (r_dist, t_dist, x_dist, etc.)."""
+
+    gaussian: GaussianDistConfig | None = GaussianDistConfig()
+    uniform: UniformDistConfig | None = UniformDistConfig()
+    super_gaussian: SuperGaussianDistConfig | None = None
+    tukey: TukeyDistConfig | None = TukeyDistConfig()
     radial_gaussian: RadialGaussianDistConfig | None = RadialGaussianDistConfig()
     radial_uniform: RadialUniformDistConfig | None = RadialUniformDistConfig()
     radial_super_gaussian: RadialSuperGaussianDistConfig | None = None
     radial_tukey: RadialTukeyDistConfig | None = None
 
 
-class TDistConfig(BaseModel):
-    gaussian: GaussianDistConfig | None = GaussianDistConfig()
-    uniform: UniformDistConfig | None = UniformDistConfig()
-    super_gaussian: SuperGaussianDistConfig | None = None
-    tukey: TukeyDistConfig | None = TukeyDistConfig()
+class DistSlotsConfig(BaseModel):
+    """Groups all distribution slots under a single shared pattern.
 
+    ``pattern`` supports ``{slot}``, ``{dist_type}``, and ``{token}``
+    as format variables.
+    """
 
-class XDistConfig(BaseModel):
-    gaussian: GaussianDistConfig | None = GaussianDistConfig()
-    uniform: UniformDistConfig | None = UniformDistConfig()
-    super_gaussian: SuperGaussianDistConfig | None = None
-
-
-class YDistConfig(BaseModel):
-    gaussian: GaussianDistConfig | None = GaussianDistConfig()
-    uniform: UniformDistConfig | None = UniformDistConfig()
-    super_gaussian: SuperGaussianDistConfig | None = None
-
-
-class ZDistConfig(BaseModel):
-    gaussian: GaussianDistConfig | None = GaussianDistConfig()
-    uniform: UniformDistConfig | None = UniformDistConfig()
-    super_gaussian: SuperGaussianDistConfig | None = None
-
-
-class PxDistConfig(BaseModel):
-    gaussian: GaussianDistConfig | None = GaussianDistConfig()
-    uniform: UniformDistConfig | None = UniformDistConfig()
-
-
-class PyDistConfig(BaseModel):
-    gaussian: GaussianDistConfig | None = GaussianDistConfig()
-    uniform: UniformDistConfig | None = UniformDistConfig()
-
-
-class PzDistConfig(BaseModel):
-    gaussian: GaussianDistConfig | None = GaussianDistConfig()
-    uniform: UniformDistConfig | None = UniformDistConfig()
+    pattern: str = "distgen/{slot}/{token}"
+    r_dist: DistConfig | None = DistConfig()
+    t_dist: DistConfig | None = DistConfig()
+    x_dist: DistConfig | None = DistConfig()
+    y_dist: DistConfig | None = DistConfig()
+    z_dist: DistConfig | None = DistConfig()
+    px_dist: DistConfig | None = DistConfig()
+    py_dist: DistConfig | None = DistConfig()
+    pz_dist: DistConfig | None = DistConfig()
 
 
 # ------------------------------------------------------------------
@@ -176,30 +172,11 @@ _COORD_FROM_DIST: dict[str, str | None] = {
 
 
 class DistgenInputConfig(BaseModel):
-    """Config for the distgen generator input.
+    """Config for the distgen generator input."""
 
-    Each field maps to a slot in ``gen.input``.  Setting a field to
-    ``None`` suppresses variable discovery for that slot.
-
-    Parameters
-    ----------
-    pattern : str
-        Pattern template for variable names.  Must contain ``{key}``
-        which is replaced with the colon-separated distgen path.
-    """
-
-    pattern: str = "distgen/{key}"
-    n_particle: DistgenParamConfig | None = DistgenParamConfig()
-    total_charge: DistgenParamConfig | None = DistgenParamConfig()
+    root: DistgenRootConfig | None = DistgenRootConfig()
     start: StartConfig | None = StartConfig()
-    r_dist: RDistConfig | None = RDistConfig()
-    t_dist: TDistConfig | None = TDistConfig()
-    x_dist: XDistConfig | None = XDistConfig()
-    y_dist: YDistConfig | None = YDistConfig()
-    z_dist: ZDistConfig | None = ZDistConfig()
-    px_dist: PxDistConfig | None = PxDistConfig()
-    py_dist: PyDistConfig | None = PyDistConfig()
-    pz_dist: PzDistConfig | None = PzDistConfig()
+    distributions: DistSlotsConfig | None = DistSlotsConfig()
 
 
 class DistgenVariableMappingConfig(BaseModel):
@@ -285,12 +262,12 @@ def _process_dist_config(
     dist_type: str,
     type_cfg: BaseModel,
     coord: str | None,
-    pattern: str,
+    dist_pattern: str,
     mappings: list[DistgenVariableMapping],
 ) -> None:
     """Walk a distribution type config and emit variable mappings."""
     dist_params = gen_input.get(slot, {})
-    for field in type_cfg.model_fields:
+    for field in type(type_cfg).model_fields:
         val = getattr(type_cfg, field)
         if val is None or not isinstance(val, DistgenParamConfig) or val.exclude:
             continue
@@ -301,7 +278,7 @@ def _process_dist_config(
         has_units = _is_quantity(raw)
         default_unit = raw.get("units") if has_units else None
         token = val.alias or field
-        var_name = pattern.replace("{key}", f"{slot}/{dist_type}/{token}")
+        var_name = dist_pattern.format(slot=slot, dist_type=dist_type, token=token)
         full_key = f"{slot}:{distgen_key}"
         if has_units:
             full_key += ":value"
@@ -316,9 +293,9 @@ def _process_dist_config(
 def _process_slot_config(
     gen_input: dict,
     slot: str,
-    slot_cfg: BaseModel,
+    slot_cfg: DistConfig,
     coord: str | None,
-    pattern: str,
+    dist_pattern: str,
     mappings: list[DistgenVariableMapping],
 ) -> None:
     """Walk a per-slot config and emit variable mappings for the active dist type."""
@@ -332,13 +309,14 @@ def _process_slot_config(
             continue
         if active_type and type_field != active_type:
             continue
-        _process_dist_config(gen_input, slot, type_field, cfg, coord, pattern, mappings)
+        _process_dist_config(
+            gen_input, slot, type_field, cfg, coord, dist_pattern, mappings
+        )
 
 
 def _process_start_config(
     gen_input: dict,
     start_cfg: StartConfig,
-    pattern: str,
     mappings: list[DistgenVariableMapping],
 ) -> None:
     """Walk the start config and emit variable mappings for the active start type."""
@@ -347,6 +325,8 @@ def _process_start_config(
         return
     active_type = start_params.get("type", "")
     for type_field in type(start_cfg).model_fields:
+        if type_field == "pattern":
+            continue
         cfg = getattr(start_cfg, type_field)
         if cfg is None or not isinstance(cfg, BaseModel):
             continue
@@ -367,7 +347,7 @@ def _process_start_config(
             has_units = _is_quantity(raw)
             default_unit = raw.get("units") if has_units else None
             token = param_cfg.alias or field
-            var_name = pattern.replace("{key}", f"start/{type_field}/{token}")
+            var_name = start_cfg.pattern.format(type=type_field, key=token)
             full_key = f"start:{distgen_key}"
             if has_units:
                 full_key += ":value"
@@ -408,41 +388,49 @@ def make_variables(
         return DistgenVariableMappings(mappings)
 
     gen_input = gen.input
-    pattern = inp_cfg.pattern
 
-    # Top-level scalar params
-    for field in ("n_particle", "total_charge"):
-        param_cfg: DistgenParamConfig | None = getattr(inp_cfg, field)
-        if param_cfg is None or param_cfg.exclude:
-            continue
-        raw = gen_input.get(field)
-        if raw is None:
-            continue
-        has_units = _is_quantity(raw)
-        default_unit = raw.get("units") if has_units else None
-        token = param_cfg.alias or field
-        var_name = pattern.replace("{key}", token)
-        full_key = field
-        if has_units:
-            full_key += ":value"
-        var = _make_var(var_name, param_cfg, default_unit, read_only=False)
-        mappings.append(
-            DistgenVariableMapping(
-                var, token=var_name, key=full_key, has_units=has_units
+    # Root params (n_particle, total_charge)
+    if inp_cfg.root is not None:
+        root_cfg = inp_cfg.root
+        for field in type(root_cfg).model_fields:
+            if field == "pattern":
+                continue
+            param_cfg: DistgenParamConfig | None = getattr(root_cfg, field)
+            if param_cfg is None or param_cfg.exclude:
+                continue
+            raw = gen_input.get(field)
+            if raw is None:
+                continue
+            has_units = _is_quantity(raw)
+            default_unit = raw.get("units") if has_units else None
+            token = param_cfg.alias or field
+            var_name = root_cfg.pattern.format(key=token)
+            full_key = field
+            if has_units:
+                full_key += ":value"
+            var = _make_var(var_name, param_cfg, default_unit, read_only=False)
+            mappings.append(
+                DistgenVariableMapping(
+                    var, token=var_name, key=full_key, has_units=has_units
+                )
             )
-        )
 
     # Start
     if inp_cfg.start is not None:
-        _process_start_config(gen_input, inp_cfg.start, pattern, mappings)
+        _process_start_config(gen_input, inp_cfg.start, mappings)
 
     # Distribution slots
-    for slot in _COORD_FROM_DIST:
-        slot_cfg = getattr(inp_cfg, slot)
-        if slot_cfg is None:
-            continue
-        coord = _COORD_FROM_DIST[slot]
-        _process_slot_config(gen_input, slot, slot_cfg, coord, pattern, mappings)
+    if inp_cfg.distributions is not None:
+        dists_cfg = inp_cfg.distributions
+        dist_pattern = dists_cfg.pattern
+        for slot in _COORD_FROM_DIST:
+            slot_cfg = getattr(dists_cfg, slot)
+            if slot_cfg is None:
+                continue
+            coord = _COORD_FROM_DIST[slot]
+            _process_slot_config(
+                gen_input, slot, slot_cfg, coord, dist_pattern, mappings
+            )
 
     return DistgenVariableMappings(mappings)
 
@@ -477,12 +465,12 @@ def make_transformer(
     key_map = {m.token: m.key for m in var_mappings.input_mappings}
 
     _trans.register_getter(
-        lambda gen, key, _m=key_map, **kwargs: gen[_m[key]],
-        pattern=config.inputs.pattern if config.inputs else "distgen/{key}",
+        lambda gen, varname, _m=key_map: gen[_m[varname]],
+        regex=r"(?P<varname>.+)",
     )
     _trans.register_setter(
-        lambda gen, value, key, _m=key_map, **kwargs: gen.__setitem__(_m[key], value),
-        pattern=config.inputs.pattern if config.inputs else "distgen/{key}",
+        lambda gen, value, varname, _m=key_map: gen.__setitem__(_m[varname], value),
+        regex=r"(?P<varname>.+)",
     )
 
     return _trans
