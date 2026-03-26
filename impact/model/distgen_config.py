@@ -20,20 +20,17 @@ class DistgenParamConfig(BaseModel):
         Physical unit string passed to ``ScalarVariable``.
     read_only : bool, optional
         Whether the variable is read-only.  Defaults to ``False``.
-    exclude : bool, optional
-        Exclude this parameter entirely.  Defaults to ``False``.
     """
 
     alias: str | None = None
     distgen_param: str | None = None
     unit: str | None = None
     read_only: bool = False
-    exclude: bool = False
 
 
 # ------------------------------------------------------------------
 # Distribution type configs
-# Set a field to DistgenParamConfig() to include it; None to exclude.
+# Set a field to DistgenParamConfig() to include it; set to None to exclude.
 # ------------------------------------------------------------------
 
 
@@ -99,7 +96,6 @@ class CathodeStartConfig(BaseModel):
 
 class StartConfig(BaseModel):
     pattern: str = "distgen/start/{type}/{key}"
-    key_map: dict[str, str] = {}
     cathode: CathodeStartConfig | None = CathodeStartConfig()
 
 
@@ -110,7 +106,6 @@ class StartConfig(BaseModel):
 
 class DistgenRootConfig(BaseModel):
     pattern: str = "distgen/{key}"
-    key_map: dict[str, str] = {}
     n_particle: DistgenParamConfig | None = DistgenParamConfig()
     total_charge: DistgenParamConfig | None = DistgenParamConfig()
 
@@ -271,7 +266,7 @@ def _process_dist_config(
     dist_params = gen_input.get(slot, {})
     for field in type(type_cfg).model_fields:
         val = getattr(type_cfg, field)
-        if val is None or not isinstance(val, DistgenParamConfig) or val.exclude:
+        if val is None or not isinstance(val, DistgenParamConfig):
             continue
         distgen_key = val.distgen_param or _resolve_param_key(field, coord)
         raw = dist_params.get(distgen_key)
@@ -327,7 +322,7 @@ def _process_start_config(
         return
     active_type = start_params.get("type", "")
     for type_field in type(start_cfg).model_fields:
-        if type_field in ("pattern", "key_map"):
+        if type_field == "pattern":
             continue
         cfg = getattr(start_cfg, type_field)
         if cfg is None or not isinstance(cfg, BaseModel):
@@ -336,13 +331,9 @@ def _process_start_config(
             continue
         for field in type(cfg).model_fields:
             param_cfg = getattr(cfg, field)
-            if (
-                param_cfg is None
-                or not isinstance(param_cfg, DistgenParamConfig)
-                or param_cfg.exclude
-            ):
+            if param_cfg is None or not isinstance(param_cfg, DistgenParamConfig):
                 continue
-            distgen_key = param_cfg.distgen_param or start_cfg.key_map.get(field, field)
+            distgen_key = param_cfg.distgen_param or field
             raw = start_params.get(distgen_key)
             if raw is None:
                 continue
@@ -395,12 +386,12 @@ def make_variables(
     if inp_cfg.root is not None:
         root_cfg = inp_cfg.root
         for field in type(root_cfg).model_fields:
-            if field in ("pattern", "key_map"):
+            if field == "pattern":
                 continue
             param_cfg: DistgenParamConfig | None = getattr(root_cfg, field)
-            if param_cfg is None or param_cfg.exclude:
+            if param_cfg is None:
                 continue
-            distgen_key = param_cfg.distgen_param or root_cfg.key_map.get(field, field)
+            distgen_key = param_cfg.distgen_param or field
             raw = gen_input.get(distgen_key)
             if raw is None:
                 continue
