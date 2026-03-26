@@ -5,7 +5,11 @@ from lume.variables import Variable
 from distgen import Generator
 
 from impact.model.transformer.transformer import Transformer
-from impact.model.config import VariableMappingConfig, make_transformer, make_variables
+from impact.model.impact_config import (
+    VariableMappingConfig,
+    make_transformer,
+    make_variables,
+)
 
 
 class LUMEImpactDistgenModel(LUMEModel):
