@@ -1,22 +1,23 @@
 from typing import Any
 
+from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.distgen_actions import DistgenVarAction
-from impact.model.distgen_config import DistgenVariableMappingConfig, make_variables
+from impact.model.config import VariableMappingConfig, make_variables
+from impact.model.actions import ImpactVarAction
 
 
-class LUMEDistgenModel(LUMEModel):
+class LUMEImpactModel(LUMEModel):
     def __init__(
         self,
-        gen: Any,
-        mappings: list[DistgenVarAction],
+        imp: Impact,
+        mappings: list[ImpactVarAction],
         dummy_run: bool = False,
     ):
-        self.gen = gen
+        self.imp = imp
         self.mappings = mappings
-        self._mapping_by_name: dict[str, DistgenVarAction] = {
+        self._mapping_by_name: dict[str, ImpactVarAction] = {
             m.name: m for m in mappings
         }
         self.dummy_run = dummy_run
@@ -24,13 +25,13 @@ class LUMEDistgenModel(LUMEModel):
         self.update_state()
 
     @classmethod
-    def from_generator(
+    def from_impact(
         cls,
-        gen: Any,
-        variable_mapping: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
+        imp: Impact,
+        variable_mapping: VariableMappingConfig = VariableMappingConfig(),
         **kwargs,
-    ) -> "LUMEDistgenModel":
-        return cls(gen, make_variables(gen, variable_mapping), **kwargs)
+    ) -> "LUMEImpactModel":
+        return cls(imp, make_variables(imp, variable_mapping), **kwargs)
 
     @property
     def supported_variables(self) -> dict[str, Variable]:
@@ -41,19 +42,19 @@ class LUMEDistgenModel(LUMEModel):
 
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
-            self._mapping_by_name[name].set(self.gen, value)
+            self._mapping_by_name[name].set(self.imp, value)
         if not self.dummy_run:
-            self.gen.run()
+            self.imp.run()
         self.update_state()
 
     def update_state(self) -> None:
         for m in self.mappings:
-            self._state[m.name] = m.get(self.gen)
+            self._state[m.name] = m.get(self.imp)
 
-    def register_mapping(self, mapping: DistgenVarAction) -> None:
+    def register_mapping(self, mapping: ImpactVarAction) -> None:
         """Add a user-defined mapping to the model.
 
-        The mapping's current value is read from ``gen`` immediately and
+        The mapping's current value is read from ``imp`` immediately and
         stored in the state. If a mapping with the same name already exists
         it is replaced.
         """
@@ -63,7 +64,7 @@ class LUMEDistgenModel(LUMEModel):
         else:
             self.mappings.append(mapping)
         self._mapping_by_name[name] = mapping
-        self._state[name] = mapping.get(self.gen)
+        self._state[name] = mapping.get(self.imp)
 
     def reset(self) -> None:
         self.set(

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from lume.variables import ScalarVariable
 
-from impact.model.distgen_actions import DistgenVarAction, DistgenInputVarAction
+from impact.model.distgen.actions import DistgenVarAction, DistgenInputVarAction
 
 logger = logging.getLogger(__name__)
 

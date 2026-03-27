@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
-from impact.model.impact_actions import (
+from impact.model.actions import (
     ImpactVarAction,
     EleVarAction,
     HeaderVarAction,
