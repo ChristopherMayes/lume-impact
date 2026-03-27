@@ -330,7 +330,7 @@ def _process_start_config(
 # ------------------------------------------------------------------
 
 
-def make_variables(
+def make_actions(
     gen: Any,
     config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
 ) -> list[DistgenVarAction]:

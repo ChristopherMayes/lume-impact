@@ -735,7 +735,7 @@ class VariableMappingConfig(BaseModel):
     particles: ParticlesConfig | None = ParticlesConfig()
 
 
-def make_variables(imp: Any, config: VariableMappingConfig) -> list[ImpactVarAction]:
+def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarAction]:
     """Build variable mappings for every element attribute, header key, and output
     described by *config*.
 
