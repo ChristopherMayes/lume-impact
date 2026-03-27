@@ -4,8 +4,8 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.impact_config import VariableMappingConfig
-from impact.model.mappings import ImpactVariableMapping, make_mappings
+from impact.model.impact_config import VariableMappingConfig, make_variables
+from impact.model.mappings import ImpactVariableMapping
 
 
 class LUMEImpactModel(LUMEModel):
@@ -31,7 +31,7 @@ class LUMEImpactModel(LUMEModel):
         variable_mapping: VariableMappingConfig = VariableMappingConfig(),
         **kwargs,
     ) -> "LUMEImpactModel":
-        return cls(imp, make_mappings(imp, variable_mapping), **kwargs)
+        return cls(imp, make_variables(imp, variable_mapping), **kwargs)
 
     @property
     def supported_variables(self) -> dict[str, Variable]:

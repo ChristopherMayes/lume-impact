@@ -3,6 +3,14 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
+from impact.model.mappings import (
+    ImpactVariableMapping,
+    EleVariableMapping,
+    HeaderVariableMapping,
+    StatVariableMapping,
+    RunInfoVariableMapping,
+    ParticleGroupVariableMapping,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -727,72 +735,15 @@ class VariableMappingConfig(BaseModel):
     particles: ParticlesConfig | None = ParticlesConfig()
 
 
-class EleVariableMapping(BaseModel):
-    control_name: str
-    tool_name: str
-    control_attrib: str
-    tool_attrib: str
-    var: ScalarVariable
+def make_variables(
+    imp: Any, config: VariableMappingConfig
+) -> list[ImpactVariableMapping]:
+    """Build variable mappings for every element attribute, header key, and output
+    described by *config*.
 
-
-class HeaderVariableMapping(BaseModel):
-    key: str
-    var: ScalarVariable
-
-
-class StatVariableMapping(BaseModel):
-    name: str  # the key passed to ``imp.stat(name)``
-    var: NDVariable
-
-
-class RunInfoVariableMapping(BaseModel):
-    key: str  # the key in ``imp.output["run_info"]``
-    var: ScalarVariable
-
-
-class ParticleGroupVariableMapping(BaseModel):
-    name: str  # the key in ``imp.particles`` (e.g. "final_particles", "Q1")
-    var: ParticleGroupVariable
-
-
-class VariableMappings(BaseModel):
-    ele_mappings: list[EleVariableMapping]
-    header_mappings: list[HeaderVariableMapping]
-    stat_mappings: list[StatVariableMapping]
-    run_info_mappings: list[RunInfoVariableMapping]
-    particle_mappings: list[ParticleGroupVariableMapping]
-
-    @property
-    def all_vars(self):
-        return (
-            [x.var for x in self.header_mappings]
-            + [x.var for x in self.ele_mappings]
-            + [x.var for x in self.stat_mappings]
-            + [x.var for x in self.run_info_mappings]
-            + [x.var for x in self.particle_mappings]
-        )
-
-
-def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
-    """Build variables for every element attribute, header key, and output described by *config*.
-    The current value in *imp* is used as ``default_value``.
+    The current value in *imp* is used as ``default_value`` for each variable.
     """
-    ele_name_map = (
-        {v: k for k, v in config.elements.name_mappings.items()}
-        if config.elements and config.elements.name_mappings
-        else None
-    )
-    ele_type_map = (
-        {v: k for k, v in config.elements.type_mappings.items()}
-        if config.elements and config.elements.type_mappings
-        else None
-    )
-
-    ele_vars = []
-    header_vars = []
-    stat_vars = []
-    run_info_vars = []
-    particle_vars = []
+    mappings: list[ImpactVariableMapping] = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
@@ -800,14 +751,13 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
             if not isinstance(attr_cfg, AttributeConfig):
                 continue
 
-            # Field alias is the actual Impact-T header key (e.g. "sigx(m)")
             header_key = (
                 field_info.alias if field_info.alias is not None else field_name
             )
             key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
             variable_name = config.header.pattern.format(key=key_token)
 
-            header_vars.append(
+            mappings.append(
                 HeaderVariableMapping(
                     key=header_key,
                     var=ScalarVariable(
@@ -820,6 +770,17 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
             )
 
     if config.elements is not None:
+        ele_name_map = (
+            {v: k for k, v in config.elements.name_mappings.items()}
+            if config.elements.name_mappings
+            else None
+        )
+        ele_type_map = (
+            {v: k for k, v in config.elements.type_mappings.items()}
+            if config.elements.type_mappings
+            else None
+        )
+
         for ele in imp.lattice:
             ele_type: str = ele.get("type", "")
             ele_name: str = ele.get("name", "")
@@ -850,7 +811,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                     type=type_token, name=name_token, attrib=attrib_token
                 )
 
-                ele_vars.append(
+                mappings.append(
                     EleVariableMapping(
                         control_name=name_token,
                         tool_name=ele_name,
@@ -873,9 +834,9 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
             name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
             variable_name = config.stats.pattern.format(name=name_token)
             stat_array = imp.stat(field_name)
-            stat_vars.append(
+            mappings.append(
                 StatVariableMapping(
-                    name=field_name,
+                    stat_name=field_name,
                     var=NDVariable(
                         name=variable_name,
                         shape=stat_array.shape,
@@ -896,7 +857,7 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                 run_info_cfg.alias if run_info_cfg.alias is not None else field_name
             )
             variable_name = config.run_info.pattern.format(key=key_token)
-            run_info_vars.append(
+            mappings.append(
                 RunInfoVariableMapping(
                     key=field_name,
                     var=ScalarVariable(
@@ -919,9 +880,9 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                 if tool_name == "initial_particles"
                 else particles_data.get(tool_name)
             )
-            particle_vars.append(
+            mappings.append(
                 ParticleGroupVariableMapping(
-                    name=tool_name,
+                    tool_name=tool_name,
                     var=ParticleGroupVariable(
                         name=variable_name,
                         default_value=default_val,
@@ -930,10 +891,4 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
                 )
             )
 
-    return VariableMappings(
-        header_mappings=header_vars,
-        ele_mappings=ele_vars,
-        stat_mappings=stat_vars,
-        run_info_mappings=run_info_vars,
-        particle_mappings=particle_vars,
-    )
+    return mappings
