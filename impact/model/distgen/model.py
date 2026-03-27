@@ -25,10 +25,10 @@ class LUMEDistgenModel(LUMEModel):
     def from_generator(
         cls,
         gen: Any,
-        variable_mapping: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
+        config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
         **kwargs,
     ) -> "LUMEDistgenModel":
-        return cls(gen, make_actions(gen, variable_mapping), **kwargs)
+        return cls(gen, make_actions(gen, config), **kwargs)
 
     @property
     def supported_variables(self) -> dict[str, Variable]:
