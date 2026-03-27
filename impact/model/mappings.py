@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable, Variable
+from lume.variables import Variable
 
 
 # ------------------------------------------------------------------
@@ -11,7 +11,7 @@ from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable, Va
 # ------------------------------------------------------------------
 
 
-class ImpactVariableMapping(ABC):
+class ImpactVariableMapping(ABC, BaseModel):
     """Abstract base for variable mappings with integrated get/set logic.
 
     Each concrete subclass represents one variable and knows how to read
@@ -48,14 +48,13 @@ class ImpactVariableMapping(ABC):
 # ------------------------------------------------------------------
 
 
-class EleVariableMapping(ImpactVariableMapping, BaseModel):
+class EleVariableMapping(ImpactVariableMapping):
     """Maps an element attribute: ``imp.ele[tool_name][tool_attrib]``."""
 
     control_name: str
     tool_name: str
     control_attrib: str
     tool_attrib: str
-    var: ScalarVariable
 
     def get(self, imp: Any) -> Any:
         return imp.ele[self.tool_name][self.tool_attrib]
@@ -64,11 +63,10 @@ class EleVariableMapping(ImpactVariableMapping, BaseModel):
         imp.ele[self.tool_name][self.tool_attrib] = value
 
 
-class HeaderVariableMapping(ImpactVariableMapping, BaseModel):
+class HeaderVariableMapping(ImpactVariableMapping):
     """Maps a header key: ``imp.header[key]``."""
 
     key: str
-    var: ScalarVariable
 
     def get(self, imp: Any) -> Any:
         return imp.header[self.key]
@@ -77,34 +75,31 @@ class HeaderVariableMapping(ImpactVariableMapping, BaseModel):
         imp.header[self.key] = value
 
 
-class StatVariableMapping(ImpactVariableMapping, BaseModel):
+class StatVariableMapping(ImpactVariableMapping):
     """Maps an output stat: ``imp.stat(stat_name)``. Read-only."""
 
     stat_name: str
-    var: NDVariable
 
     def get(self, imp: Any) -> Any:
         return imp.stat(self.stat_name)
 
 
-class RunInfoVariableMapping(ImpactVariableMapping, BaseModel):
+class RunInfoVariableMapping(ImpactVariableMapping):
     """Maps a run_info entry: ``imp.output['run_info'][key]``. Read-only."""
 
     key: str
-    var: ScalarVariable
 
     def get(self, imp: Any) -> Any:
         return imp.output["run_info"][self.key]
 
 
-class ParticleGroupVariableMapping(ImpactVariableMapping, BaseModel):
+class ParticleGroupVariableMapping(ImpactVariableMapping):
     """Maps a particle group: ``imp.particles[tool_name]``.
 
     Only ``initial_particles`` is writable.
     """
 
     tool_name: str
-    var: ParticleGroupVariable
 
     def get(self, imp: Any) -> Any:
         return imp.particles[self.tool_name]
