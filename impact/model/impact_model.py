@@ -5,19 +5,19 @@ from lume.model import LUMEModel
 from lume.variables import Variable
 
 from impact.model.impact_config import VariableMappingConfig, make_variables
-from impact.model.mappings import ImpactVariableMapping
+from impact.model.mappings import ImpactVarAction
 
 
 class LUMEImpactModel(LUMEModel):
     def __init__(
         self,
         imp: Impact,
-        mappings: list[ImpactVariableMapping],
+        mappings: list[ImpactVarAction],
         dummy_run: bool = False,
     ):
         self.imp = imp
         self.mappings = mappings
-        self._mapping_by_name: dict[str, ImpactVariableMapping] = {
+        self._mapping_by_name: dict[str, ImpactVarAction] = {
             m.name: m for m in mappings
         }
         self.dummy_run = dummy_run
@@ -51,7 +51,7 @@ class LUMEImpactModel(LUMEModel):
         for m in self.mappings:
             self._state[m.name] = m.get(self.imp)
 
-    def register_mapping(self, mapping: ImpactVariableMapping) -> None:
+    def register_mapping(self, mapping: ImpactVarAction) -> None:
         """Add a user-defined mapping to the model.
 
         The mapping's current value is read from ``imp`` immediately and

@@ -11,14 +11,9 @@ from lume.variables import Variable
 # ------------------------------------------------------------------
 
 
-class ImpactVariableMapping(ABC, BaseModel):
-    """Abstract base for variable mappings with integrated get/set logic.
-
-    Each concrete subclass represents one variable and knows how to read
-    and write its value directly from/to an Impact object.
-
-    Subclasses define ``var`` as a Pydantic field and must implement ``get``.
-    Writable subclasses should also override ``set``.
+class ImpactVarAction(ABC, BaseModel):
+    """
+    Object containing a LUME variable and the action it performs on a LUME `Impact` object.
     """
 
     var: Variable  # defined as a Pydantic field in each concrete subclass
@@ -33,22 +28,19 @@ class ImpactVariableMapping(ABC, BaseModel):
 
     @abstractmethod
     def get(self, imp: Any) -> Any:
-        """Return the current value of this variable from *imp*."""
+        """Return the current value of this variable from Impact"""
 
     def set(self, imp: Any, value: Any) -> None:
-        """Write *value* to this variable on *imp*.
-
-        Raises ``TypeError`` by default; override in writable subclasses.
-        """
+        """Write the provided value to the Impact object."""
         raise TypeError(f"'{self.name}' is read-only")
 
 
 # ------------------------------------------------------------------
-# Concrete mapping types
+# Concrete actions
 # ------------------------------------------------------------------
 
 
-class EleVariableMapping(ImpactVariableMapping):
+class EleVarAction(ImpactVarAction):
     """Maps an element attribute: ``imp.ele[tool_name][tool_attrib]``."""
 
     control_name: str
@@ -63,7 +55,7 @@ class EleVariableMapping(ImpactVariableMapping):
         imp.ele[self.tool_name][self.tool_attrib] = value
 
 
-class HeaderVariableMapping(ImpactVariableMapping):
+class HeaderVarAction(ImpactVarAction):
     """Maps a header key: ``imp.header[key]``."""
 
     key: str
@@ -75,7 +67,7 @@ class HeaderVariableMapping(ImpactVariableMapping):
         imp.header[self.key] = value
 
 
-class StatVariableMapping(ImpactVariableMapping):
+class StatVarAction(ImpactVarAction):
     """Maps an output stat: ``imp.stat(stat_name)``. Read-only."""
 
     stat_name: str
@@ -84,7 +76,7 @@ class StatVariableMapping(ImpactVariableMapping):
         return imp.stat(self.stat_name)
 
 
-class RunInfoVariableMapping(ImpactVariableMapping):
+class RunInfoVarAction(ImpactVarAction):
     """Maps a run_info entry: ``imp.output['run_info'][key]``. Read-only."""
 
     key: str
@@ -93,7 +85,7 @@ class RunInfoVariableMapping(ImpactVariableMapping):
         return imp.output["run_info"][self.key]
 
 
-class ParticleGroupVariableMapping(ImpactVariableMapping):
+class ParticleGroupVarAction(ImpactVarAction):
     """Maps a particle group: ``imp.particles[tool_name]``.
 
     Only ``initial_particles`` is writable.
