@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable, Variable
 
@@ -51,8 +51,6 @@ class ImpactVariableMapping(ABC):
 class EleVariableMapping(ImpactVariableMapping, BaseModel):
     """Maps an element attribute: ``imp.ele[tool_name][tool_attrib]``."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     control_name: str
     tool_name: str
     control_attrib: str
@@ -69,8 +67,6 @@ class EleVariableMapping(ImpactVariableMapping, BaseModel):
 class HeaderVariableMapping(ImpactVariableMapping, BaseModel):
     """Maps a header key: ``imp.header[key]``."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     key: str
     var: ScalarVariable
 
@@ -84,8 +80,6 @@ class HeaderVariableMapping(ImpactVariableMapping, BaseModel):
 class StatVariableMapping(ImpactVariableMapping, BaseModel):
     """Maps an output stat: ``imp.stat(stat_name)``. Read-only."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     stat_name: str
     var: NDVariable
 
@@ -95,8 +89,6 @@ class StatVariableMapping(ImpactVariableMapping, BaseModel):
 
 class RunInfoVariableMapping(ImpactVariableMapping, BaseModel):
     """Maps a run_info entry: ``imp.output['run_info'][key]``. Read-only."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     key: str
     var: ScalarVariable
@@ -110,8 +102,6 @@ class ParticleGroupVariableMapping(ImpactVariableMapping, BaseModel):
 
     Only ``initial_particles`` is writable.
     """
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     tool_name: str
     var: ParticleGroupVariable
