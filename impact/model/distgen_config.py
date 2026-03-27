@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 from lume.variables import ScalarVariable
 
+from impact.model.distgen_actions import DistgenVarAction, DistgenInputVarAction
+
 logger = logging.getLogger(__name__)
 
 
@@ -186,39 +188,6 @@ class DistgenVariableMappingConfig(BaseModel):
 
 
 # ------------------------------------------------------------------
-# Variable mapping dataclass
-# ------------------------------------------------------------------
-
-
-class DistgenVariableMapping(BaseModel):
-    """Holds a distgen variable and the info needed to get/set it.
-
-    Attributes
-    ----------
-    var :
-        The LUME variable.
-    key :
-        The colon-separated distgen accessor path passed to ``gen[key]``
-        (e.g. ``"r_dist:sigma_xy:value"`` or ``"n_particle"``).
-    has_units :
-        Whether the distgen parameter is a quantity; if ``True``, ``:value``
-        is appended to ``key`` and the magnitude is read/written.
-    """
-
-    var: ScalarVariable
-    key: str
-    has_units: bool
-
-
-class DistgenVariableMappings(BaseModel):
-    input_mappings: list[DistgenVariableMapping] = []
-
-    @property
-    def all_vars(self) -> list[ScalarVariable]:
-        return [m.var for m in self.input_mappings]
-
-
-# ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
 
@@ -264,7 +233,7 @@ def _process_dist_config(
     type_cfg: BaseModel,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[DistgenVariableMapping],
+    mappings: list[DistgenVarAction],
 ) -> None:
     """Walk a distribution type config and emit variable mappings."""
     dist_params = gen_input.get(slot, {})
@@ -287,7 +256,7 @@ def _process_dist_config(
             full_key += ":value"
         var = _make_var(var_name, val, default_unit, read_only=False)
         mappings.append(
-            DistgenVariableMapping(var=var, key=full_key, has_units=has_units)
+            DistgenInputVarAction(var=var, key=full_key, has_units=has_units)
         )
 
 
@@ -297,7 +266,7 @@ def _process_slot_config(
     slot_cfg: DistConfig,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[DistgenVariableMapping],
+    mappings: list[DistgenVarAction],
 ) -> None:
     """Walk a per-slot config and emit variable mappings for the active dist type."""
     dist_params = gen_input.get(slot, {})
@@ -318,7 +287,7 @@ def _process_slot_config(
 def _process_start_config(
     gen_input: dict,
     start_cfg: StartConfig,
-    mappings: list[DistgenVariableMapping],
+    mappings: list[DistgenVarAction],
 ) -> None:
     """Walk the start config and emit variable mappings for the active start type."""
     start_params = gen_input.get("start", {})
@@ -352,9 +321,7 @@ def _process_start_config(
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
             mappings.append(
-                DistgenVariableMapping(
-                    var=var, token=var_name, key=full_key, has_units=has_units
-                )
+                DistgenInputVarAction(var=var, key=full_key, has_units=has_units)
             )
 
 
@@ -366,7 +333,7 @@ def _process_start_config(
 def make_variables(
     gen: Any,
     config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
-) -> DistgenVariableMappings:
+) -> list[DistgenVarAction]:
     """Build variable mappings from a distgen Generator and config.
 
     Parameters
@@ -379,12 +346,12 @@ def make_variables(
 
     Returns
     -------
-    DistgenVariableMappings
+    list[DistgenVarAction]
     """
-    mappings: list[DistgenVariableMapping] = []
+    mappings: list[DistgenVarAction] = []
     inp_cfg = config.inputs
     if inp_cfg is None:
-        return DistgenVariableMappings(input_mappings=mappings)
+        return mappings
 
     gen_input = gen.input
 
@@ -410,9 +377,7 @@ def make_variables(
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
             mappings.append(
-                DistgenVariableMapping(
-                    var=var, token=var_name, key=full_key, has_units=has_units
-                )
+                DistgenInputVarAction(var=var, key=full_key, has_units=has_units)
             )
 
     # Start
@@ -432,4 +397,4 @@ def make_variables(
                 gen_input, slot, slot_cfg, coord, dist_pattern, mappings
             )
 
-    return DistgenVariableMappings(input_mappings=mappings)
+    return mappings
