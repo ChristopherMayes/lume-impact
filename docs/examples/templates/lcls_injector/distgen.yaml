@@ -1,4 +1,6 @@
 n_particle: 100000
+random:
+  type: hammersley
 species: electron
 
 start:
