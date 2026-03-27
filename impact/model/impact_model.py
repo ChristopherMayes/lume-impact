@@ -5,7 +5,7 @@ from lume.model import LUMEModel
 from lume.variables import Variable
 
 from impact.model.impact_config import VariableMappingConfig, make_variables
-from impact.model.mappings import ImpactVarAction
+from impact.model.impact_actions import ImpactVarAction
 
 
 class LUMEImpactModel(LUMEModel):
