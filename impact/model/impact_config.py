@@ -3,7 +3,6 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
-from impact.model.impact_transformer import ImpactTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -938,62 +937,3 @@ def make_variables(imp: Any, config: VariableMappingConfig) -> VariableMappings:
         run_info_mappings=run_info_vars,
         particle_mappings=particle_vars,
     )
-
-
-def make_transformer(
-    variable_mapping: VariableMappingConfig,
-) -> ImpactTransformer:
-    """Build a :class:`ImpactTransformer` from a :class:`VariableMappingConfig`."""
-
-    ele = variable_mapping.elements
-    _trans = ImpactTransformer(
-        ele_pattern=ele.pattern if ele is not None and ele.regex is None else None,
-        ele_regex=ele.regex if ele is not None else None,
-        ele_name_map=ele.name_mappings or {} if ele is not None else {},
-        ele_attrib_map=ele.attrib_map if ele is not None else {},
-    )
-
-    hdr = variable_mapping.header
-    if hdr is not None:
-        _header_pattern = hdr.pattern if hdr.regex is None else None
-        _trans.add_header_getter(
-            pattern=_header_pattern,
-            regex=hdr.regex,
-            key_map=hdr.key_map or None,
-        )
-        _trans.add_header_setter(
-            pattern=_header_pattern,
-            regex=hdr.regex,
-            key_map=hdr.key_map or None,
-        )
-
-    if variable_mapping.stats is not None:
-        stats_map = variable_mapping.stats.name_map
-        _trans.register_getter(
-            lambda imp, name, _m=stats_map, **kwargs: imp.stat(_m.get(name, name)),
-            pattern=variable_mapping.stats.pattern,
-        )
-
-    if variable_mapping.run_info is not None:
-        ri_map = variable_mapping.run_info.key_map
-        _trans.register_getter(
-            lambda imp, key, _m=ri_map, **kwargs: imp.output["run_info"][
-                _m.get(key, key)
-            ],
-            pattern=variable_mapping.run_info.pattern,
-        )
-
-    if variable_mapping.particles is not None:
-        p_map = variable_mapping.particles.name_map
-        _trans.register_getter(
-            lambda imp, name, _m=p_map, **kwargs: imp.particles[_m.get(name, name)],
-            pattern=variable_mapping.particles.pattern,
-        )
-        reverse_p_map = {v: k for k, v in p_map.items()}
-        initial_control = reverse_p_map.get("initial_particles", "initial_particles")
-        _trans.register_setter(
-            lambda imp, value, **kwargs: setattr(imp, "initial_particles", value),
-            pattern=variable_mapping.particles.pattern.format(name=initial_control),
-        )
-
-    return _trans
