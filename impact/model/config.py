@@ -391,7 +391,6 @@ class HeaderConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     pattern: str = "header/{key}"
-    regex: str | None = None
 
     @property
     def key_map(self) -> dict[str, str]:
@@ -681,7 +680,6 @@ class ElementsConfig(BaseModel):
     """
 
     pattern: str = "ele/{name}/{attrib}"
-    regex: str | None = None
     name_mappings: dict[str, str] | None = None  # control_name -> tool_name
     type_mappings: dict[str, str] | None = None  # control_type -> tool_type
 
@@ -811,10 +809,8 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarActio
 
                 mappings.append(
                     EleVarAction(
-                        control_name=name_token,
-                        tool_name=ele_name,
-                        control_attrib=attrib_token,
-                        tool_attrib=field_name,
+                        ele_name=ele_name,
+                        attribute=field_name,
                         var=ScalarVariable(
                             name=variable_name,
                             default_value=imp.ele[ele_name][field_name],

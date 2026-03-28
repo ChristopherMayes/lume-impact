@@ -41,18 +41,16 @@ class ImpactVarAction(ABC, BaseModel):
 
 
 class EleVarAction(ImpactVarAction):
-    """Maps an element attribute: ``imp.ele[tool_name][tool_attrib]``."""
+    """Maps an element attribute: ``imp.ele[ele_name][attribute]``."""
 
-    control_name: str
-    tool_name: str
-    control_attrib: str
-    tool_attrib: str
+    ele_name: str
+    attribute: str
 
     def get(self, imp: Any) -> Any:
-        return imp.ele[self.tool_name][self.tool_attrib]
+        return imp.ele[self.ele_name][self.attribute]
 
     def set(self, imp: Any, value: Any) -> None:
-        imp.ele[self.tool_name][self.tool_attrib] = value
+        imp.ele[self.ele_name][self.attribute] = value
 
 
 class HeaderVarAction(ImpactVarAction):
