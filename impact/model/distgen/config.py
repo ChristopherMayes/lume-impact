@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from lume.variables import ScalarVariable
 
-from impact.model.distgen.actions import DistgenAction, DistgenInputAction
+from impact.model.distgen.actions import Action, DistgenInputAction
 
 logger = logging.getLogger(__name__)
 
@@ -233,7 +233,7 @@ def _process_dist_config(
     type_cfg: BaseModel,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[DistgenAction],
+    mappings: list[Action],
 ) -> None:
     """Walk a distribution type config and emit variable mappings."""
     dist_params = gen_input.get(slot, {})
@@ -264,7 +264,7 @@ def _process_slot_config(
     slot_cfg: DistConfig,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[DistgenAction],
+    mappings: list[Action],
 ) -> None:
     """Walk a per-slot config and emit variable mappings for the active dist type."""
     dist_params = gen_input.get(slot, {})
@@ -285,7 +285,7 @@ def _process_slot_config(
 def _process_start_config(
     gen_input: dict,
     start_cfg: StartConfig,
-    mappings: list[DistgenAction],
+    mappings: list[Action],
 ) -> None:
     """Walk the start config and emit variable mappings for the active start type."""
     start_params = gen_input.get("start", {})
@@ -331,7 +331,7 @@ def _process_start_config(
 def make_actions(
     gen: Any,
     config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
-) -> list[DistgenAction]:
+) -> list[Action]:
     """Build variable mappings from a distgen Generator and config.
 
     Parameters
@@ -344,9 +344,9 @@ def make_actions(
 
     Returns
     -------
-    list[DistgenAction]
+    list[Action]
     """
-    mappings: list[DistgenAction] = []
+    mappings: list[Action] = []
     inp_cfg = config.inputs
     if inp_cfg is None:
         return mappings

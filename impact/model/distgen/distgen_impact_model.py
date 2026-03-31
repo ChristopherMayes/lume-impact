@@ -7,7 +7,7 @@ from lume.variables import Variable
 from impact.model.actions import Action as ImpactAction
 from impact.model.config import VariableMappingConfig
 from impact.model.config import make_actions as make_impact_variables
-from impact.model.distgen.actions import DistgenAction
+from impact.model.distgen.actions import Action as DistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig
 from impact.model.distgen.config import make_actions as make_distgen_variables
 
@@ -134,7 +134,9 @@ class LUMEDistgenImpactModel(LUMEModel):
             self._impact_by_name[name] = action
             self._state[name] = action.get(self.imp)
         else:
-            raise TypeError(f"Expected DistgenAction or Action, got {type(action)}")
+            raise TypeError(
+                f"Expected DistgenAction or ImpactAction, got {type(action)}"
+            )
 
     def reset(self) -> None:
         self.set(

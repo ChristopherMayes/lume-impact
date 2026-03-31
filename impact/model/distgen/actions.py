@@ -11,7 +11,7 @@ from lume.variables import Variable
 # ------------------------------------------------------------------
 
 
-class DistgenAction(BaseModel):
+class Action(BaseModel):
     """
     Object containing a LUME variable and the action it performs on a distgen Generator.
     """
@@ -40,7 +40,7 @@ class DistgenAction(BaseModel):
 # ------------------------------------------------------------------
 
 
-class DistgenInputAction(DistgenAction):
+class DistgenInputAction(Action):
     """Maps a distgen input parameter via a colon-separated key (e.g. ``r_dist:sigma_xy:value``).
 
     If ``has_units`` is True the parameter is a quantity dict; the ``:value``
