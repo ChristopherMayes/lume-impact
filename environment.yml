@@ -23,8 +23,8 @@ dependencies:
   - tqdm
   - pip
   # Developer
-  - bmad
-  - pytao
+  - bmad>=20260223.1
+  - pytao>=1.0.0
   - jupyterlab>=3
   - ipywidgets
   - pygments
