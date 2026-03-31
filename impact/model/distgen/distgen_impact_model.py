@@ -4,10 +4,10 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.actions import ImpactVarAction
+from impact.model.actions import ImpactAction
 from impact.model.config import VariableMappingConfig
 from impact.model.config import make_actions as make_impact_variables
-from impact.model.distgen.actions import DistgenVarAction
+from impact.model.distgen.actions import DistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig
 from impact.model.distgen.config import make_actions as make_distgen_variables
 
@@ -28,18 +28,18 @@ class LUMEDistgenImpactModel(LUMEModel):
         self,
         gen: Any,
         imp: Impact,
-        distgen_actions: list[DistgenVarAction],
-        impact_actions: list[ImpactVarAction],
+        distgen_actions: list[DistgenAction],
+        impact_actions: list[ImpactAction],
         dummy_run: bool = False,
     ):
         self.gen = gen
         self.imp = imp
         self.distgen_actions = distgen_actions
         self.impact_actions = impact_actions
-        self._distgen_by_name: dict[str, DistgenVarAction] = {
+        self._distgen_by_name: dict[str, DistgenAction] = {
             m.name: m for m in distgen_actions
         }
-        self._impact_by_name: dict[str, ImpactVarAction] = {
+        self._impact_by_name: dict[str, ImpactAction] = {
             m.name: m for m in impact_actions
         }
         self.dummy_run = dummy_run
@@ -108,14 +108,14 @@ class LUMEDistgenImpactModel(LUMEModel):
         for m in self.impact_actions:
             self._state[m.name] = m.get(self.imp)
 
-    def register_action(self, action: DistgenVarAction | ImpactVarAction) -> None:
+    def register_action(self, action: DistgenAction | ImpactAction) -> None:
         """Add a user-defined mapping to the model.
 
         Routes to the distgen or impact side based on the mapping's type.
         Replaces any existing mapping with the same name.
         """
         name = action.name
-        if isinstance(action, DistgenVarAction):
+        if isinstance(action, DistgenAction):
             if name in self._distgen_by_name:
                 self.distgen_actions[
                     self.distgen_actions.index(self._distgen_by_name[name])
@@ -124,7 +124,7 @@ class LUMEDistgenImpactModel(LUMEModel):
                 self.distgen_actions.append(action)
             self._distgen_by_name[name] = action
             self._state[name] = action.get(self.gen)
-        elif isinstance(action, ImpactVarAction):
+        elif isinstance(action, ImpactAction):
             if name in self._impact_by_name:
                 self.impact_actions[
                     self.impact_actions.index(self._impact_by_name[name])
@@ -135,7 +135,7 @@ class LUMEDistgenImpactModel(LUMEModel):
             self._state[name] = action.get(self.imp)
         else:
             raise TypeError(
-                f"Expected DistgenVarAction or ImpactVarAction, got {type(action)}"
+                f"Expected DistgenAction or ImpactAction, got {type(action)}"
             )
 
     def reset(self) -> None:

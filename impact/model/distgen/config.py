@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from lume.variables import ScalarVariable
 
-from impact.model.distgen.actions import DistgenVarAction, DistgenInputVarAction
+from impact.model.distgen.actions import DistgenAction, DistgenInputAction
 
 logger = logging.getLogger(__name__)
 
@@ -233,7 +233,7 @@ def _process_dist_config(
     type_cfg: BaseModel,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[DistgenVarAction],
+    mappings: list[DistgenAction],
 ) -> None:
     """Walk a distribution type config and emit variable mappings."""
     dist_params = gen_input.get(slot, {})
@@ -255,9 +255,7 @@ def _process_dist_config(
         if has_units:
             full_key += ":value"
         var = _make_var(var_name, val, default_unit, read_only=False)
-        mappings.append(
-            DistgenInputVarAction(var=var, key=full_key, has_units=has_units)
-        )
+        mappings.append(DistgenInputAction(var=var, key=full_key, has_units=has_units))
 
 
 def _process_slot_config(
@@ -266,7 +264,7 @@ def _process_slot_config(
     slot_cfg: DistConfig,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[DistgenVarAction],
+    mappings: list[DistgenAction],
 ) -> None:
     """Walk a per-slot config and emit variable mappings for the active dist type."""
     dist_params = gen_input.get(slot, {})
@@ -287,7 +285,7 @@ def _process_slot_config(
 def _process_start_config(
     gen_input: dict,
     start_cfg: StartConfig,
-    mappings: list[DistgenVarAction],
+    mappings: list[DistgenAction],
 ) -> None:
     """Walk the start config and emit variable mappings for the active start type."""
     start_params = gen_input.get("start", {})
@@ -321,7 +319,7 @@ def _process_start_config(
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
             mappings.append(
-                DistgenInputVarAction(var=var, key=full_key, has_units=has_units)
+                DistgenInputAction(var=var, key=full_key, has_units=has_units)
             )
 
 
@@ -333,7 +331,7 @@ def _process_start_config(
 def make_actions(
     gen: Any,
     config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
-) -> list[DistgenVarAction]:
+) -> list[DistgenAction]:
     """Build variable mappings from a distgen Generator and config.
 
     Parameters
@@ -346,9 +344,9 @@ def make_actions(
 
     Returns
     -------
-    list[DistgenVarAction]
+    list[DistgenAction]
     """
-    mappings: list[DistgenVarAction] = []
+    mappings: list[DistgenAction] = []
     inp_cfg = config.inputs
     if inp_cfg is None:
         return mappings
@@ -377,7 +375,7 @@ def make_actions(
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
             mappings.append(
-                DistgenInputVarAction(var=var, key=full_key, has_units=has_units)
+                DistgenInputAction(var=var, key=full_key, has_units=has_units)
             )
 
     # Start

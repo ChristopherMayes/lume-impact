@@ -4,12 +4,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 from impact.model.actions import (
-    ImpactVarAction,
-    EleVarAction,
-    HeaderVarAction,
-    StatVarAction,
-    RunInfoVarAction,
-    ParticleGroupVarAction,
+    ImpactAction,
+    EleAction,
+    HeaderAction,
+    StatAction,
+    RunInfoAction,
+    ParticleGroupAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -733,13 +733,13 @@ class VariableMappingConfig(BaseModel):
     particles: ParticlesConfig | None = ParticlesConfig()
 
 
-def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarAction]:
+def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactAction]:
     """Build variable mappings for every element attribute, header key, and output
     described by *config*.
 
     The current value in *imp* is used as ``default_value`` for each variable.
     """
-    mappings: list[ImpactVarAction] = []
+    mappings: list[ImpactAction] = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
@@ -754,7 +754,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarActio
             variable_name = config.header.pattern.format(key=key_token)
 
             mappings.append(
-                HeaderVarAction(
+                HeaderAction(
                     key=header_key,
                     var=ScalarVariable(
                         name=variable_name,
@@ -808,7 +808,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarActio
                 )
 
                 mappings.append(
-                    EleVarAction(
+                    EleAction(
                         ele_name=ele_name,
                         attribute=field_name,
                         var=ScalarVariable(
@@ -829,7 +829,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarActio
             variable_name = config.stats.pattern.format(name=name_token)
             stat_array = imp.stat(field_name)
             mappings.append(
-                StatVarAction(
+                StatAction(
                     stat_name=field_name,
                     var=NDVariable(
                         name=variable_name,
@@ -852,7 +852,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarActio
             )
             variable_name = config.run_info.pattern.format(key=key_token)
             mappings.append(
-                RunInfoVarAction(
+                RunInfoAction(
                     key=field_name,
                     var=ScalarVariable(
                         name=variable_name,
@@ -875,7 +875,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactVarActio
                 else particles_data.get(tool_name)
             )
             mappings.append(
-                ParticleGroupVarAction(
+                ParticleGroupAction(
                     tool_name=tool_name,
                     var=ParticleGroupVariable(
                         name=variable_name,

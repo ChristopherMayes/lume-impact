@@ -11,7 +11,7 @@ from lume.variables import Variable
 # ------------------------------------------------------------------
 
 
-class ImpactVarAction(ABC, BaseModel):
+class ImpactAction(ABC, BaseModel):
     """
     Object containing a LUME variable and the action it performs on a LUME `Impact` object.
     """
@@ -50,7 +50,7 @@ class ImpactVarAction(ABC, BaseModel):
 # ------------------------------------------------------------------
 
 
-class EleVarAction(ImpactVarAction):
+class EleAction(ImpactAction):
     """Maps an element attribute: ``imp.ele[ele_name][attribute]``."""
 
     ele_name: str
@@ -63,7 +63,7 @@ class EleVarAction(ImpactVarAction):
         imp.ele[self.ele_name][self.attribute] = value
 
 
-class HeaderVarAction(ImpactVarAction):
+class HeaderAction(ImpactAction):
     """Maps a header key: ``imp.header[key]``."""
 
     key: str
@@ -75,7 +75,7 @@ class HeaderVarAction(ImpactVarAction):
         imp.header[self.key] = value
 
 
-class StatVarAction(ImpactVarAction):
+class StatAction(ImpactAction):
     """Maps an output stat: ``imp.stat(stat_name)``. Read-only."""
 
     stat_name: str
@@ -84,13 +84,13 @@ class StatVarAction(ImpactVarAction):
         return imp.stat(self.stat_name)
 
     @model_validator(mode="after")
-    def check_read_only(self) -> "RunInfoVarAction":
+    def check_read_only(self) -> "RunInfoAction":
         if not self.var.read_only:
             raise ValueError("Variable must be read-only for stat action")
         return self
 
 
-class RunInfoVarAction(ImpactVarAction):
+class RunInfoAction(ImpactAction):
     """Maps a run_info entry: ``imp.output['run_info'][key]``. Read-only."""
 
     key: str
@@ -99,13 +99,13 @@ class RunInfoVarAction(ImpactVarAction):
         return imp.output["run_info"][self.key]
 
     @model_validator(mode="after")
-    def check_read_only(self) -> "RunInfoVarAction":
+    def check_read_only(self) -> "RunInfoAction":
         if not self.var.read_only:
             raise ValueError("Variable must be read-only for run info action")
         return self
 
 
-class ParticleGroupVarAction(ImpactVarAction):
+class ParticleGroupAction(ImpactAction):
     """Maps a particle group: ``imp.particles[tool_name]``.
 
     Only ``initial_particles`` is writable.
