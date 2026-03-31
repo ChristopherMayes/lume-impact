@@ -11,7 +11,7 @@ from lume.variables import Variable
 # ------------------------------------------------------------------
 
 
-class ImpactAction(ABC, BaseModel):
+class Action(ABC, BaseModel):
     """
     Object containing a LUME variable and the action it performs on a LUME `Impact` object.
     """
@@ -50,7 +50,7 @@ class ImpactAction(ABC, BaseModel):
 # ------------------------------------------------------------------
 
 
-class EleAction(ImpactAction):
+class EleAction(Action):
     """Maps an element attribute: ``imp.ele[ele_name][attribute]``."""
 
     ele_name: str
@@ -63,7 +63,7 @@ class EleAction(ImpactAction):
         imp.ele[self.ele_name][self.attribute] = value
 
 
-class HeaderAction(ImpactAction):
+class HeaderAction(Action):
     """Maps a header key: ``imp.header[key]``."""
 
     key: str
@@ -75,7 +75,7 @@ class HeaderAction(ImpactAction):
         imp.header[self.key] = value
 
 
-class StatAction(ImpactAction):
+class StatAction(Action):
     """Maps an output stat: ``imp.stat(stat_name)``. Read-only."""
 
     stat_name: str
@@ -90,7 +90,7 @@ class StatAction(ImpactAction):
         return self
 
 
-class RunInfoAction(ImpactAction):
+class RunInfoAction(Action):
     """Maps a run_info entry: ``imp.output['run_info'][key]``. Read-only."""
 
     key: str
@@ -105,7 +105,7 @@ class RunInfoAction(ImpactAction):
         return self
 
 
-class ParticleGroupAction(ImpactAction):
+class ParticleGroupAction(Action):
     """Maps a particle group: ``imp.particles[tool_name]``.
 
     Only ``initial_particles`` is writable.

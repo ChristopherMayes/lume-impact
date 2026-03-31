@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 from impact.model.actions import (
-    ImpactAction,
+    Action,
     EleAction,
     HeaderAction,
     StatAction,
@@ -733,13 +733,13 @@ class VariableMappingConfig(BaseModel):
     particles: ParticlesConfig | None = ParticlesConfig()
 
 
-def make_actions(imp: Any, config: VariableMappingConfig) -> list[ImpactAction]:
+def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
     """Build variable mappings for every element attribute, header key, and output
     described by *config*.
 
     The current value in *imp* is used as ``default_value`` for each variable.
     """
-    mappings: list[ImpactAction] = []
+    mappings: list[Action] = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
