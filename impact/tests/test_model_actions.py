@@ -142,6 +142,36 @@ def test_set_bypasses_read_only_guard(impact):
 
 
 # ------------------------------------------------------------------
+# Variable type validation
+# ------------------------------------------------------------------
+
+
+def test_ele_action_requires_scalar_var():
+    with pytest.raises(Exception):
+        EleAction(ele_name="Q1", attribute="b1_gradient", var=nd_var())
+
+
+def test_header_action_requires_scalar_var():
+    with pytest.raises(Exception):
+        HeaderAction(key="Bcurr", var=nd_var())
+
+
+def test_stat_action_requires_nd_var():
+    with pytest.raises(Exception):
+        StatAction(stat_name="mean_x", var=scalar_var(read_only=True))
+
+
+def test_run_info_action_requires_scalar_var():
+    with pytest.raises(Exception):
+        RunInfoAction(key="run_time", var=nd_var())
+
+
+def test_particle_group_action_requires_particle_group_var():
+    with pytest.raises(Exception):
+        ParticleGroupAction(tool_name="initial_particles", var=scalar_var())
+
+
+# ------------------------------------------------------------------
 # Construction validation
 # ------------------------------------------------------------------
 

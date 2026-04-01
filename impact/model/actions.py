@@ -4,6 +4,7 @@ from pydantic import model_validator
 
 from impact.impact import Impact
 from impact.model.base import Action, WritableAction
+from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 
 
 class ImpactAction(Action[Impact]):
@@ -17,6 +18,7 @@ class WritableImpactAction(WritableAction[Impact], ImpactAction):
 class EleAction(WritableImpactAction):
     """Maps an element attribute: ``impact.ele[ele_name][attribute]``."""
 
+    var: ScalarVariable
     ele_name: str
     attribute: str
 
@@ -30,6 +32,7 @@ class EleAction(WritableImpactAction):
 class HeaderAction(WritableImpactAction):
     """Maps a header key: ``impact.header[key]``."""
 
+    var: ScalarVariable
     key: str
 
     def get(self, impact: Impact) -> Any:
@@ -42,6 +45,7 @@ class HeaderAction(WritableImpactAction):
 class StatAction(ImpactAction):
     """Maps an output stat: ``impact.stat(stat_name)``. Read-only."""
 
+    var: NDVariable
     stat_name: str
 
     def get(self, impact: Impact) -> Any:
@@ -51,6 +55,7 @@ class StatAction(ImpactAction):
 class RunInfoAction(ImpactAction):
     """Maps a run_info entry: ``impact.output['run_info'][key]``. Read-only."""
 
+    var: ScalarVariable
     key: str
 
     def get(self, impact: Impact) -> Any:
@@ -64,6 +69,7 @@ class ParticleGroupAction(WritableImpactAction):
     constructed with ``var.read_only=True``.
     """
 
+    var: ParticleGroupVariable
     tool_name: str
 
     @model_validator(mode="after")
