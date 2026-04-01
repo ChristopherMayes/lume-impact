@@ -114,25 +114,24 @@ class LUMEDistgenImpactModel(LUMEModel):
         Routes to the distgen or impact side based on the mapping's type.
         Replaces any existing mapping with the same name.
         """
-        name = action.name
         if isinstance(action, DistgenAction):
-            if name in self._distgen_by_name:
+            if action.name in self._distgen_by_name:
                 self.distgen_actions[
-                    self.distgen_actions.index(self._distgen_by_name[name])
+                    self.distgen_actions.index(self._distgen_by_name[action.name])
                 ] = action
             else:
                 self.distgen_actions.append(action)
-            self._distgen_by_name[name] = action
-            self._state[name] = action.get(self.gen)
+            self._distgen_by_name[action.name] = action
+            self._state[action.name] = action.get(self.gen)
         elif isinstance(action, ImpactAction):
-            if name in self._impact_by_name:
+            if action.name in self._impact_by_name:
                 self.impact_actions[
-                    self.impact_actions.index(self._impact_by_name[name])
+                    self.impact_actions.index(self._impact_by_name[action.name])
                 ] = action
             else:
                 self.impact_actions.append(action)
-            self._impact_by_name[name] = action
-            self._state[name] = action.get(self.impact)
+            self._impact_by_name[action.name] = action
+            self._state[action.name] = action.get(self.impact)
         else:
             raise TypeError(
                 f"Expected DistgenAction or ImpactAction, got {type(action)}"
