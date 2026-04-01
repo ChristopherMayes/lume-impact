@@ -3,7 +3,7 @@ from typing import Any
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.distgen.actions import Action
+from impact.model.distgen.actions import Action, WritableAction
 from impact.model.distgen.config import DistgenVariableMappingConfig, make_actions
 
 
@@ -39,7 +39,10 @@ class LUMEDistgenModel(LUMEModel):
 
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
-            self._action_by_name[name].set(self.gen, value)
+            action = self._action_by_name[name]
+            if not isinstance(action, WritableAction):
+                raise TypeError(f"'{action.name}' is read-only")
+            action.set(self.gen, value)
         if not self.dummy_run:
             self.gen.run()
         self.update_state()

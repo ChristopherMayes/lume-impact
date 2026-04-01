@@ -5,9 +5,11 @@ from lume.model import LUMEModel
 from lume.variables import Variable
 
 from impact.model.actions import Action as ImpactAction
+from impact.model.actions import WritableAction as WritableImpactAction
 from impact.model.config import VariableMappingConfig
 from impact.model.config import make_actions as make_impact_variables
 from impact.model.distgen.actions import Action as DistgenAction
+from impact.model.distgen.actions import WritableAction as WritableDistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig
 from impact.model.distgen.config import make_actions as make_distgen_variables
 
@@ -87,7 +89,10 @@ class LUMEDistgenImpactModel(LUMEModel):
 
         # Write distgen inputs and run distgen
         for name, value in distgen_values.items():
-            self._distgen_by_name[name].set(self.gen, value)
+            action = self._distgen_by_name[name]
+            if not isinstance(action, WritableDistgenAction):
+                raise TypeError(f"'{action.name}' is read-only")
+            action.set(self.gen, value)
 
         if not self.dummy_run:
             self.gen.run()
@@ -95,7 +100,10 @@ class LUMEDistgenImpactModel(LUMEModel):
 
         # Write impact inputs and run impact
         for name, value in impact_values.items():
-            self._impact_by_name[name].set(self.impact, value)
+            action = self._impact_by_name[name]
+            if not isinstance(action, WritableImpactAction):
+                raise TypeError(f"'{action.name}' is read-only")
+            action.set(self.impact, value)
 
         if not self.dummy_run:
             self.impact.run()

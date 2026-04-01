@@ -1,19 +1,21 @@
 from abc import abstractmethod
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from lume.variables import Variable
 
 
 # ------------------------------------------------------------------
-# Abstract base
+# Abstract bases
 # ------------------------------------------------------------------
 
 
 class Action(BaseModel):
-    """
-    Object containing a LUME variable and the action it performs on a distgen Generator.
+    """Base for read-only distgen actions.
+
+    Subclasses must implement ``_get``.  The ``model_validator`` enforces
+    that the associated variable is marked read-only at construction time.
     """
 
     var: Variable
@@ -26,13 +28,35 @@ class Action(BaseModel):
     def read_only(self) -> bool:
         return getattr(self.var, "read_only", False)
 
+    @model_validator(mode="after")
+    def _check_var(self) -> "Action":
+        if not self.var.read_only:
+            raise ValueError(f"{type(self).__name__} requires a read-only variable")
+        return self
+
     @abstractmethod
     def get(self, gen: Any) -> Any:
         """Return the current value of this variable from the Generator."""
 
+
+class WritableAction(Action):
+    """Base for distgen actions that support both get and set.
+
+    Overrides ``_check_var`` so writable variables are accepted.
+    Subclasses must implement ``get`` and ``_set``.
+    """
+
+    @model_validator(mode="after")
+    def _check_var(self) -> "WritableAction":
+        return self
+
     def set(self, gen: Any, value: Any) -> None:
-        """Write the provided value to the Generator."""
-        raise TypeError(f"'{self.name}' is read-only")
+        if self.var.read_only:
+            raise TypeError(f"'{self.name}' is read-only")
+        self._set(gen, value)
+
+    @abstractmethod
+    def _set(self, gen: Any, value: Any) -> None: ...
 
 
 # ------------------------------------------------------------------
@@ -40,7 +64,7 @@ class Action(BaseModel):
 # ------------------------------------------------------------------
 
 
-class DistgenInputAction(Action):
+class DistgenInputAction(WritableAction):
     """Maps a distgen input parameter via a colon-separated key (e.g. ``r_dist:sigma_xy:value``).
 
     If ``has_units`` is True the parameter is a quantity dict; the ``:value``
@@ -53,5 +77,5 @@ class DistgenInputAction(Action):
     def get(self, gen: Any) -> Any:
         return gen[self.key]
 
-    def set(self, gen: Any, value: Any) -> None:
+    def _set(self, gen: Any, value: Any) -> None:
         gen[self.key] = value
