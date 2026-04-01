@@ -1,15 +1,13 @@
 from typing import Any
 
+from distgen import Generator
 from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.actions import Action as ImpactAction
-from impact.model.actions import WritableAction as WritableImpactAction
+from impact.model.base import Action, WritableAction
 from impact.model.config import VariableMappingConfig
 from impact.model.config import make_actions as make_impact_variables
-from impact.model.distgen.actions import Action as DistgenAction
-from impact.model.distgen.actions import WritableAction as WritableDistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig
 from impact.model.distgen.config import make_actions as make_distgen_variables
 
@@ -28,20 +26,20 @@ class LUMEDistgenImpactModel(LUMEModel):
 
     def __init__(
         self,
-        gen: Any,
+        gen: Generator,
         impact: Impact,
-        distgen_actions: list[DistgenAction],
-        impact_actions: list[ImpactAction],
+        distgen_actions: list[Action[Generator]],
+        impact_actions: list[Action[Impact]],
         dummy_run: bool = False,
     ):
         self.gen = gen
         self.impact = impact
         self.distgen_actions = distgen_actions
         self.impact_actions = impact_actions
-        self._distgen_by_name: dict[str, DistgenAction] = {
+        self._distgen_by_name: dict[str, Action[Generator]] = {
             m.name: m for m in distgen_actions
         }
-        self._impact_by_name: dict[str, ImpactAction] = {
+        self._impact_by_name: dict[str, Action[Impact]] = {
             m.name: m for m in impact_actions
         }
         self.dummy_run = dummy_run
@@ -51,7 +49,7 @@ class LUMEDistgenImpactModel(LUMEModel):
     @classmethod
     def from_objects(
         cls,
-        gen: Any,
+        gen: Generator,
         impact: Impact,
         distgen_config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
         impact_config: VariableMappingConfig = VariableMappingConfig(),
@@ -87,10 +85,9 @@ class LUMEDistgenImpactModel(LUMEModel):
             if name in self._impact_by_name
         }
 
-        # Write distgen inputs and run distgen
         for name, value in distgen_values.items():
             action = self._distgen_by_name[name]
-            if not isinstance(action, WritableDistgenAction):
+            if not isinstance(action, WritableAction):
                 raise TypeError(f"'{action.name}' is read-only")
             action.safe_set(self.gen, value)
 
@@ -98,10 +95,9 @@ class LUMEDistgenImpactModel(LUMEModel):
             self.gen.run()
             self.impact.initial_particles = self.gen.particles
 
-        # Write impact inputs and run impact
         for name, value in impact_values.items():
             action = self._impact_by_name[name]
-            if not isinstance(action, WritableImpactAction):
+            if not isinstance(action, WritableAction):
                 raise TypeError(f"'{action.name}' is read-only")
             action.safe_set(self.impact, value)
 
@@ -116,34 +112,39 @@ class LUMEDistgenImpactModel(LUMEModel):
         for m in self.impact_actions:
             self._state[m.name] = m.get(self.impact)
 
-    def register_action(self, action: DistgenAction | ImpactAction) -> None:
-        """Add a user-defined mapping to the model.
+    def register_distgen_action(self, action: Action[Generator]) -> None:
+        """Add a user-defined distgen action to the model.
 
-        Routes to the distgen or impact side based on the mapping's type.
-        Replaces any existing mapping with the same name.
+        The action's current value is read from ``gen`` immediately and
+        stored in the state. If an action with the same name already exists
+        it is replaced.
         """
-        if isinstance(action, DistgenAction):
-            if action.name in self._distgen_by_name:
-                self.distgen_actions[
-                    self.distgen_actions.index(self._distgen_by_name[action.name])
-                ] = action
-            else:
-                self.distgen_actions.append(action)
-            self._distgen_by_name[action.name] = action
-            self._state[action.name] = action.get(self.gen)
-        elif isinstance(action, ImpactAction):
-            if action.name in self._impact_by_name:
-                self.impact_actions[
-                    self.impact_actions.index(self._impact_by_name[action.name])
-                ] = action
-            else:
-                self.impact_actions.append(action)
-            self._impact_by_name[action.name] = action
-            self._state[action.name] = action.get(self.impact)
+        name = action.name
+        if name in self._distgen_by_name:
+            self.distgen_actions[
+                self.distgen_actions.index(self._distgen_by_name[name])
+            ] = action
         else:
-            raise TypeError(
-                f"Expected DistgenAction or ImpactAction, got {type(action)}"
-            )
+            self.distgen_actions.append(action)
+        self._distgen_by_name[name] = action
+        self._state[name] = action.get(self.gen)
+
+    def register_impact_action(self, action: Action[Impact]) -> None:
+        """Add a user-defined Impact action to the model.
+
+        The action's current value is read from ``impact`` immediately and
+        stored in the state. If an action with the same name already exists
+        it is replaced.
+        """
+        name = action.name
+        if name in self._impact_by_name:
+            self.impact_actions[
+                self.impact_actions.index(self._impact_by_name[name])
+            ] = action
+        else:
+            self.impact_actions.append(action)
+        self._impact_by_name[name] = action
+        self._state[name] = action.get(self.impact)
 
     def reset(self) -> None:
         self.set(

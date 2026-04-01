@@ -1,5 +1,4 @@
 import os
-from unittest.mock import MagicMock
 
 import pytest
 from distgen import Generator
@@ -204,7 +203,7 @@ def test_register_distgen_action_on_combined(gen, fast_impact):
         has_units=False,
         var=ScalarVariable(name="distgen/n_particle_v2", default_value=None),
     )
-    model.register_action(action)
+    model.register_distgen_action(action)
     assert "distgen/n_particle_v2" in model.supported_variables
     assert "distgen/n_particle_v2" in model._distgen_by_name
 
@@ -215,13 +214,6 @@ def test_register_impact_action_on_combined(gen, fast_impact):
         key="Ntstep",
         var=ScalarVariable(name="header/Ntstep", default_value=1000),
     )
-    model.register_action(action)
+    model.register_impact_action(action)
     assert "header/Ntstep" in model.supported_variables
     assert "header/Ntstep" in model._impact_by_name
-
-
-def test_register_unknown_action_type_raises(gen, fast_impact):
-    model = LUMEDistgenImpactModel.from_objects(gen, fast_impact, dummy_run=True)
-    bad_action = MagicMock(spec=[])
-    with pytest.raises(TypeError):
-        model.register_action(bad_action)

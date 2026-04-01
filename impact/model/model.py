@@ -4,20 +4,20 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
+from impact.model.base import Action, WritableAction
 from impact.model.config import VariableMappingConfig, make_actions
-from impact.model.actions import Action, WritableAction
 
 
 class LUMEImpactModel(LUMEModel):
     def __init__(
         self,
         impact: Impact,
-        actions: list[Action],
+        actions: list[Action[Impact]],
         dummy_run: bool = False,
     ):
         self.impact = impact
         self.actions = actions
-        self._action_by_name: dict[str, Action] = {m.name: m for m in actions}
+        self._action_by_name: dict[str, Action[Impact]] = {m.name: m for m in actions}
         self.dummy_run = dummy_run
         self._state: dict[str, Any] = {}
         self.update_state()
@@ -52,7 +52,7 @@ class LUMEImpactModel(LUMEModel):
         for m in self.actions:
             self._state[m.name] = m.get(self.impact)
 
-    def register_action(self, action: Action) -> None:
+    def register_action(self, action: Action[Impact]) -> None:
         """Add a user-defined action to the model.
 
         The action's current value is read from ``impact`` immediately and

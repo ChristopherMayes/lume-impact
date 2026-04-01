@@ -1,22 +1,25 @@
 from typing import Any
 
+from distgen import Generator
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.distgen.actions import Action, WritableAction
+from impact.model.base import Action, WritableAction
 from impact.model.distgen.config import DistgenVariableMappingConfig, make_actions
 
 
 class LUMEDistgenModel(LUMEModel):
     def __init__(
         self,
-        gen: Any,
-        actions: list[Action],
+        gen: Generator,
+        actions: list[Action[Generator]],
         dummy_run: bool = False,
     ):
         self.gen = gen
         self.actions = actions
-        self._action_by_name: dict[str, Action] = {m.name: m for m in actions}
+        self._action_by_name: dict[str, Action[Generator]] = {
+            m.name: m for m in actions
+        }
         self.dummy_run = dummy_run
         self._state: dict[str, Any] = {}
         self.update_state()
@@ -24,7 +27,7 @@ class LUMEDistgenModel(LUMEModel):
     @classmethod
     def from_generator(
         cls,
-        gen: Any,
+        gen: Generator,
         config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
         **kwargs,
     ) -> "LUMEDistgenModel":
@@ -51,7 +54,7 @@ class LUMEDistgenModel(LUMEModel):
         for m in self.actions:
             self._state[m.name] = m.get(self.gen)
 
-    def register_action(self, action: Action) -> None:
+    def register_action(self, action: Action[Generator]) -> None:
         """Add a user-defined action to the model.
 
         The action's current value is read from ``gen`` immediately and
