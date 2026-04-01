@@ -34,8 +34,8 @@ def scalar_var(name="test", read_only=False):
     return ScalarVariable(name=name, default_value=0.0, read_only=read_only)
 
 
-def nd_var(name="test_nd"):
-    return NDVariable(name=name, shape=(100,), default_value=None, read_only=True)
+def nd_var(name="test_nd", read_only=True):
+    return NDVariable(name=name, shape=(100,), default_value=None, read_only=read_only)
 
 
 def pg_var(name="test_pg", read_only=False):
@@ -49,7 +49,7 @@ def pg_var(name="test_pg", read_only=False):
 
 def test_read_only_action_requires_read_only_var():
     with pytest.raises(ValueError, match="read-only"):
-        StatAction(stat_name="mean_x", var=scalar_var(read_only=False))
+        StatAction(stat_name="mean_x", var=nd_var(read_only=False))
 
 
 def test_read_only_action_accepts_read_only_var():
@@ -178,7 +178,7 @@ def test_particle_group_action_requires_particle_group_var():
 
 def test_stat_action_requires_read_only_var():
     with pytest.raises(ValueError, match="read-only"):
-        StatAction(stat_name="mean_x", var=scalar_var(read_only=False))
+        StatAction(stat_name="mean_x", var=nd_var(read_only=False))
 
 
 def test_run_info_action_requires_read_only_var():
