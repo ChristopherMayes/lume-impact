@@ -233,9 +233,9 @@ def _process_dist_config(
     type_cfg: BaseModel,
     coord: str | None,
     dist_pattern: str,
-    actions: list[Action],
-) -> None:
-    """Walk a distribution type config and emit variable actions."""
+) -> list[Action]:
+    """Walk a distribution type config and return variable actions."""
+    actions: list[Action] = []
     dist_params = gen_input.get(slot, {})
     for field in type(type_cfg).model_fields:
         val = getattr(type_cfg, field)
@@ -256,6 +256,7 @@ def _process_dist_config(
             full_key += ":value"
         var = _make_var(var_name, val, default_unit, read_only=False)
         actions.append(DistgenInputAction(var=var, key=full_key, has_units=has_units))
+    return actions
 
 
 def _process_slot_config(
@@ -264,12 +265,12 @@ def _process_slot_config(
     slot_cfg: DistConfig,
     coord: str | None,
     dist_pattern: str,
-    actions: list[Action],
-) -> None:
-    """Walk a per-slot config and emit variable actions for the active dist type."""
+) -> list[Action]:
+    """Walk a per-slot config and return variable actions for the active dist type."""
+    actions: list[Action] = []
     dist_params = gen_input.get(slot, {})
     if not dist_params:
-        return
+        return actions
     active_type = dist_params.get("type", "")
     for type_field in type(slot_cfg).model_fields:
         cfg = getattr(slot_cfg, type_field)
@@ -277,20 +278,21 @@ def _process_slot_config(
             continue
         if active_type and type_field != active_type:
             continue
-        _process_dist_config(
-            gen_input, slot, type_field, cfg, coord, dist_pattern, actions
+        actions.extend(
+            _process_dist_config(gen_input, slot, type_field, cfg, coord, dist_pattern)
         )
+    return actions
 
 
 def _process_start_config(
     gen_input: dict,
     start_cfg: StartConfig,
-    actions: list[Action],
-) -> None:
-    """Walk the start config and emit variable actions for the active start type."""
+) -> list[Action]:
+    """Walk the start config and return variable actions for the active start type."""
+    actions: list[Action] = []
     start_params = gen_input.get("start", {})
     if not start_params:
-        return
+        return actions
     active_type = start_params.get("type", "")
     for type_field in type(start_cfg).model_fields:
         if type_field == "pattern":
@@ -321,6 +323,7 @@ def _process_start_config(
             actions.append(
                 DistgenInputAction(var=var, key=full_key, has_units=has_units)
             )
+    return actions
 
 
 # ------------------------------------------------------------------
@@ -380,7 +383,7 @@ def make_actions(
 
     # Start
     if inp_cfg.start is not None:
-        _process_start_config(gen_input, inp_cfg.start, actions)
+        actions.extend(_process_start_config(gen_input, inp_cfg.start))
 
     # Distribution slots
     if inp_cfg.distributions is not None:
@@ -391,8 +394,8 @@ def make_actions(
             if slot_cfg is None:
                 continue
             coord = _COORD_FROM_DIST[slot]
-            _process_slot_config(
-                gen_input, slot, slot_cfg, coord, dist_pattern, actions
+            actions.extend(
+                _process_slot_config(gen_input, slot, slot_cfg, coord, dist_pattern)
             )
 
     return actions
