@@ -4,8 +4,15 @@ import numpy as np
 import pytest
 
 from ... import z as IZ
-from pmd_beamphysics import single_particle
-from pmd_beamphysics.units import mec2
+
+try:
+    from beamphysics import single_particle
+except ImportError:
+    from pmd_beamphysics import single_particle
+try:
+    from beamphysics.units import mec2
+except ImportError:
+    from pmd_beamphysics.units import mec2
 
 
 @pytest.mark.parametrize(

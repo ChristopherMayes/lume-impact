@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit
+try:
+    from beamphysics.units import e_charge, known_unit, mec2, pmd_unit
+except ImportError:
+    from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit
 from typing import Annotated
 from .types import NDArray
 

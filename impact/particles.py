@@ -1,4 +1,7 @@
-from pmd_beamphysics.particles import single_particle
+try:
+    from beamphysics.particles import single_particle
+except ImportError:
+    from pmd_beamphysics.particles import single_particle
 
 import scipy.constants
 

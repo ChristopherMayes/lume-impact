@@ -9,8 +9,15 @@ import annotated_types
 import numpy as np
 import pydantic
 import pydantic_core
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
+
+try:
+    from beamphysics import ParticleGroup
+except ImportError:
+    from pmd_beamphysics import ParticleGroup
+try:
+    from beamphysics.units import pmd_unit
+except ImportError:
+    from pmd_beamphysics.units import pmd_unit
 from rich.pretty import pretty_repr
 from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict, override
 from typing import Annotated

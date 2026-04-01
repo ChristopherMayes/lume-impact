@@ -1,17 +1,30 @@
 import numpy as np
 
-from pmd_beamphysics.fields.analysis import (
-    accelerating_voltage_and_phase,
-    track_field_1df,
-)
+try:
+    from beamphysics.fields.analysis import (
+        accelerating_voltage_and_phase,
+        track_field_1df,
+    )
+except ImportError:
+    from pmd_beamphysics.fields.analysis import (
+        accelerating_voltage_and_phase,
+        track_field_1df,
+    )
 from scipy.optimize import brent
 
 from .fieldmaps import ele_field
-from pmd_beamphysics.units import mec2
+
+try:
+    from beamphysics.units import mec2
+except ImportError:
+    from pmd_beamphysics.units import mec2
 from scipy.constants import c
 from scipy.constants import e as e_charge
 
-from pmd_beamphysics import single_particle
+try:
+    from beamphysics import single_particle
+except ImportError:
+    from pmd_beamphysics import single_particle
 
 
 AUTOPHASE_ATTRS = ("theta0_deg", "dtheta0_deg")

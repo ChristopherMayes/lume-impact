@@ -13,7 +13,11 @@ import pydantic
 import pydantic.alias_generators
 
 from .particles import ImpactZParticles
-from pmd_beamphysics.units import pmd_unit
+
+try:
+    from beamphysics.units import pmd_unit
+except ImportError:
+    from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
 from .constants import DiagnosticType
@@ -521,7 +525,7 @@ class OutputStats(BaseModel):
         Twiss beta x (m) (computed)
     twiss_beta_y : ndarray
         Twiss beta y (m) (computed)
-    units : dict[str, pmd_beamphysics.units.pmd_unit]
+    units : dict[str, beamphysics.units.pmd_unit]
         Mapping of attribute name to pmd_unit.
     extra : dict[str, numpy.ndarray]
         Additional Impact-Z output data.  This is a future-proofing mechanism

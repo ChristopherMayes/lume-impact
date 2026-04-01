@@ -24,9 +24,18 @@ from .fast_autophase import fast_autophase_impact
 from .interfaces.bmad import impact_from_tao
 
 
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
-from pmd_beamphysics.interfaces.impact import impact_particles_to_particle_data
+try:
+    from beamphysics import ParticleGroup
+except ImportError:
+    from pmd_beamphysics import ParticleGroup
+try:
+    from beamphysics.units import pmd_unit
+except ImportError:
+    from pmd_beamphysics.units import pmd_unit
+try:
+    from beamphysics.interfaces.impact import impact_particles_to_particle_data
+except ImportError:
+    from pmd_beamphysics.interfaces.impact import impact_particles_to_particle_data
 
 from scipy.interpolate import interp1d
 

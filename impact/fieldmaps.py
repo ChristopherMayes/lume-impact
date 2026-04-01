@@ -7,8 +7,14 @@ from subprocess import Popen, PIPE
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import warnings
 
-from pmd_beamphysics.interfaces.impact import fourier_field_reconsruction
-from pmd_beamphysics import FieldMesh
+try:
+    from beamphysics.interfaces.impact import fourier_field_reconsruction
+except ImportError:
+    from pmd_beamphysics.interfaces.impact import fourier_field_reconsruction
+try:
+    from beamphysics import FieldMesh
+except ImportError:
+    from pmd_beamphysics import FieldMesh
 
 
 def write_fieldmap(filePath, fieldmap):

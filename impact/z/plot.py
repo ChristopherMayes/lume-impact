@@ -11,7 +11,11 @@ import numpy as np
 import pydantic.dataclasses as dataclasses
 from impact.z.constants import MultipoleType
 from impact.z.input import AnyInputElement, Multipole, ZElement
-from pmd_beamphysics.units import nice_array, nice_scale_prefix
+
+try:
+    from beamphysics.units import nice_array, nice_scale_prefix
+except ImportError:
+    from pmd_beamphysics.units import nice_array, nice_scale_prefix
 from pydantic import ConfigDict, Field
 from typing_extensions import Literal
 

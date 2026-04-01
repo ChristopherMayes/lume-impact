@@ -1,7 +1,16 @@
 # import numpy as np
 
-from pmd_beamphysics.units import write_dataset_and_unit_h5, read_dataset_and_unit_h5
-from pmd_beamphysics import ParticleGroup, FieldMesh
+try:
+    from beamphysics.units import write_dataset_and_unit_h5, read_dataset_and_unit_h5
+except ImportError:
+    from pmd_beamphysics.units import (
+        write_dataset_and_unit_h5,
+        read_dataset_and_unit_h5,
+    )
+try:
+    from beamphysics import ParticleGroup, FieldMesh
+except ImportError:
+    from pmd_beamphysics import ParticleGroup, FieldMesh
 
 from .parsers import header_lines
 from .lattice import lattice_lines
