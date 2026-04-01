@@ -11,7 +11,7 @@ from impact.model.model import LUMEImpactModel
 
 
 TESLA_INPUT = os.path.join(
-    os.path.dirname(__file__), "input", "tesla_9cell_cavity", "ImpactT.in"
+    os.path.dirname(__file__), "..", "input", "tesla_9cell_cavity", "ImpactT.in"
 )
 
 

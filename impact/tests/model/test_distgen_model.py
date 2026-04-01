@@ -14,7 +14,7 @@ from impact.model.actions import HeaderAction
 
 DISTGEN_YAML = os.path.join(
     os.path.dirname(__file__),
-    "../../docs/examples/templates/lcls_injector/distgen.yaml",
+    "../../../docs/examples/templates/lcls_injector/distgen.yaml",
 )
 
 
