@@ -734,12 +734,12 @@ class VariableMappingConfig(BaseModel):
 
 
 def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
-    """Build variable mappings for every element attribute, header key, and output
+    """Build variable actions for every element attribute, header key, and output
     described by *config*.
 
     The current value in *impact* is used as ``default_value`` for each variable.
     """
-    mappings: list[Action] = []
+    actions: list[Action] = []
 
     if config.header is not None:
         for field_name, field_info in HeaderConfig.model_fields.items():
@@ -753,7 +753,7 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
             key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
             variable_name = config.header.pattern.format(key=key_token)
 
-            mappings.append(
+            actions.append(
                 HeaderAction(
                     key=header_key,
                     var=ScalarVariable(
@@ -807,7 +807,7 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
                     type=type_token, name=name_token, attrib=attrib_token
                 )
 
-                mappings.append(
+                actions.append(
                     EleAction(
                         ele_name=ele_name,
                         attribute=field_name,
@@ -828,7 +828,7 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
             name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
             variable_name = config.stats.pattern.format(name=name_token)
             stat_array = impact.stat(field_name)
-            mappings.append(
+            actions.append(
                 StatAction(
                     stat_name=field_name,
                     var=NDVariable(
@@ -851,7 +851,7 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
                 run_info_cfg.alias if run_info_cfg.alias is not None else field_name
             )
             variable_name = config.run_info.pattern.format(key=key_token)
-            mappings.append(
+            actions.append(
                 RunInfoAction(
                     key=field_name,
                     var=ScalarVariable(
@@ -874,7 +874,7 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
                 if tool_name == "initial_particles"
                 else particles_data.get(tool_name)
             )
-            mappings.append(
+            actions.append(
                 ParticleGroupAction(
                     tool_name=tool_name,
                     var=ParticleGroupVariable(
@@ -885,4 +885,4 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
                 )
             )
 
-    return mappings
+    return actions

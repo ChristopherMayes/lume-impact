@@ -233,9 +233,9 @@ def _process_dist_config(
     type_cfg: BaseModel,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[Action],
+    actions: list[Action],
 ) -> None:
-    """Walk a distribution type config and emit variable mappings."""
+    """Walk a distribution type config and emit variable actions."""
     dist_params = gen_input.get(slot, {})
     for field in type(type_cfg).model_fields:
         val = getattr(type_cfg, field)
@@ -255,7 +255,7 @@ def _process_dist_config(
         if has_units:
             full_key += ":value"
         var = _make_var(var_name, val, default_unit, read_only=False)
-        mappings.append(DistgenInputAction(var=var, key=full_key, has_units=has_units))
+        actions.append(DistgenInputAction(var=var, key=full_key, has_units=has_units))
 
 
 def _process_slot_config(
@@ -264,9 +264,9 @@ def _process_slot_config(
     slot_cfg: DistConfig,
     coord: str | None,
     dist_pattern: str,
-    mappings: list[Action],
+    actions: list[Action],
 ) -> None:
-    """Walk a per-slot config and emit variable mappings for the active dist type."""
+    """Walk a per-slot config and emit variable actions for the active dist type."""
     dist_params = gen_input.get(slot, {})
     if not dist_params:
         return
@@ -278,16 +278,16 @@ def _process_slot_config(
         if active_type and type_field != active_type:
             continue
         _process_dist_config(
-            gen_input, slot, type_field, cfg, coord, dist_pattern, mappings
+            gen_input, slot, type_field, cfg, coord, dist_pattern, actions
         )
 
 
 def _process_start_config(
     gen_input: dict,
     start_cfg: StartConfig,
-    mappings: list[Action],
+    actions: list[Action],
 ) -> None:
-    """Walk the start config and emit variable mappings for the active start type."""
+    """Walk the start config and emit variable actions for the active start type."""
     start_params = gen_input.get("start", {})
     if not start_params:
         return
@@ -318,7 +318,7 @@ def _process_start_config(
             if has_units:
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
-            mappings.append(
+            actions.append(
                 DistgenInputAction(var=var, key=full_key, has_units=has_units)
             )
 
@@ -346,10 +346,10 @@ def make_actions(
     -------
     list[Action]
     """
-    mappings: list[Action] = []
+    actions: list[Action] = []
     inp_cfg = config.inputs
     if inp_cfg is None:
-        return mappings
+        return actions
 
     gen_input = gen.input
 
@@ -374,13 +374,13 @@ def make_actions(
             if has_units:
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
-            mappings.append(
+            actions.append(
                 DistgenInputAction(var=var, key=full_key, has_units=has_units)
             )
 
     # Start
     if inp_cfg.start is not None:
-        _process_start_config(gen_input, inp_cfg.start, mappings)
+        _process_start_config(gen_input, inp_cfg.start, actions)
 
     # Distribution slots
     if inp_cfg.distributions is not None:
@@ -392,7 +392,7 @@ def make_actions(
                 continue
             coord = _COORD_FROM_DIST[slot]
             _process_slot_config(
-                gen_input, slot, slot_cfg, coord, dist_pattern, mappings
+                gen_input, slot, slot_cfg, coord, dist_pattern, actions
             )
 
-    return mappings
+    return actions

@@ -21,7 +21,7 @@ class LUMEDistgenImpactModel(LUMEModel):
     2. The resulting particle group is set as ``impact.initial_particles``.
     3. Impact inputs are written to ``impact`` and Impact is run.
 
-    Variables are routed automatically based on which mapping list each
+    Variables are routed automatically based on which actions list each
     variable name belongs to.
     """
 
