@@ -17,8 +17,8 @@ class LUMEDistgenImpactModel(LUMEModel):
 
     On each ``set`` call:
     1. Distgen inputs are written to ``gen`` and distgen is run.
-    2. The resulting particle group is set as ``imp.initial_particles``.
-    3. Impact inputs are written to ``imp`` and Impact is run.
+    2. The resulting particle group is set as ``impact.initial_particles``.
+    3. Impact inputs are written to ``impact`` and Impact is run.
 
     Variables are routed automatically based on which mapping list each
     variable name belongs to.
@@ -27,13 +27,13 @@ class LUMEDistgenImpactModel(LUMEModel):
     def __init__(
         self,
         gen: Any,
-        imp: Impact,
+        impact: Impact,
         distgen_actions: list[DistgenAction],
         impact_actions: list[ImpactAction],
         dummy_run: bool = False,
     ):
         self.gen = gen
-        self.imp = imp
+        self.impact = impact
         self.distgen_actions = distgen_actions
         self.impact_actions = impact_actions
         self._distgen_by_name: dict[str, DistgenAction] = {
@@ -50,16 +50,16 @@ class LUMEDistgenImpactModel(LUMEModel):
     def from_objects(
         cls,
         gen: Any,
-        imp: Impact,
+        impact: Impact,
         distgen_config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
         impact_config: VariableMappingConfig = VariableMappingConfig(),
         **kwargs,
     ) -> "LUMEDistgenImpactModel":
         return cls(
             gen,
-            imp,
+            impact,
             make_distgen_variables(gen, distgen_config),
-            make_impact_variables(imp, impact_config),
+            make_impact_variables(impact, impact_config),
             **kwargs,
         )
 
@@ -91,14 +91,14 @@ class LUMEDistgenImpactModel(LUMEModel):
 
         if not self.dummy_run:
             self.gen.run()
-            self.imp.initial_particles = self.gen.particles
+            self.impact.initial_particles = self.gen.particles
 
         # Write impact inputs and run impact
         for name, value in impact_values.items():
-            self._impact_by_name[name].set(self.imp, value)
+            self._impact_by_name[name].set(self.impact, value)
 
         if not self.dummy_run:
-            self.imp.run()
+            self.impact.run()
 
         self.update_state()
 
@@ -106,7 +106,7 @@ class LUMEDistgenImpactModel(LUMEModel):
         for m in self.distgen_actions:
             self._state[m.name] = m.get(self.gen)
         for m in self.impact_actions:
-            self._state[m.name] = m.get(self.imp)
+            self._state[m.name] = m.get(self.impact)
 
     def register_action(self, action: DistgenAction | ImpactAction) -> None:
         """Add a user-defined mapping to the model.
@@ -132,7 +132,7 @@ class LUMEDistgenImpactModel(LUMEModel):
             else:
                 self.impact_actions.append(action)
             self._impact_by_name[name] = action
-            self._state[name] = action.get(self.imp)
+            self._state[name] = action.get(self.impact)
         else:
             raise TypeError(
                 f"Expected DistgenAction or ImpactAction, got {type(action)}"

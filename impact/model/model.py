@@ -11,11 +11,11 @@ from impact.model.actions import Action
 class LUMEImpactModel(LUMEModel):
     def __init__(
         self,
-        imp: Impact,
+        impact: Impact,
         actions: list[Action],
         dummy_run: bool = False,
     ):
-        self.imp = imp
+        self.impact = impact
         self.actions = actions
         self._action_by_name: dict[str, Action] = {m.name: m for m in actions}
         self.dummy_run = dummy_run
@@ -25,11 +25,11 @@ class LUMEImpactModel(LUMEModel):
     @classmethod
     def from_impact(
         cls,
-        imp: Impact,
+        impact: Impact,
         config: VariableMappingConfig = VariableMappingConfig(),
         **kwargs,
     ) -> "LUMEImpactModel":
-        return cls(imp, make_actions(imp, config), **kwargs)
+        return cls(impact, make_actions(impact, config), **kwargs)
 
     @property
     def supported_variables(self) -> dict[str, Variable]:
@@ -40,19 +40,19 @@ class LUMEImpactModel(LUMEModel):
 
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
-            self._action_by_name[name].set(self.imp, value)
+            self._action_by_name[name].set(self.impact, value)
         if not self.dummy_run:
-            self.imp.run()
+            self.impact.run()
         self.update_state()
 
     def update_state(self) -> None:
         for m in self.actions:
-            self._state[m.name] = m.get(self.imp)
+            self._state[m.name] = m.get(self.impact)
 
     def register_action(self, action: Action) -> None:
         """Add a user-defined action to the model.
 
-        The action's current value is read from ``imp`` immediately and
+        The action's current value is read from ``impact`` immediately and
         stored in the state. If an action with the same name already exists
         it is replaced.
         """
@@ -62,7 +62,7 @@ class LUMEImpactModel(LUMEModel):
         else:
             self.actions.append(action)
         self._action_by_name[name] = action
-        self._state[name] = action.get(self.imp)
+        self._state[name] = action.get(self.impact)
 
     def reset(self) -> None:
         self.set(

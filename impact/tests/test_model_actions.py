@@ -14,7 +14,7 @@ from impact.model.actions import (
 
 
 @pytest.fixture
-def imp():
+def impact():
     m = MagicMock()
     m.ele = {"Q1": {"b1_gradient": 1.5, "radius": 0.02}}
     m.header = {"Bcurr": 0.1, "Np": 1000}
@@ -44,15 +44,15 @@ def pg_var(name="test_pg", read_only=False):
 # ------------------------------------------------------------------
 
 
-def test_ele_get(imp):
+def test_ele_get(impact):
     action = EleAction(ele_name="Q1", attribute="b1_gradient", var=scalar_var())
-    assert action.get(imp) == 1.5
+    assert action.get(impact) == 1.5
 
 
-def test_ele_set(imp):
+def test_ele_set(impact):
     action = EleAction(ele_name="Q1", attribute="b1_gradient", var=scalar_var())
-    action.set(imp, 2.0)
-    assert imp.ele["Q1"]["b1_gradient"] == 2.0
+    action.set(impact, 2.0)
+    assert impact.ele["Q1"]["b1_gradient"] == 2.0
 
 
 def test_ele_name():
@@ -65,34 +65,34 @@ def test_ele_not_read_only():
     assert action.read_only is False
 
 
-def test_header_get(imp):
+def test_header_get(impact):
     action = HeaderAction(key="Bcurr", var=scalar_var())
-    assert action.get(imp) == 0.1
+    assert action.get(impact) == 0.1
 
 
-def test_header_set(imp):
+def test_header_set(impact):
     action = HeaderAction(key="Bcurr", var=scalar_var())
-    action.set(imp, 0.5)
-    assert imp.header["Bcurr"] == 0.5
+    action.set(impact, 0.5)
+    assert impact.header["Bcurr"] == 0.5
 
 
-def test_header_read_only_raises(imp):
+def test_header_read_only_raises(impact):
     action = HeaderAction(key="Np", var=scalar_var(read_only=True))
     with pytest.raises(TypeError, match="read-only"):
-        action.set(imp, 500)
+        action.set(impact, 500)
 
 
-def test_stat_get(imp):
+def test_stat_get(impact):
     action = StatAction(stat_name="mean_x", var=nd_var())
-    result = action.get(imp)
-    imp.stat.assert_called_once_with("mean_x")
-    assert result is imp.stat.return_value
+    result = action.get(impact)
+    impact.stat.assert_called_once_with("mean_x")
+    assert result is impact.stat.return_value
 
 
-def test_stat_set_raises(imp):
+def test_stat_set_raises(impact):
     action = StatAction(stat_name="mean_x", var=nd_var())
     with pytest.raises(TypeError, match="read-only"):
-        action.set(imp, None)
+        action.set(impact, None)
 
 
 def test_stat_read_only():
@@ -100,39 +100,39 @@ def test_stat_read_only():
     assert action.read_only is True
 
 
-def test_run_info_get(imp):
+def test_run_info_get(impact):
     action = RunInfoAction(key="run_time", var=scalar_var())
-    assert action.get(imp) == 3.2
+    assert action.get(impact) == 3.2
 
 
-def test_run_info_set_raises(imp):
+def test_run_info_set_raises(impact):
     action = RunInfoAction(key="run_time", var=scalar_var())
     with pytest.raises(TypeError, match="read-only"):
-        action.set(imp, 0.0)
+        action.set(impact, 0.0)
 
 
-def test_particle_group_get_initial(imp):
+def test_particle_group_get_initial(impact):
     action = ParticleGroupAction(tool_name="initial_particles", var=pg_var())
-    assert action.get(imp) is imp.particles["initial_particles"]
+    assert action.get(impact) is impact.particles["initial_particles"]
 
 
-def test_particle_group_get_final(imp):
+def test_particle_group_get_final(impact):
     action = ParticleGroupAction(
         tool_name="final_particles", var=pg_var(read_only=True)
     )
-    assert action.get(imp) is imp.particles["final_particles"]
+    assert action.get(impact) is impact.particles["final_particles"]
 
 
-def test_particle_group_set_initial(imp):
+def test_particle_group_set_initial(impact):
     action = ParticleGroupAction(tool_name="initial_particles", var=pg_var())
     new_pg = MagicMock()
-    action.set(imp, new_pg)
-    assert imp.initial_particles == new_pg
+    action.set(impact, new_pg)
+    assert impact.initial_particles == new_pg
 
 
-def test_particle_group_set_non_initial_raises(imp):
+def test_particle_group_set_non_initial_raises(impact):
     action = ParticleGroupAction(
         tool_name="final_particles", var=pg_var(read_only=True)
     )
     with pytest.raises(TypeError, match="read-only"):
-        action.set(imp, MagicMock())
+        action.set(impact, MagicMock())

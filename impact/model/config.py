@@ -394,7 +394,7 @@ class HeaderConfig(BaseModel):
 
     @property
     def key_map(self) -> dict[str, str]:
-        """Maps variable token (alias) -> actual imp.header key, for aliased fields."""
+        """Maps variable token (alias) -> actual impact.header key, for aliased fields."""
         result = {}
         for field_name, field_info in HeaderConfig.model_fields.items():
             attr_cfg = getattr(self, field_name)
@@ -693,7 +693,7 @@ class ElementsConfig(BaseModel):
 
     @property
     def attrib_map(self) -> dict[str, str]:
-        """Maps attrib token (alias) -> actual imp.ele field name, for aliased attributes."""
+        """Maps attrib token (alias) -> actual impact.ele field name, for aliased attributes."""
         result = {}
         for type_field in ElementsConfig.model_fields:
             type_cfg = getattr(self, type_field)
@@ -716,7 +716,7 @@ class ParticlesConfig(BaseModel):
 
     @property
     def name_map(self) -> dict[str, str]:
-        """Maps particle variable token (control name) -> actual key in imp.particles."""
+        """Maps particle variable token (control name) -> actual key in impact.particles."""
         return self.name_mappings or {}
 
 
@@ -733,11 +733,11 @@ class VariableMappingConfig(BaseModel):
     particles: ParticlesConfig | None = ParticlesConfig()
 
 
-def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
+def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
     """Build variable mappings for every element attribute, header key, and output
     described by *config*.
 
-    The current value in *imp* is used as ``default_value`` for each variable.
+    The current value in *impact* is used as ``default_value`` for each variable.
     """
     mappings: list[Action] = []
 
@@ -758,7 +758,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
                     key=header_key,
                     var=ScalarVariable(
                         name=variable_name,
-                        default_value=imp.header.get(header_key),
+                        default_value=impact.header.get(header_key),
                         unit=attr_cfg.unit,
                         read_only=attr_cfg.read_only,
                     ),
@@ -777,7 +777,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
             else None
         )
 
-        for ele in imp.lattice:
+        for ele in impact.lattice:
             ele_type: str = ele.get("type", "")
             ele_name: str = ele.get("name", "")
 
@@ -797,7 +797,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
                 if not isinstance(attr_cfg, AttributeConfig):
                     continue
 
-                if field_name not in imp.ele[ele_name]:
+                if field_name not in impact.ele[ele_name]:
                     continue
 
                 attrib_token = (
@@ -813,7 +813,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
                         attribute=field_name,
                         var=ScalarVariable(
                             name=variable_name,
-                            default_value=imp.ele[ele_name][field_name],
+                            default_value=impact.ele[ele_name][field_name],
                             unit=attr_cfg.unit,
                             read_only=attr_cfg.read_only,
                         ),
@@ -827,7 +827,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
                 continue
             name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
             variable_name = config.stats.pattern.format(name=name_token)
-            stat_array = imp.stat(field_name)
+            stat_array = impact.stat(field_name)
             mappings.append(
                 StatAction(
                     stat_name=field_name,
@@ -842,7 +842,7 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
             )
 
     if config.run_info is not None:
-        run_info_data = imp.output.get("run_info", {})
+        run_info_data = impact.output.get("run_info", {})
         for field_name in RunInfoConfig.model_fields:
             run_info_cfg = getattr(config.run_info, field_name)
             if not isinstance(run_info_cfg, StatAttributeConfig):
@@ -865,12 +865,12 @@ def make_actions(imp: Any, config: VariableMappingConfig) -> list[Action]:
 
     if config.particles is not None:
         reverse_particle_map = {v: k for k, v in config.particles.name_map.items()}
-        particles_data = imp.output.get("particles", {})
-        for tool_name in imp.particles.keys():
+        particles_data = impact.output.get("particles", {})
+        for tool_name in impact.particles.keys():
             control_name = reverse_particle_map.get(tool_name, tool_name)
             variable_name = config.particles.pattern.format(name=control_name)
             default_val = (
-                getattr(imp, "initial_particles", None)
+                getattr(impact, "initial_particles", None)
                 if tool_name == "initial_particles"
                 else particles_data.get(tool_name)
             )
