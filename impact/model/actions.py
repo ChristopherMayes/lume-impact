@@ -14,7 +14,7 @@ from lume.variables import Variable
 class Action(ABC, BaseModel):
     """Base for read-only actions.
 
-    Subclasses must implement ``_get``.  The ``model_validator`` enforces
+    Subclasses must implement ``get``.  The ``model_validator`` enforces
     that the associated variable is marked read-only at construction time.
     """
 
@@ -34,31 +34,31 @@ class Action(ABC, BaseModel):
             raise ValueError(f"{type(self).__name__} requires a read-only variable")
         return self
 
-    def get(self, impact: Any) -> Any:
-        return self._get(impact)
-
     @abstractmethod
-    def _get(self, impact: Any) -> Any: ...
+    def get(self, impact: Any) -> Any: ...
 
 
 class WritableAction(Action, ABC):
     """Base for actions that support both get and set.
 
     Overrides ``_check_var`` so writable variables are accepted.
-    Subclasses must implement ``_get`` and ``_set``.
+    Subclasses must implement ``get`` and ``set``.
+
+    The model calls ``safe_set``, which enforces the read-only guard before
+    delegating to ``set``.
     """
 
     @model_validator(mode="after")
     def _check_var(self) -> "WritableAction":
         return self
 
-    def set(self, impact: Any, value: Any) -> None:
+    @abstractmethod
+    def set(self, impact: Any, value: Any) -> None: ...
+
+    def safe_set(self, impact: Any, value: Any) -> None:
         if self.var.read_only:
             raise TypeError(f"'{self.name}' is read-only")
-        self._set(impact, value)
-
-    @abstractmethod
-    def _set(self, impact: Any, value: Any) -> None: ...
+        self.set(impact, value)
 
 
 # ------------------------------------------------------------------
@@ -72,10 +72,10 @@ class EleAction(WritableAction):
     ele_name: str
     attribute: str
 
-    def _get(self, impact: Any) -> Any:
+    def get(self, impact: Any) -> Any:
         return impact.ele[self.ele_name][self.attribute]
 
-    def _set(self, impact: Any, value: Any) -> None:
+    def set(self, impact: Any, value: Any) -> None:
         impact.ele[self.ele_name][self.attribute] = value
 
 
@@ -84,10 +84,10 @@ class HeaderAction(WritableAction):
 
     key: str
 
-    def _get(self, impact: Any) -> Any:
+    def get(self, impact: Any) -> Any:
         return impact.header[self.key]
 
-    def _set(self, impact: Any, value: Any) -> None:
+    def set(self, impact: Any, value: Any) -> None:
         impact.header[self.key] = value
 
 
@@ -96,7 +96,7 @@ class StatAction(Action):
 
     stat_name: str
 
-    def _get(self, impact: Any) -> Any:
+    def get(self, impact: Any) -> Any:
         return impact.stat(self.stat_name)
 
 
@@ -105,7 +105,7 @@ class RunInfoAction(Action):
 
     key: str
 
-    def _get(self, impact: Any) -> Any:
+    def get(self, impact: Any) -> Any:
         return impact.output["run_info"][self.key]
 
 
@@ -127,8 +127,8 @@ class ParticleGroupAction(WritableAction):
             )
         return self
 
-    def _get(self, impact: Any) -> Any:
+    def get(self, impact: Any) -> Any:
         return impact.particles[self.tool_name]
 
-    def _set(self, impact: Any, value: Any) -> None:
+    def set(self, impact: Any, value: Any) -> None:
         impact.initial_particles = value

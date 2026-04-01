@@ -43,7 +43,7 @@ class LUMEImpactModel(LUMEModel):
             action = self._action_by_name[name]
             if not isinstance(action, WritableAction):
                 raise TypeError(f"'{action.name}' is read-only")
-            action.set(self.impact, value)
+            action.safe_set(self.impact, value)
         if not self.dummy_run:
             self.impact.run()
         self.update_state()

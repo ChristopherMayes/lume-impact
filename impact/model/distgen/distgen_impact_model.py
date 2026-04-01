@@ -92,7 +92,7 @@ class LUMEDistgenImpactModel(LUMEModel):
             action = self._distgen_by_name[name]
             if not isinstance(action, WritableDistgenAction):
                 raise TypeError(f"'{action.name}' is read-only")
-            action.set(self.gen, value)
+            action.safe_set(self.gen, value)
 
         if not self.dummy_run:
             self.gen.run()
@@ -103,7 +103,7 @@ class LUMEDistgenImpactModel(LUMEModel):
             action = self._impact_by_name[name]
             if not isinstance(action, WritableImpactAction):
                 raise TypeError(f"'{action.name}' is read-only")
-            action.set(self.impact, value)
+            action.safe_set(self.impact, value)
 
         if not self.dummy_run:
             self.impact.run()

@@ -105,7 +105,7 @@ def test_header_set(impact):
 def test_header_read_only_raises(impact):
     action = HeaderAction(key="Np", var=scalar_var(read_only=True))
     with pytest.raises(TypeError, match="read-only"):
-        action.set(impact, 500)
+        action.safe_set(impact, 500)
 
 
 # ------------------------------------------------------------------
@@ -174,4 +174,4 @@ def test_particle_group_set_read_only_raises(impact):
         tool_name="final_particles", var=pg_var(read_only=True)
     )
     with pytest.raises(TypeError, match="read-only"):
-        action.set(impact, MagicMock())
+        action.safe_set(impact, MagicMock())

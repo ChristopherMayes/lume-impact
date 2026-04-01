@@ -14,7 +14,7 @@ from lume.variables import Variable
 class Action(BaseModel):
     """Base for read-only distgen actions.
 
-    Subclasses must implement ``_get``.  The ``model_validator`` enforces
+    Subclasses must implement ``get``.  The ``model_validator`` enforces
     that the associated variable is marked read-only at construction time.
     """
 
@@ -35,28 +35,30 @@ class Action(BaseModel):
         return self
 
     @abstractmethod
-    def get(self, gen: Any) -> Any:
-        """Return the current value of this variable from the Generator."""
+    def get(self, gen: Any) -> Any: ...
 
 
 class WritableAction(Action):
     """Base for distgen actions that support both get and set.
 
     Overrides ``_check_var`` so writable variables are accepted.
-    Subclasses must implement ``get`` and ``_set``.
+    Subclasses must implement ``get`` and ``set``.
+
+    The model calls ``safe_set``, which enforces the read-only guard before
+    delegating to ``set``.
     """
 
     @model_validator(mode="after")
     def _check_var(self) -> "WritableAction":
         return self
 
-    def set(self, gen: Any, value: Any) -> None:
+    @abstractmethod
+    def set(self, gen: Any, value: Any) -> None: ...
+
+    def safe_set(self, gen: Any, value: Any) -> None:
         if self.var.read_only:
             raise TypeError(f"'{self.name}' is read-only")
-        self._set(gen, value)
-
-    @abstractmethod
-    def _set(self, gen: Any, value: Any) -> None: ...
+        self.set(gen, value)
 
 
 # ------------------------------------------------------------------
@@ -77,5 +79,5 @@ class DistgenInputAction(WritableAction):
     def get(self, gen: Any) -> Any:
         return gen[self.key]
 
-    def _set(self, gen: Any, value: Any) -> None:
+    def set(self, gen: Any, value: Any) -> None:
         gen[self.key] = value
