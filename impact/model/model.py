@@ -5,7 +5,7 @@ from lume.model import LUMEModel
 from lume.variables import Variable
 
 from impact.model.config import VariableMappingConfig, make_actions
-from impact.model.actions import Action
+from impact.model.actions import Action, WritableAction
 
 
 class LUMEImpactModel(LUMEModel):
@@ -40,7 +40,10 @@ class LUMEImpactModel(LUMEModel):
 
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
-            self._action_by_name[name].set(self.impact, value)
+            action = self._action_by_name[name]
+            if not isinstance(action, WritableAction):
+                raise TypeError(f"'{action.name}' is read-only")
+            action.set(self.impact, value)
         if not self.dummy_run:
             self.impact.run()
         self.update_state()
