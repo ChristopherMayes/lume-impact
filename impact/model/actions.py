@@ -6,7 +6,15 @@ from impact.impact import Impact
 from impact.model.base import Action, WritableAction
 
 
-class EleAction(WritableAction[Impact]):
+class ImpactAction(Action[Impact]):
+    """Abstract base for all Impact actions."""
+
+
+class WritableImpactAction(WritableAction[Impact], ImpactAction):
+    """Abstract base for writable Impact actions."""
+
+
+class EleAction(WritableImpactAction):
     """Maps an element attribute: ``impact.ele[ele_name][attribute]``."""
 
     ele_name: str
@@ -19,7 +27,7 @@ class EleAction(WritableAction[Impact]):
         impact.ele[self.ele_name][self.attribute] = value
 
 
-class HeaderAction(WritableAction[Impact]):
+class HeaderAction(WritableImpactAction):
     """Maps a header key: ``impact.header[key]``."""
 
     key: str
@@ -31,7 +39,7 @@ class HeaderAction(WritableAction[Impact]):
         impact.header[self.key] = value
 
 
-class StatAction(Action[Impact]):
+class StatAction(ImpactAction):
     """Maps an output stat: ``impact.stat(stat_name)``. Read-only."""
 
     stat_name: str
@@ -40,7 +48,7 @@ class StatAction(Action[Impact]):
         return impact.stat(self.stat_name)
 
 
-class RunInfoAction(Action[Impact]):
+class RunInfoAction(ImpactAction):
     """Maps a run_info entry: ``impact.output['run_info'][key]``. Read-only."""
 
     key: str
@@ -49,7 +57,7 @@ class RunInfoAction(Action[Impact]):
         return impact.output["run_info"][self.key]
 
 
-class ParticleGroupAction(WritableAction[Impact]):
+class ParticleGroupAction(WritableImpactAction):
     """Maps a particle group: ``impact.particles[tool_name]``.
 
     Only ``initial_particles`` is writable; all other tool names must be

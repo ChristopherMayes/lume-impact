@@ -4,7 +4,7 @@ from distgen import Generator
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.base import Action, WritableAction
+from impact.model.distgen.actions import DistgenAction, WritableDistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig, make_actions
 
 
@@ -12,14 +12,12 @@ class LUMEDistgenModel(LUMEModel):
     def __init__(
         self,
         gen: Generator,
-        actions: list[Action[Generator]],
+        actions: list[DistgenAction],
         dummy_run: bool = False,
     ):
         self.gen = gen
         self.actions = actions
-        self._action_by_name: dict[str, Action[Generator]] = {
-            m.name: m for m in actions
-        }
+        self._action_by_name: dict[str, DistgenAction] = {m.name: m for m in actions}
         self.dummy_run = dummy_run
         self._state: dict[str, Any] = {}
         self.update_state()
@@ -43,7 +41,7 @@ class LUMEDistgenModel(LUMEModel):
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
             action = self._action_by_name[name]
-            if not isinstance(action, WritableAction):
+            if not isinstance(action, WritableDistgenAction):
                 raise TypeError(f"'{action.name}' is read-only")
             action.safe_set(self.gen, value)
         if not self.dummy_run:
@@ -54,7 +52,7 @@ class LUMEDistgenModel(LUMEModel):
         for m in self.actions:
             self._state[m.name] = m.get(self.gen)
 
-    def register_action(self, action: Action[Generator]) -> None:
+    def register_action(self, action: DistgenAction) -> None:
         """Add a user-defined action to the model.
 
         The action's current value is read from ``gen`` immediately and

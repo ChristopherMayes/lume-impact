@@ -2,10 +2,18 @@ from typing import Any
 
 from distgen import Generator
 
-from impact.model.base import WritableAction
+from impact.model.base import Action, WritableAction
 
 
-class DistgenInputAction(WritableAction[Generator]):
+class DistgenAction(Action[Generator]):
+    """Abstract base for all distgen actions."""
+
+
+class WritableDistgenAction(WritableAction[Generator], DistgenAction):
+    """Abstract base for writable distgen actions."""
+
+
+class DistgenInputAction(WritableDistgenAction):
     """Maps a distgen input parameter via a colon-separated key (e.g. ``r_dist:sigma_xy:value``).
 
     If ``has_units`` is True the parameter is a quantity dict; the ``:value``

@@ -4,7 +4,7 @@ from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.base import Action, WritableAction
+from impact.model.actions import ImpactAction, WritableImpactAction
 from impact.model.config import VariableMappingConfig, make_actions
 
 
@@ -12,12 +12,12 @@ class LUMEImpactModel(LUMEModel):
     def __init__(
         self,
         impact: Impact,
-        actions: list[Action[Impact]],
+        actions: list[ImpactAction],
         dummy_run: bool = False,
     ):
         self.impact = impact
         self.actions = actions
-        self._action_by_name: dict[str, Action[Impact]] = {m.name: m for m in actions}
+        self._action_by_name: dict[str, ImpactAction] = {m.name: m for m in actions}
         self.dummy_run = dummy_run
         self._state: dict[str, Any] = {}
         self.update_state()
@@ -41,7 +41,7 @@ class LUMEImpactModel(LUMEModel):
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
             action = self._action_by_name[name]
-            if not isinstance(action, WritableAction):
+            if not isinstance(action, WritableImpactAction):
                 raise TypeError(f"'{action.name}' is read-only")
             action.safe_set(self.impact, value)
         if not self.dummy_run:
@@ -52,7 +52,7 @@ class LUMEImpactModel(LUMEModel):
         for m in self.actions:
             self._state[m.name] = m.get(self.impact)
 
-    def register_action(self, action: Action[Impact]) -> None:
+    def register_action(self, action: ImpactAction) -> None:
         """Add a user-defined action to the model.
 
         The action's current value is read from ``impact`` immediately and

@@ -10,7 +10,7 @@ from impact.model.actions import (
     ParticleGroupAction,
     RunInfoAction,
     StatAction,
-    WritableAction,
+    WritableImpactAction,
 )
 
 
@@ -83,7 +83,7 @@ def test_ele_name():
 
 def test_ele_is_writable_action():
     action = EleAction(ele_name="Q1", attribute="b1_gradient", var=scalar_var())
-    assert isinstance(action, WritableAction)
+    assert isinstance(action, WritableImpactAction)
 
 
 # ------------------------------------------------------------------
@@ -127,7 +127,7 @@ def test_stat_read_only():
 
 def test_stat_has_no_set():
     action = StatAction(stat_name="mean_x", var=nd_var())
-    assert not isinstance(action, WritableAction)
+    assert not isinstance(action, WritableImpactAction)
 
 
 # ------------------------------------------------------------------
@@ -142,7 +142,7 @@ def test_run_info_get(impact):
 
 def test_run_info_has_no_set():
     action = RunInfoAction(key="run_time", var=scalar_var(read_only=True))
-    assert not isinstance(action, WritableAction)
+    assert not isinstance(action, WritableImpactAction)
 
 
 # ------------------------------------------------------------------
