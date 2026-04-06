@@ -67,8 +67,8 @@ lint.ignore = ["E741"]
 [tool.pytest.ini_options]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 addopts = "--cov=impact/"
-log_cli_level = "info"
-log_level = "debug"
+log_cli_level = "INFO"
+log_level = "DEBUG"
 testpaths = ["impact/tests"]
 [tool.setuptools_scm]
 version_file = "impact/_version.py"
