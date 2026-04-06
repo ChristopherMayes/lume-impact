@@ -41,8 +41,8 @@ requires-python = ">=3.9"
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov"]
 doc = [
-  "mkdocs==1.5.2",
-  "mkdocs-jupyter==0.24.6",
+  "mkdocs",
+  "mkdocs-jupyter",
   "mkdocs-macros-plugin",
   "mkdocs-material",
   "mkdocstrings",
