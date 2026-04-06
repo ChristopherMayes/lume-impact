@@ -70,5 +70,8 @@ addopts = "--cov=impact/"
 log_cli_level = "INFO"
 log_level = "DEBUG"
 testpaths = ["impact/tests"]
+
 [tool.setuptools_scm]
 version_file = "impact/_version.py"
+# For publishing to testpypi (no local dev+hash suffix)
+local_scheme = "no-local-version"
