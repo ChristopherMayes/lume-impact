@@ -14,7 +14,7 @@ dependencies = [
   "bokeh",
   # Distgen is not yet on PyPI:
   # "distgen",
-  "git+https://github.com/ColwynGulliford/distgen.git@master",
+  "distgen @ git+https://github.com/ColwynGulliford/distgen.git@v2.2.5",
   "lume-base",
   "matplotlib",
   "numpy",
@@ -39,7 +39,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov"]
+dev = ["pytest", "pytest-cov", "pytao"]
 doc = [
   "mkdocs",
   "mkdocs-jupyter",

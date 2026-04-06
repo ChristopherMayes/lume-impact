@@ -15,7 +15,6 @@ jobs:
       - uses: ./.github/actions/conda-setup
         with:
           python-version: "3.12"
-          extras: "dev"
 
       - name: Install pre-commit
         shell: bash -l {0}
