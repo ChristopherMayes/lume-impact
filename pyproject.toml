@@ -11,8 +11,25 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  # All core dependencies must be sourced from conda (conda-forge).
-  # See ``environment.yml`` for further information.
+  "bokeh",
+  # Distgen is not yet on PyPI:
+  # "distgen",
+  "git+https://github.com/ColwynGulliford/distgen.git@master",
+  "lume-base",
+  "matplotlib",
+  "numpy",
+  "openpmd-beamphysics",
+  "polars",
+  "prettytable",
+  "psutil",
+  "pydantic",
+  "pydantic-settings",
+  "rich",
+  "tqdm",
+  "typing-extensions",
+  # These are not available on PyPI - consider installing them with conda:
+  # "impact-t >=3",
+  # "impact-z >=2.7.2",
 ]
 description = "Tools for using Impact-T and Impact-Z in LUME"
 dynamic = ["version"]
