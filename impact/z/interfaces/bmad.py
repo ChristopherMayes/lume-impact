@@ -1296,7 +1296,9 @@ class ConversionState:
         try:
             initial_particles = export_particles(tao, ix_beginning)
         except TaoCommandError as ex:
-            logger.warning(f"Not using initial particles ({ex.errors[-1].message})")
+            logger.warning(
+                f"Not using initial particles ({ex.errors[-1].message if ex.errors else ''})"
+            )
             initial_particles = None
 
         start_head = ele_head(tao, str(ix_beginning), which=which)
