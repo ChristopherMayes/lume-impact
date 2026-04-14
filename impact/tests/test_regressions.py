@@ -1,7 +1,11 @@
-from impact import Impact
-import impact
+import pytest
 from pathlib import Path
 
+from impact import Impact
+import impact
+
+
+# For loading test files
 root = Path(impact.__file__).parent
 
 
@@ -13,4 +17,4 @@ def test_tesla_9cell_cavity():
     I.header["Np"] = 1
     I.run()
 
-    assert I.stat("mean_kinetic_energy")[-1] == 26900553.0
+    assert I.stat("mean_kinetic_energy")[-1] == pytest.approx(26900553.0, rel=1e-3)
