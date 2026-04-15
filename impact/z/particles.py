@@ -144,7 +144,7 @@ class ImpactZParticles(BaseModel):
                     .to_numpy()
                     .T
                 )
-            except pl.exceptions.ComputeError:
+            except (pl.exceptions.ComputeError, pl.exceptions.SchemaError):
                 fp.seek(start_pos)
                 lines = fp.read().splitlines()
                 (x, px, y, py, phase, pz, charge_to_mass_ratio, weight, id) = (

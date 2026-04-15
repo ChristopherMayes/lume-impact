@@ -145,6 +145,7 @@ def compare_sxy(
     P0 = single_particle(x=1e-3, pz=pz, species=species)
 
     with Tao(lattice_file=lattice, noplot=True) as tao:
+        tao.cmd("set beam comb_ds_save = 0.1")
         set_initial_particles(tao, P0, path=tmp_path)
 
         for attr, adj in [
