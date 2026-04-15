@@ -6,14 +6,14 @@ import pathlib
 from typing import Generator, NamedTuple
 
 import numpy as np
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 import polars as pl
 from pydantic import Field
 
 from scipy.constants import e
 
-from pmd_beamphysics.particles import c_light
-from pmd_beamphysics.species import MASS_OF, charge_state, mass_of
+from beamphysics.particles import c_light
+from beamphysics.species import MASS_OF, charge_state, mass_of
 
 from .parsers import fix_line
 from .types import AnyPath, BaseModel, NDArray

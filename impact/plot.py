@@ -1,4 +1,4 @@
-from pmd_beamphysics.units import nice_array, nice_scale_prefix
+from beamphysics.units import nice_array, nice_scale_prefix
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -6,7 +6,7 @@ from .lattice import ele_shape, remove_element_types, ele_bounds, ele_overlaps_s
 from .fieldmaps import lattice_field, FIELD_CALC_ELE_TYPES
 import numpy as np
 
-from pmd_beamphysics.labels import mathlabel as _mathlabel
+from beamphysics.labels import mathlabel as _mathlabel
 
 
 _label_hotfixes = {

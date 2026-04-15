@@ -18,8 +18,8 @@ import h5py
 import numpy as np
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
+from beamphysics import ParticleGroup
+from beamphysics.units import pmd_unit
 from typing_extensions import override
 
 from . import tools

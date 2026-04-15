@@ -11,8 +11,8 @@ from typing import Any, Dict, Optional, Tuple, Union
 import h5py
 import numpy as np
 import pydantic
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
+from beamphysics import ParticleGroup
+from beamphysics.units import pmd_unit
 
 from .. import tools
 from .types import PydanticPmdUnit
