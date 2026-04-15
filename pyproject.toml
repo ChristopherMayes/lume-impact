@@ -11,8 +11,25 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  # All core dependencies must be sourced from conda (conda-forge).
-  # See ``environment.yml`` for further information.
+  "bokeh",
+  # Distgen is not yet on PyPI:
+  # "distgen",
+  "distgen @ git+https://github.com/ColwynGulliford/distgen.git@v2.2.5",
+  "lume-base",
+  "matplotlib",
+  "numpy",
+  "openpmd-beamphysics >=0.14.0",
+  "polars",
+  "prettytable",
+  "psutil",
+  "pydantic",
+  "pydantic-settings",
+  "rich",
+  "tqdm",
+  "typing-extensions",
+  # These are not available on PyPI - consider installing them with conda:
+  # "impact-t >=3",
+  # "impact-z >=2.7.2",
 ]
 description = "Tools for using Impact-T and Impact-Z in LUME"
 dynamic = ["version"]
@@ -22,10 +39,10 @@ readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov"]
+dev = ["pytest", "pytest-cov", "pytao"]
 doc = [
-  "mkdocs==1.5.2",
-  "mkdocs-jupyter==0.24.6",
+  "mkdocs",
+  "mkdocs-jupyter",
   "mkdocs-macros-plugin",
   "mkdocs-material",
   "mkdocstrings",
@@ -50,8 +67,11 @@ lint.ignore = ["E741"]
 [tool.pytest.ini_options]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 addopts = "--cov=impact/"
-log_cli_level = "info"
-log_level = "debug"
+log_cli_level = "INFO"
+log_level = "DEBUG"
 testpaths = ["impact/tests"]
+
 [tool.setuptools_scm]
 version_file = "impact/_version.py"
+# For publishing to testpypi (no local dev+hash suffix)
+local_scheme = "no-local-version"

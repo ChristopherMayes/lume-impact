@@ -28,10 +28,10 @@ dependencies:
   - jupyterlab>=3
   - ipywidgets
   - pygments
-  - mkdocs==1.5.2
+  - mkdocs
   - mkdocstrings
   - mkdocs-material
-  - mkdocs-jupyter==0.24.6
+  - mkdocs-jupyter
   - mkdocstrings-python
   - pytest-cov
   - pytest
