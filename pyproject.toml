@@ -14,7 +14,7 @@ dependencies = [
   "bokeh",
   # Distgen is not yet on PyPI:
   # "distgen",
-  "distgen @ git+https://github.com/ColwynGulliford/distgen.git@v2.2.5",
+  # "distgen @ git+https://github.com/ColwynGulliford/distgen.git@v2.2.5",
   "lume-base",
   "matplotlib",
   "numpy",
