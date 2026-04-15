@@ -13,7 +13,7 @@ dependencies:
   - jupyter_bokeh
   - lume-base
   - matplotlib
-  - openpmd-beamphysics
+  - openpmd-beamphysics>=0.14.0
   - polars
   - prettytable
   - psutil
