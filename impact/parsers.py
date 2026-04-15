@@ -4,8 +4,8 @@ import warnings
 
 import numpy as np
 import polars as pl
-from pmd_beamphysics.species import mass_of
-from pmd_beamphysics.units import multiply_units, unit
+from beamphysics.species import mass_of
+from beamphysics.units import multiply_units, unit
 
 from . import fieldmaps, tools
 from .particles import identify_species

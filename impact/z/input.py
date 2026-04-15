@@ -28,8 +28,8 @@ from lume import tools as lume_tools
 from scipy.constants import e
 from typing_extensions import Protocol, runtime_checkable
 
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.particles import c_light
+from beamphysics import ParticleGroup
+from beamphysics.particles import c_light
 
 from ..impact import suggested_processor_domain
 from .. import tools

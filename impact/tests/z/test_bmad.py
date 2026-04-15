@@ -8,8 +8,8 @@ from textwrap import dedent
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from pmd_beamphysics import ParticleGroup, single_particle
-from pmd_beamphysics.units import mec2
+from beamphysics import ParticleGroup, single_particle
+from beamphysics.units import mec2
 from pytao import SubprocessTao as Tao
 
 import impact.z as IZ

@@ -21,9 +21,9 @@ from typing import (
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.particles import c_light
-from pmd_beamphysics.species import charge_state, mass_of
+from beamphysics import ParticleGroup
+from beamphysics.particles import c_light
+from beamphysics.species import charge_state, mass_of
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal, TypeAlias
 

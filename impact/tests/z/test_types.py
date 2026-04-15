@@ -3,8 +3,8 @@ from typing import Sequence
 
 import numpy as np
 import pytest
-from pmd_beamphysics import single_particle
-from pmd_beamphysics.units import pmd_unit
+from beamphysics import single_particle
+from beamphysics.units import pmd_unit
 from pydantic import BaseModel, TypeAdapter
 
 from ...z.types import NDArray, PydanticPmdUnit, PydanticParticleGroup
