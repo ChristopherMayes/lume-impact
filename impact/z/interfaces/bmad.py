@@ -1366,6 +1366,8 @@ def plot_impactz_and_tao_stats(impactz: ImpactZ, tao: Tao) -> None:
     """
     Simple function to compare the output of Impact-Z vs Tao's bunch comb.
 
+    Note: `comb_ds_save` must be set in `tao` before bunch tracking to see data from this plotting function.
+
     Parameters
     ----------
     impactz : ImpactZ
