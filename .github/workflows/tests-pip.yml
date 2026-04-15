@@ -1,4 +1,4 @@
-name: Conda - run tests
+name: pypi - run tests
 
 on:
   pull_request:
@@ -14,7 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-
     name: Test Suite
     steps:
       - uses: actions/checkout@v6
@@ -22,13 +21,24 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/conda-setup
         with:
-          python-version: ${{ matrix.python-version }}
-          filename: environment.yml
-          pip-args: "--no-deps"
+          python-version: ""
+          filename: .github/env-impact-only.yml
+          pip-package: "" # don't install lume-impact here
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: Install LUME-Impact
+        shell: bash -l -e -o pipefail {0}
+        run: |
+          python -m pip install .[dev]
       - name: Test environment conda package list
         shell: bash -l {0}
         run: |
           conda list
+      - name: Test environment pip package list
+        shell: bash -l {0}
+        run: |
+          pip list
       - name: Run unit tests
         shell: bash -l -e -o pipefail {0}
         run: |
