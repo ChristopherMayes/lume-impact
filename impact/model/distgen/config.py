@@ -332,7 +332,7 @@ def _process_start_config(
 
 
 def make_actions(
-    gen: Any,
+    gen: Generator,
     config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
 ) -> list[Action]:
     """Build variable mappings from a distgen Generator and config.
