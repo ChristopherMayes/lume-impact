@@ -35,5 +35,4 @@ dependencies:
   - mkdocstrings-python
   - pytest-cov
   - pytest
-  - pip:
-    - pre-commit
+  - pre-commit
