@@ -38,12 +38,6 @@ class LUMEDistgenImpactModel(LUMEModel):
         self.impact = impact
         self.distgen_actions = distgen_actions
         self.impact_actions = impact_actions
-        self._distgen_by_name: dict[str, DistgenAction] = {
-            m.name: m for m in distgen_actions
-        }
-        self._impact_by_name: dict[str, ImpactAction] = {
-            m.name: m for m in impact_actions
-        }
         self.dummy_run = dummy_run
         self._state: dict[str, Any] = {}
         self.update_state()
@@ -68,6 +62,14 @@ class LUMEDistgenImpactModel(LUMEModel):
             make_impact_variables(impact, impact_config),
             **kwargs,
         )
+
+    @property
+    def _distgen_by_name(self) -> dict[str, DistgenAction]:
+        return {m.name: m for m in self.distgen_actions}
+
+    @property
+    def _impact_by_name(self) -> dict[str, ImpactAction]:
+        return {m.name: m for m in self.impact_actions}
 
     @property
     def supported_variables(self) -> dict[str, Variable]:
@@ -132,7 +134,6 @@ class LUMEDistgenImpactModel(LUMEModel):
                 ] = action
             else:
                 self.distgen_actions.append(action)
-            self._distgen_by_name[name] = action
             self._state[name] = action.get(self.gen)
         elif isinstance(action, ImpactAction):
             if name in self._impact_by_name:
@@ -141,7 +142,6 @@ class LUMEDistgenImpactModel(LUMEModel):
                 ] = action
             else:
                 self.impact_actions.append(action)
-            self._impact_by_name[name] = action
             self._state[name] = action.get(self.impact)
         else:
             raise TypeError(
