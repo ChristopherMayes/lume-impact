@@ -82,37 +82,35 @@ class LUMEDistgenImpactModel(LUMEModel):
         return {name: self._state[name] for name in names}
 
     def _set(self, values: dict[str, Any]) -> None:
-        distgen_values = {
-            name: value
-            for name, value in values.items()
-            if name in self._distgen_by_name
-        }
-        impact_values = {
-            name: value
-            for name, value in values.items()
-            if name in self._impact_by_name
-        }
+        distgen_by_name = self._distgen_by_name
+        impact_by_name = self._impact_by_name
 
-        for name, value in distgen_values.items():
-            action = self._distgen_by_name[name]
-            if not isinstance(action, WritableDistgenAction):
-                raise TypeError(f"'{action.name}' is read-only")
-            action.set(self.gen, value)
+        distgen_actions: dict[WritableDistgenAction, Any] = {}
+        impact_actions: dict[WritableImpactAction, Any] = {}
+        for name, value in values.items():
+            if name in distgen_by_name:
+                action = distgen_by_name[name]
+                if not isinstance(action, WritableDistgenAction):
+                    raise TypeError(f"'{action.name}' is read-only")
+                distgen_actions[action] = value
+            elif name in impact_by_name:
+                action = impact_by_name[name]
+                if not isinstance(action, WritableImpactAction):
+                    raise TypeError(f"'{action.name}' is read-only")
+                impact_actions[action] = value
 
-        if not self.dummy_run:
-            self.gen.run()
-            self.impact.initial_particles = self.gen.particles
-
-        for name, value in impact_values.items():
-            action = self._impact_by_name[name]
-            if not isinstance(action, WritableImpactAction):
-                raise TypeError(f"'{action.name}' is read-only")
-            action.set(self.impact, value)
-
-        if not self.dummy_run:
-            self.impact.run()
-
-        self.update_state()
+        try:
+            for action, value in distgen_actions.items():
+                action.set(self.gen, value)
+            if not self.dummy_run:
+                self.gen.run()
+                self.impact.initial_particles = self.gen.particles
+            for action, value in impact_actions.items():
+                action.set(self.impact, value)
+            if not self.dummy_run:
+                self.impact.run()
+        finally:
+            self.update_state()
 
     def update_state(self) -> None:
         for m in self.distgen_actions:
