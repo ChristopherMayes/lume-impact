@@ -23,7 +23,7 @@ class Action(ABC, BaseModel, Generic[SimT]):
 
     @property
     def read_only(self) -> bool:
-        return getattr(self.var, "read_only", False)
+        return getattr(self.var, "read_only")
 
     @model_validator(mode="after")
     def _check_var(self) -> "Action[SimT]":
