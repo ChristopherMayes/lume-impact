@@ -801,7 +801,7 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
                     continue
 
                 attrib_token = (
-                    attr_cfg.alias if attr_cfg.alias is not None else field_name
+                    attr_cfg.alias or field_name
                 )
                 variable_name = config.elements.pattern.format(
                     type=type_token, name=name_token, attrib=attrib_token
