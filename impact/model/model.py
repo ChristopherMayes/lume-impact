@@ -67,6 +67,25 @@ class LUMEImpactModel(LUMEModel):
         self._action_by_name[name] = action
         self._state[name] = action.get(self.impact)
 
+    def unregister_action(self, name: str) -> None:
+        """Remove an action from the model by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the action to remove.
+
+        Raises
+        ------
+        KeyError
+            If no action with the given name is registered.
+        """
+        if name not in self._action_by_name:
+            raise KeyError(f"No action named '{name}' is registered")
+        action = self._action_by_name.pop(name)
+        self.actions.remove(action)
+        self._state.pop(name, None)
+
     def reset(self) -> None:
         self.set(
             {
