@@ -680,8 +680,8 @@ class ElementsConfig(BaseModel):
     """
 
     pattern: str = "ele/{name}/{attrib}"
-    name_mappings: dict[str, str] | None = None  # control_name -> tool_name
-    type_mappings: dict[str, str] | None = None  # control_type -> tool_type
+    control_to_tool_name: dict[str, str] | None = None  # control_name -> tool_name
+    control_to_tool_type: dict[str, str] | None = None  # control_type -> tool_type
 
     drift: DriftConfig | None = DriftConfig()
     quadrupole: QuadrupoleConfig | None = QuadrupoleConfig()
@@ -712,12 +712,12 @@ class ParticlesConfig(BaseModel):
     """Config for particle group variables."""
 
     pattern: str = "particles/{name}"
-    name_mappings: dict[str, str] | None = None  # control_name -> tool_name
+    control_to_tool_name: dict[str, str] | None = None  # control_name -> tool_name
 
     @property
     def name_map(self) -> dict[str, str]:
         """Maps particle variable token (control name) -> actual key in impact.particles."""
-        return self.name_mappings or {}
+        return self.control_to_tool_name or {}
 
 
 class VariableMappingConfig(BaseModel):
@@ -767,13 +767,13 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
 
     if config.elements is not None:
         ele_name_map = (
-            {v: k for k, v in config.elements.name_mappings.items()}
-            if config.elements.name_mappings
+            {v: k for k, v in config.elements.control_to_tool_name.items()}
+            if config.elements.control_to_tool_name
             else None
         )
         ele_type_map = (
-            {v: k for k, v in config.elements.type_mappings.items()}
-            if config.elements.type_mappings
+            {v: k for k, v in config.elements.control_to_tool_type.items()}
+            if config.elements.control_to_tool_type
             else None
         )
 
