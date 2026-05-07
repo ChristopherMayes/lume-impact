@@ -50,9 +50,9 @@ class WritableAction(Action[SimT], Generic[SimT]):
         return self
 
     @abstractmethod
-    def set(self, simulator: SimT, value: Any) -> None: ...
+    def force_set(self, simulator: SimT, value: Any) -> None: ...
 
-    def safe_set(self, simulator: SimT, value: Any) -> None:
+    def set(self, simulator: SimT, value: Any) -> None:
         if self.var.read_only:
             raise TypeError(f"'{self.name}' is read-only")
-        self.set(simulator, value)
+        self.force_set(simulator, value)
