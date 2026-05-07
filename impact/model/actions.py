@@ -22,11 +22,11 @@ class EleAction(WritableImpactAction):
     ele_name: str
     attribute: str
 
-    def get(self, impact: Impact) -> Any:
-        return impact.ele[self.ele_name][self.attribute]
+    def get(self, simulator: Impact) -> Any:
+        return simulator.ele[self.ele_name][self.attribute]
 
-    def set(self, impact: Impact, value: Any) -> None:
-        impact.ele[self.ele_name][self.attribute] = value
+    def set(self, simulator: Impact, value: Any) -> None:
+        simulator.ele[self.ele_name][self.attribute] = value
 
 
 class HeaderAction(WritableImpactAction):
@@ -35,11 +35,11 @@ class HeaderAction(WritableImpactAction):
     var: ScalarVariable
     key: str
 
-    def get(self, impact: Impact) -> Any:
-        return impact.header[self.key]
+    def get(self, simulator: Impact) -> Any:
+        return simulator.header[self.key]
 
-    def set(self, impact: Impact, value: Any) -> None:
-        impact.header[self.key] = value
+    def set(self, simulator: Impact, value: Any) -> None:
+        simulator.header[self.key] = value
 
 
 class StatAction(ImpactAction):
@@ -48,8 +48,8 @@ class StatAction(ImpactAction):
     var: NDVariable
     stat_name: str
 
-    def get(self, impact: Impact) -> Any:
-        return impact.stat(self.stat_name)
+    def get(self, simulator: Impact) -> Any:
+        return simulator.stat(self.stat_name)
 
 
 class RunInfoAction(ImpactAction):
@@ -58,8 +58,8 @@ class RunInfoAction(ImpactAction):
     var: ScalarVariable
     key: str
 
-    def get(self, impact: Impact) -> Any:
-        return impact.output["run_info"][self.key]
+    def get(self, simulator: Impact) -> Any:
+        return simulator.output["run_info"][self.key]
 
 
 class ParticleGroupAction(WritableImpactAction):
@@ -81,8 +81,8 @@ class ParticleGroupAction(WritableImpactAction):
             )
         return self
 
-    def get(self, impact: Impact) -> Any:
-        return impact.particles[self.tool_name]
+    def get(self, simulator: Impact) -> Any:
+        return simulator.particles[self.tool_name]
 
-    def set(self, impact: Impact, value: Any) -> None:
-        impact.initial_particles = value
+    def set(self, simulator: Impact, value: Any) -> None:
+        simulator.initial_particles = value
