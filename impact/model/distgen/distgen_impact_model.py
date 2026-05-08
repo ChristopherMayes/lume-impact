@@ -82,28 +82,30 @@ class LUMEDistgenImpactModel(LUMEModel):
         distgen_by_name = self._distgen_by_name
         impact_by_name = self._impact_by_name
 
-        distgen_actions: dict[WritableDistgenAction, Any] = {}
-        impact_actions: dict[WritableImpactAction, Any] = {}
+        distgen_actions: dict[str, Any] = {}
+        impact_actions: dict[str, Any] = {}
         for name, value in values.items():
             if name in distgen_by_name:
                 action = distgen_by_name[name]
                 if not isinstance(action, WritableDistgenAction):
                     raise TypeError(f"'{action.name}' is read-only")
-                distgen_actions[action] = value
+                distgen_actions[name] = value
             elif name in impact_by_name:
                 action = impact_by_name[name]
                 if not isinstance(action, WritableImpactAction):
                     raise TypeError(f"'{action.name}' is read-only")
-                impact_actions[action] = value
+                impact_actions[name] = value
+            else:
+                raise ValueError(f"'{name}' is not a recognized distgen or impact action")
 
         try:
-            for action, value in distgen_actions.items():
-                action.set(self.gen, value)
+            for name, value in distgen_actions.items():
+                distgen_by_name[name].set(self.gen, value)
             if not self.dummy_run:
                 self.gen.run()
                 self.impact.initial_particles = self.gen.particles
-            for action, value in impact_actions.items():
-                action.set(self.impact, value)
+            for name, value in impact_actions.items():
+                impact_by_name[name].set(self.impact, value)
             if not self.dummy_run:
                 self.impact.run()
         finally:
