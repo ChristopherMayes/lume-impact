@@ -370,6 +370,141 @@ class VariableMappingConfig(BaseModel):
     particles: ParticlesConfig | None = ParticlesConfig()
 
 
+def _make_header_actions(impact: Any, config: HeaderConfig) -> list[Action]:
+    actions = []
+    for field_name, field_info in HeaderConfig.model_fields.items():
+        attr_cfg = getattr(config, field_name)
+        if not isinstance(attr_cfg, AttributeConfig):
+            continue
+        header_key = field_info.alias if field_info.alias is not None else field_name
+        key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
+        actions.append(
+            HeaderAction(
+                key=header_key,
+                var=ScalarVariable(
+                    name=config.pattern.format(key=key_token),
+                    default_value=impact.header.get(header_key),
+                    unit=attr_cfg.unit,
+                    read_only=attr_cfg.read_only,
+                ),
+            )
+        )
+    return actions
+
+
+def _make_element_actions(impact: Any, config: ElementsConfig) -> list[Action]:
+    actions = []
+    ele_name_map = (
+        {v: k for k, v in config.control_to_tool_name.items()}
+        if config.control_to_tool_name
+        else None
+    )
+    ele_type_map = (
+        {v: k for k, v in config.control_to_tool_type.items()}
+        if config.control_to_tool_type
+        else None
+    )
+    for ele in impact.lattice:
+        ele_type: str = ele.get("type", "")
+        ele_name: str = ele.get("name", "")
+        type_cfg = getattr(config, ele_type, None)
+        if not isinstance(type_cfg, BaseModel):
+            continue
+        name_token = ele_name_map.get(ele_name, ele_name) if ele_name_map else ele_name
+        type_token = ele_type_map.get(ele_type, ele_type) if ele_type_map else ele_type
+        for field_name in type(type_cfg).model_fields:
+            attr_cfg = getattr(type_cfg, field_name)
+            if not isinstance(attr_cfg, AttributeConfig):
+                continue
+            if field_name not in impact.ele[ele_name]:
+                continue
+            attrib_token = attr_cfg.alias or field_name
+            actions.append(
+                EleAction(
+                    ele_name=ele_name,
+                    attribute=field_name,
+                    var=ScalarVariable(
+                        name=config.pattern.format(
+                            type=type_token, name=name_token, attrib=attrib_token
+                        ),
+                        default_value=impact.ele[ele_name][field_name],
+                        unit=attr_cfg.unit,
+                        read_only=attr_cfg.read_only,
+                    ),
+                )
+            )
+    return actions
+
+
+def _make_stat_actions(impact: Any, config: StatsConfig) -> list[Action]:
+    actions = []
+    for field_name in StatsConfig.model_fields:
+        stat_cfg = getattr(config, field_name)
+        if not isinstance(stat_cfg, StatAttributeConfig):
+            continue
+        name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
+        stat_array = impact.stat(field_name)
+        actions.append(
+            StatAction(
+                stat_name=field_name,
+                var=NDVariable(
+                    name=config.pattern.format(name=name_token),
+                    shape=stat_array.shape,
+                    default_value=stat_array,
+                    unit=stat_cfg.unit,
+                    read_only=True,
+                ),
+            )
+        )
+    return actions
+
+
+def _make_run_info_actions(impact: Any, config: RunInfoConfig) -> list[Action]:
+    actions = []
+    run_info_data = impact.output.get("run_info", {})
+    for field_name in RunInfoConfig.model_fields:
+        run_info_cfg = getattr(config, field_name)
+        if not isinstance(run_info_cfg, StatAttributeConfig):
+            continue
+        key_token = run_info_cfg.alias if run_info_cfg.alias is not None else field_name
+        actions.append(
+            RunInfoAction(
+                key=field_name,
+                var=ScalarVariable(
+                    name=config.pattern.format(key=key_token),
+                    default_value=run_info_data.get(field_name),
+                    unit=run_info_cfg.unit,
+                    read_only=True,
+                ),
+            )
+        )
+    return actions
+
+
+def _make_particle_actions(impact: Any, config: ParticlesConfig) -> list[Action]:
+    actions = []
+    reverse_particle_map = {v: k for k, v in config.name_map.items()}
+    particles_data = impact.output.get("particles", {})
+    for tool_name in impact.particles.keys():
+        control_name = reverse_particle_map.get(tool_name, tool_name)
+        default_val = (
+            getattr(impact, "initial_particles", None)
+            if tool_name == "initial_particles"
+            else particles_data.get(tool_name)
+        )
+        actions.append(
+            ParticleGroupAction(
+                tool_name=tool_name,
+                var=ParticleGroupVariable(
+                    name=config.pattern.format(name=control_name),
+                    default_value=default_val,
+                    read_only=tool_name != "initial_particles",
+                ),
+            )
+        )
+    return actions
+
+
 def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
     """Build variable actions for every element attribute, header key, and output
     described by *config*.
@@ -377,147 +512,14 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
     The current value in *impact* is used as ``default_value`` for each variable.
     """
     actions: list[Action] = []
-
     if config.header is not None:
-        for field_name, field_info in HeaderConfig.model_fields.items():
-            attr_cfg = getattr(config.header, field_name)
-            if not isinstance(attr_cfg, AttributeConfig):
-                continue
-
-            header_key = (
-                field_info.alias if field_info.alias is not None else field_name
-            )
-            key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
-            variable_name = config.header.pattern.format(key=key_token)
-
-            actions.append(
-                HeaderAction(
-                    key=header_key,
-                    var=ScalarVariable(
-                        name=variable_name,
-                        default_value=impact.header.get(header_key),
-                        unit=attr_cfg.unit,
-                        read_only=attr_cfg.read_only,
-                    ),
-                )
-            )
-
+        actions += _make_header_actions(impact, config.header)
     if config.elements is not None:
-        ele_name_map = (
-            {v: k for k, v in config.elements.control_to_tool_name.items()}
-            if config.elements.control_to_tool_name
-            else None
-        )
-        ele_type_map = (
-            {v: k for k, v in config.elements.control_to_tool_type.items()}
-            if config.elements.control_to_tool_type
-            else None
-        )
-
-        for ele in impact.lattice:
-            ele_type: str = ele.get("type", "")
-            ele_name: str = ele.get("name", "")
-
-            type_cfg = getattr(config.elements, ele_type, None)
-            if not isinstance(type_cfg, BaseModel):
-                continue
-
-            name_token = (
-                ele_name_map.get(ele_name, ele_name) if ele_name_map else ele_name
-            )
-            type_token = (
-                ele_type_map.get(ele_type, ele_type) if ele_type_map else ele_type
-            )
-
-            for field_name in type(type_cfg).model_fields:
-                attr_cfg = getattr(type_cfg, field_name)
-                if not isinstance(attr_cfg, AttributeConfig):
-                    continue
-
-                if field_name not in impact.ele[ele_name]:
-                    continue
-
-                attrib_token = attr_cfg.alias or field_name
-                variable_name = config.elements.pattern.format(
-                    type=type_token, name=name_token, attrib=attrib_token
-                )
-
-                actions.append(
-                    EleAction(
-                        ele_name=ele_name,
-                        attribute=field_name,
-                        var=ScalarVariable(
-                            name=variable_name,
-                            default_value=impact.ele[ele_name][field_name],
-                            unit=attr_cfg.unit,
-                            read_only=attr_cfg.read_only,
-                        ),
-                    )
-                )
-
+        actions += _make_element_actions(impact, config.elements)
     if config.stats is not None:
-        for field_name in StatsConfig.model_fields:
-            stat_cfg = getattr(config.stats, field_name)
-            if not isinstance(stat_cfg, StatAttributeConfig):
-                continue
-            name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
-            variable_name = config.stats.pattern.format(name=name_token)
-            stat_array = impact.stat(field_name)
-            actions.append(
-                StatAction(
-                    stat_name=field_name,
-                    var=NDVariable(
-                        name=variable_name,
-                        shape=stat_array.shape,
-                        default_value=stat_array,
-                        unit=stat_cfg.unit,
-                        read_only=True,
-                    ),
-                )
-            )
-
+        actions += _make_stat_actions(impact, config.stats)
     if config.run_info is not None:
-        run_info_data = impact.output.get("run_info", {})
-        for field_name in RunInfoConfig.model_fields:
-            run_info_cfg = getattr(config.run_info, field_name)
-            if not isinstance(run_info_cfg, StatAttributeConfig):
-                continue
-            key_token = (
-                run_info_cfg.alias if run_info_cfg.alias is not None else field_name
-            )
-            variable_name = config.run_info.pattern.format(key=key_token)
-            actions.append(
-                RunInfoAction(
-                    key=field_name,
-                    var=ScalarVariable(
-                        name=variable_name,
-                        default_value=run_info_data.get(field_name),
-                        unit=run_info_cfg.unit,
-                        read_only=True,
-                    ),
-                )
-            )
-
+        actions += _make_run_info_actions(impact, config.run_info)
     if config.particles is not None:
-        reverse_particle_map = {v: k for k, v in config.particles.name_map.items()}
-        particles_data = impact.output.get("particles", {})
-        for tool_name in impact.particles.keys():
-            control_name = reverse_particle_map.get(tool_name, tool_name)
-            variable_name = config.particles.pattern.format(name=control_name)
-            default_val = (
-                getattr(impact, "initial_particles", None)
-                if tool_name == "initial_particles"
-                else particles_data.get(tool_name)
-            )
-            actions.append(
-                ParticleGroupAction(
-                    tool_name=tool_name,
-                    var=ParticleGroupVariable(
-                        name=variable_name,
-                        default_value=default_val,
-                        read_only=tool_name != "initial_particles",
-                    ),
-                )
-            )
-
+        actions += _make_particle_actions(impact, config.particles)
     return actions
