@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, Self
 
 from pydantic import BaseModel, model_validator
 
@@ -47,7 +47,7 @@ class WritableAction(Action[SimT], Generic[SimT]):
     """
 
     @model_validator(mode="after")
-    def _check_var(self) -> "WritableAction[SimT]":
+    def _check_var(self) -> Self:
         return self
 
     @abstractmethod
