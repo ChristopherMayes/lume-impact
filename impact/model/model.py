@@ -6,6 +6,7 @@ from lume.variables import Variable
 
 from impact.model.actions import ImpactAction, WritableImpactAction
 from impact.model.config import VariableMappingConfig, make_actions
+from impact.model.exceptions import ReadOnlyError
 
 
 class LUMEImpactModel(LUMEModel):
@@ -43,7 +44,7 @@ class LUMEImpactModel(LUMEModel):
         for name, value in values.items():
             action = self._action_by_name[name]
             if not isinstance(action, WritableImpactAction):
-                raise TypeError(f"'{action.name}' is read-only")
+                raise ReadOnlyError(f"'{action.name}' is read-only")
             actions[action] = value
         try:
             for action, value in actions.items():
