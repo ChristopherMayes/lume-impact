@@ -102,7 +102,7 @@ class CathodeStartConfig(BaseModel):
 
 
 class StartConfig(BaseModel):
-    pattern: str = "distgen/start/{type}/{key}"
+    pattern: str = "distgen:start:{type}:{key}"
     cathode: CathodeStartConfig | None = CathodeStartConfig()
 
 
@@ -112,7 +112,7 @@ class StartConfig(BaseModel):
 
 
 class DistgenRootConfig(BaseModel):
-    pattern: str = "distgen/{key}"
+    pattern: str = "distgen:{key}"
     n_particle: DistgenParamConfig | None = DistgenParamConfig()
     total_charge: DistgenParamConfig | None = DistgenParamConfig()
 
@@ -142,7 +142,7 @@ class DistSlotsConfig(BaseModel):
     as format variables.
     """
 
-    pattern: str = "distgen/{slot}/{token}"
+    pattern: str = "distgen:{slot}:{token}"
     r_dist: DistConfig | None = DistConfig()
     t_dist: DistConfig | None = DistConfig()
     x_dist: DistConfig | None = DistConfig()

@@ -161,7 +161,7 @@ class EmfieldCylindricalConfig(ConfigBase):
 class HeaderConfig(ConfigBase):
     model_config = ConfigDict(populate_by_name=True)
 
-    pattern: str = "header/{key}"
+    pattern: str = "header:{key}"
 
     @property
     def key_map(self) -> dict[str, str]:
@@ -257,7 +257,7 @@ class HeaderConfig(ConfigBase):
 
 
 class StatsConfig(ConfigBase):
-    pattern: str = "stat/{name}"
+    pattern: str = "stat:{name}"
     max_size: int | None = None
 
     @property
@@ -290,7 +290,7 @@ class StatsConfig(ConfigBase):
 
 
 class RunInfoConfig(ConfigBase):
-    pattern: str = "run_info/{key}"
+    pattern: str = "run_info:{key}"
 
     @property
     def key_map(self) -> dict[str, str]:
@@ -319,7 +319,7 @@ class ElementsConfig(BaseModel):
     Set a type to ``None`` to skip all variables for that element type.
     """
 
-    pattern: str = "ele/{name}/{attrib}"
+    pattern: str = "ele:{name}:{attrib}"
     control_to_tool_name: dict[str, str] | None = None  # control_name -> tool_name
     control_to_tool_type: dict[str, str] | None = None  # control_type -> tool_type
 
@@ -351,7 +351,7 @@ class ElementsConfig(BaseModel):
 class ParticlesConfig(BaseModel):
     """Config for particle group variables."""
 
-    pattern: str = "particles/{name}"
+    pattern: str = "particles:{name}"
     control_to_tool_name: dict[str, str] | None = None  # control_name -> tool_name
 
     @property
