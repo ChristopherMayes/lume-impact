@@ -24,7 +24,7 @@ class EleAction(WritableImpactAction):
     ele_name: str
     attribute: str
 
-    def get(self, simulator: Impact) -> Any:
+    def _get(self, simulator: Impact) -> Any:
         return simulator.ele[self.ele_name][self.attribute]
 
     def _set(self, simulator: Impact, value: Any) -> None:
@@ -37,7 +37,7 @@ class HeaderAction(WritableImpactAction):
     var: ScalarVariable
     key: str
 
-    def get(self, simulator: Impact) -> Any:
+    def _get(self, simulator: Impact) -> Any:
         return simulator.header[self.key]
 
     def _set(self, simulator: Impact, value: Any) -> None:
@@ -50,7 +50,7 @@ class StatAction(ImpactAction):
     var: NDVariable
     stat_name: str
 
-    def get(self, simulator: Impact) -> Any:
+    def _get(self, simulator: Impact) -> Any:
         return simulator.stat(self.stat_name)
 
 
@@ -60,7 +60,7 @@ class RunInfoAction(ImpactAction):
     var: ScalarVariable
     key: str
 
-    def get(self, simulator: Impact) -> Any:
+    def _get(self, simulator: Impact) -> Any:
         return simulator.output["run_info"][self.key]
 
 
@@ -83,7 +83,7 @@ class ParticleGroupAction(WritableImpactAction):
             )
         return self
 
-    def get(self, simulator: Impact) -> Any:
+    def _get(self, simulator: Impact) -> Any:
         return simulator.particles[self.tool_name]
 
     def _set(self, simulator: Impact, value: Any) -> None:

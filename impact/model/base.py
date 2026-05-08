@@ -14,7 +14,7 @@ SimT = TypeVar("SimT")
 class Action(ABC, BaseModel, Generic[SimT]):
     """Base for read-only actions over a generic simulator type.
 
-    Subclasses must implement ``get``.  The ``model_validator`` enforces
+    Subclasses must implement ``_get``.  The ``model_validator`` enforces
     that the associated variable is marked read-only at construction time.
     """
 
@@ -35,7 +35,29 @@ class Action(ABC, BaseModel, Generic[SimT]):
         return self
 
     @abstractmethod
-    def get(self, simulator: SimT) -> Any: ...
+    def _get(self, simulator: SimT) -> Any:
+        """
+        The child-class implementation of the get method. Override this method and
+        not `get` for defining the action's functionality.
+
+        Parameters
+        ----------
+        simulator: SimT
+            The simulator object the parameter is pulled from
+        """
+        ...
+
+    def get(self, simulator: SimT) -> Any:
+        """
+        Outside facing get method.
+
+        Parameters
+        ----------
+        simulator: SimT
+            The simulator object the parameter is pulled from
+        """
+        return self._get(simulator)
+
 
 
 class WritableAction(Action[SimT], Generic[SimT]):
@@ -55,7 +77,8 @@ class WritableAction(Action[SimT], Generic[SimT]):
     @abstractmethod
     def _set(self, simulator: SimT, value: Any) -> None:
         """
-        User implentation for action goes here.
+        The child-class implementation of the set method. Overrid this method and
+        not `set` for defining the action's set method.
 
         Parameters
         ----------
