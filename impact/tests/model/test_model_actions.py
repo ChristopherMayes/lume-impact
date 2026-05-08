@@ -118,24 +118,24 @@ def test_read_only_actions_are_not_writable_impact_action():
 
 
 # ------------------------------------------------------------------
-# safe_set guards
+# set guards
 # ------------------------------------------------------------------
 
 
 def test_safe_set_raises_for_read_only_var(impact):
     action = HeaderAction(key="Np", var=scalar_var(read_only=True))
     with pytest.raises(TypeError, match="read-only"):
-        action.safe_set(impact, 500)
+        action.set(impact, 500)
 
 
 def test_safe_set_succeeds_for_writable_var(impact):
     action = HeaderAction(key="Bcurr", var=scalar_var(read_only=False))
-    action.safe_set(impact, 0.5)
+    action.set(impact, 0.5)
     assert impact.header["Bcurr"] == 0.5
 
 
 def test_set_bypasses_read_only_guard(impact):
-    # set() is the raw implementation with no guard; safe_set is what models call
+    # set() is the raw implementation with no guard; set is what models call
     action = HeaderAction(key="Np", var=scalar_var(read_only=True))
     action.set(impact, 999)
     assert impact.header["Np"] == 999
@@ -245,7 +245,7 @@ def test_header_set(impact):
 def test_header_read_only_raises(impact):
     action = HeaderAction(key="Np", var=scalar_var(read_only=True))
     with pytest.raises(TypeError, match="read-only"):
-        action.safe_set(impact, 500)
+        action.set(impact, 500)
 
 
 # ------------------------------------------------------------------
@@ -304,4 +304,4 @@ def test_particle_group_set_read_only_raises(impact):
         tool_name="final_particles", var=pg_var(read_only=True)
     )
     with pytest.raises(TypeError, match="read-only"):
-        action.safe_set(impact, MagicMock())
+        action.set(impact, MagicMock())

@@ -41,8 +41,8 @@ class WritableAction(Action[SimT], Generic[SimT]):
     Overrides ``_check_var`` so writable variables are accepted.
     Subclasses must implement ``get`` and ``set``.
 
-    The model calls ``safe_set``, which enforces the read-only guard before
-    delegating to ``set``.
+    The model calls ``set``, which enforces the read-only guard before
+    delegating to ``force_set``.
     """
 
     @model_validator(mode="after")

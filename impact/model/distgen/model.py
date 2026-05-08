@@ -41,9 +41,7 @@ class LUMEDistgenModel(LUMEModel):
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
             action = self._action_by_name[name]
-            if not isinstance(action, WritableDistgenAction):
-                raise TypeError(f"'{action.name}' is read-only")
-            action.safe_set(self.gen, value)
+            action.set(self.gen, value)
         if not self.dummy_run:
             self.gen.run()
         self.update_state()
