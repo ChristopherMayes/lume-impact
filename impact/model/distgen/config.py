@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 from pydantic import BaseModel
-
+from distgen import Generator
 from lume.variables import ScalarVariable
 
 from impact.model.distgen.actions import Action, DistgenInputAction

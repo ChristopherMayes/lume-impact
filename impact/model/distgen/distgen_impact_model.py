@@ -55,7 +55,9 @@ class LUMEDistgenImpactModel(LUMEModel):
         return cls(
             gen,
             impact,
-            make_distgen_variables(gen, distgen_config or DistgenVariableMappingConfig()),
+            make_distgen_variables(
+                gen, distgen_config or DistgenVariableMappingConfig()
+            ),
             make_impact_variables(impact, impact_config or VariableMappingConfig()),
             **kwargs,
         )
@@ -96,7 +98,9 @@ class LUMEDistgenImpactModel(LUMEModel):
                     raise TypeError(f"'{action.name}' is read-only")
                 impact_actions[name] = value
             else:
-                raise ValueError(f"'{name}' is not a recognized distgen or impact action")
+                raise ValueError(
+                    f"'{name}' is not a recognized distgen or impact action"
+                )
 
         try:
             for name, value in distgen_actions.items():

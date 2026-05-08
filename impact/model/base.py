@@ -59,7 +59,6 @@ class Action(ABC, BaseModel, Generic[SimT]):
         return self._get(simulator)
 
 
-
 class WritableAction(Action[SimT], Generic[SimT]):
     """Base for actions that support both get and set.
 
@@ -92,7 +91,7 @@ class WritableAction(Action[SimT], Generic[SimT]):
     def set(self, simulator: SimT, value: Any) -> None:
         """
         Outside facing set method with read-only checking.
-    
+
         Parameters
         ----------
         simulator: SimT

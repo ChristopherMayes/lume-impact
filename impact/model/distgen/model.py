@@ -6,7 +6,7 @@ from distgen import Generator
 from lume.model import LUMEModel
 from lume.variables import Variable
 
-from impact.model.distgen.actions import DistgenAction, WritableDistgenAction
+from impact.model.distgen.actions import DistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig, make_actions
 
 
