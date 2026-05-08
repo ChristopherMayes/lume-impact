@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import c_light
+from beamphysics import ParticleGroup
+from beamphysics.units import c_light
 
 from ...z.particles import ImpactZParticles
 

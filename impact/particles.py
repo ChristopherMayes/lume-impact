@@ -1,4 +1,4 @@
-from pmd_beamphysics.particles import single_particle
+from beamphysics.particles import single_particle
 
 import scipy.constants
 

@@ -21,9 +21,9 @@ from typing import (
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.particles import c_light
-from pmd_beamphysics.species import charge_state, mass_of
+from beamphysics import ParticleGroup
+from beamphysics.particles import c_light
+from beamphysics.species import charge_state, mass_of
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal, TypeAlias
 
@@ -1296,7 +1296,9 @@ class ConversionState:
         try:
             initial_particles = export_particles(tao, ix_beginning)
         except TaoCommandError as ex:
-            logger.warning(f"Not using initial particles ({ex.errors[-1].message})")
+            logger.warning(
+                f"Not using initial particles ({ex.errors[-1].message if ex.errors else ''})"
+            )
             initial_particles = None
 
         start_head = ele_head(tao, str(ix_beginning), which=which)
@@ -1363,6 +1365,8 @@ class ConversionState:
 def plot_impactz_and_tao_stats(impactz: ImpactZ, tao: Tao) -> None:
     """
     Simple function to compare the output of Impact-Z vs Tao's bunch comb.
+
+    Note: `comb_ds_save` must be set in `tao` before bunch tracking to see data from this plotting function.
 
     Parameters
     ----------

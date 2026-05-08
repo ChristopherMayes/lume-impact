@@ -13,7 +13,7 @@ dependencies:
   - jupyter_bokeh
   - lume-base
   - matplotlib
-  - openpmd-beamphysics
+  - openpmd-beamphysics>=0.14.0
   - polars
   - prettytable
   - psutil
@@ -23,15 +23,15 @@ dependencies:
   - tqdm
   - pip
   # Developer
-  - bmad
-  - pytao
+  - bmad>=20260223.1
+  - pytao>=1.0.0
   - jupyterlab>=3
   - ipywidgets
   - pygments
-  - mkdocs==1.5.2
+  - mkdocs
   - mkdocstrings
   - mkdocs-material
-  - mkdocs-jupyter==0.24.6
+  - mkdocs-jupyter
   - mkdocstrings-python
   - pytest-cov
   - pytest

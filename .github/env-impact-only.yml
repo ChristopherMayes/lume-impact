@@ -1,0 +1,9 @@
+# conda env create --file=environment.yml
+name: lume-impact-dev
+channels:
+  - conda-forge
+dependencies:
+  - impact-t=*=mpi_openmpi*
+  - impact-z=*=mpi_openmpi*
+  # Well, also bmad for PyTao tests
+  - bmad=*=mpi_openmpi*

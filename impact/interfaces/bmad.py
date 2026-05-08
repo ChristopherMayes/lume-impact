@@ -5,8 +5,8 @@ from collections import Counter
 from copy import deepcopy
 
 import numpy as np
-from pmd_beamphysics import FieldMesh
-from pmd_beamphysics.fields.analysis import accelerating_voltage_and_phase
+from beamphysics import FieldMesh
+from beamphysics.fields.analysis import accelerating_voltage_and_phase
 
 from ..lattice import new_write_beam
 
@@ -368,7 +368,7 @@ def tao_create_impact_solrf_ele(
         phi0_fieldmap = grid_params["phi0_fieldmap"]
 
         # Phase based on absolute time tracking
-        phi0_user = sum([edat["PHI0"], edat["PHI0_ERR"]])
+        phi0_user = sum([edat["PHI0"], edat.get("PHI0_ERR", 0)])
         phi0_oncrest = sum([edat["PHI0_AUTOSCALE"], phi0_fieldmap, -phi0_ref])
         phi0_tot = (phi0_oncrest + phi0_user) % 1
 

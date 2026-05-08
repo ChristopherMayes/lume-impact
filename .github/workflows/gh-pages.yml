@@ -24,7 +24,6 @@ jobs:
       - uses: ./.github/actions/conda-setup
         with:
           python-version: ${{ matrix.python-version }}
-          extras: "doc"
       - name: Execute notebooks
         shell: bash -l {0}
         run: |

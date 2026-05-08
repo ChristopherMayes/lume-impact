@@ -9,7 +9,7 @@ import h5py
 import pytest
 import pydantic
 
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 
 from ... import z as IZ
 from ...z import ImpactZ, AnyInputElement
