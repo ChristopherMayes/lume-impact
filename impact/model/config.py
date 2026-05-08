@@ -34,360 +34,129 @@ class AttributeConfig(BaseModel):
     read_only: bool = False
 
 
+class StatAttributeConfig(BaseModel):
+    """Config for a single output stat variable.
+
+    Parameters
+    ----------
+    unit : str, optional
+        Physical unit string passed to ``ScalarVariable``.
+    alias : str, optional
+        Override the token used in the variable name pattern. If omitted the
+        field name is used (e.g. ``"mean_x"``).
+    """
+
+    unit: str | None = None
+    alias: str | None = None
+
+
+class ConfigBase(BaseModel):
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_defaults(cls, data):
+        if not isinstance(data, dict):
+            return data
+        for name, field in cls.model_fields.items():
+            default = field.default
+            if not isinstance(default, BaseModel):
+                continue
+            key = (
+                name
+                if name in data
+                else (field.alias if field.alias and field.alias in data else None)
+            )
+            if key is None:
+                continue
+            field_data = data[key]
+            if isinstance(field_data, dict):
+                for attr, val in default.model_dump().items():
+                    field_data.setdefault(attr, val)
+        return data
+
+
 # ------------------------------------------------------------------
 # Per-element-type configs
 # Set a field to AttributeConfig() to include it; leave as None to exclude.
 # ------------------------------------------------------------------
 
-_DRIFT_DEFAULTS: dict[str, dict] = {
-    "zedge": {"unit": "m"},
-    "radius": {"unit": "m"},
-}
+
+class DriftConfig(ConfigBase):
+    zedge: AttributeConfig | None = AttributeConfig(unit="m")
+    radius: AttributeConfig | None = AttributeConfig(unit="m")
 
 
-class DriftConfig(BaseModel):
-    zedge: AttributeConfig | None = AttributeConfig(**_DRIFT_DEFAULTS.get("zedge", {}))
-    radius: AttributeConfig | None = AttributeConfig(
-        **_DRIFT_DEFAULTS.get("radius", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _DRIFT_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
+class QuadrupoleConfig(ConfigBase):
+    b1_gradient: AttributeConfig | None = AttributeConfig(unit="T/m")
+    L_effective: AttributeConfig | None = AttributeConfig(unit="m")
+    radius: AttributeConfig | None = AttributeConfig(unit="m")
+    rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
+    rf_phase_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="rf_phase")
+    x_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    y_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    x_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    y_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    z_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
 
 
-_QUADRUPOLE_DEFAULTS: dict[str, dict] = {
-    "b1_gradient": {"unit": "T/m"},
-    "L_effective": {"unit": "m"},
-    "radius": {"unit": "m"},
-    "rf_frequency": {"unit": "Hz"},
-    "rf_phase_deg": {"unit": "deg", "alias": "rf_phase"},
-    "x_offset": {"unit": "m"},
-    "y_offset": {"unit": "m"},
-    "x_rotation": {"unit": "deg"},
-    "y_rotation": {"unit": "deg"},
-    "z_rotation": {"unit": "deg"},
-}
+class SolenoidConfig(ConfigBase):
+    b_field: AttributeConfig | None = AttributeConfig(unit="T")
+    radius: AttributeConfig | None = AttributeConfig(unit="m")
+    x_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    y_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    x_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    y_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    z_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
 
 
-class QuadrupoleConfig(BaseModel):
-    b1_gradient: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("b1_gradient", {})
-    )
-    L_effective: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("L_effective", {})
-    )
-    radius: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("radius", {})
-    )
-    rf_frequency: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("rf_frequency", {})
-    )
-    rf_phase_deg: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("rf_phase_deg", {})
-    )
-    x_offset: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("x_offset", {})
-    )
-    y_offset: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("y_offset", {})
-    )
-    x_rotation: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("x_rotation", {})
-    )
-    y_rotation: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("y_rotation", {})
-    )
-    z_rotation: AttributeConfig | None = AttributeConfig(
-        **_QUADRUPOLE_DEFAULTS.get("z_rotation", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _QUADRUPOLE_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
+class DipoleConfig(ConfigBase):
+    b_field: AttributeConfig | None = AttributeConfig(unit="T")
+    b_field_x: AttributeConfig | None = AttributeConfig(unit="T")
+    half_gap: AttributeConfig | None = AttributeConfig(unit="m")
 
 
-_SOLENOID_DEFAULTS: dict[str, dict] = {
-    "b_field": {"unit": "T"},
-    "radius": {"unit": "m"},
-    "x_offset": {"unit": "m"},
-    "y_offset": {"unit": "m"},
-    "x_rotation": {"unit": "deg"},
-    "y_rotation": {"unit": "deg"},
-    "z_rotation": {"unit": "deg"},
-}
+class SolrfConfig(ConfigBase):
+    rf_field_scale: AttributeConfig | None = AttributeConfig()
+    rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
+    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="theta0")
+    radius: AttributeConfig | None = AttributeConfig(unit="m")
+    solenoid_field_scale: AttributeConfig | None = AttributeConfig()
+    x_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    y_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    x_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    y_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    z_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
 
 
-class SolenoidConfig(BaseModel):
-    b_field: AttributeConfig | None = AttributeConfig(
-        **_SOLENOID_DEFAULTS.get("b_field", {})
-    )
-    #     filename: AttributeConfig | None = AttributeConfig()
-    radius: AttributeConfig | None = AttributeConfig(
-        **_SOLENOID_DEFAULTS.get("radius", {})
-    )
-    x_offset: AttributeConfig | None = AttributeConfig(
-        **_SOLENOID_DEFAULTS.get("x_offset", {})
-    )
-    y_offset: AttributeConfig | None = AttributeConfig(
-        **_SOLENOID_DEFAULTS.get("y_offset", {})
-    )
-    x_rotation: AttributeConfig | None = AttributeConfig(
-        **_SOLENOID_DEFAULTS.get("x_rotation", {})
-    )
-    y_rotation: AttributeConfig | None = AttributeConfig(
-        **_SOLENOID_DEFAULTS.get("y_rotation", {})
-    )
-    z_rotation: AttributeConfig | None = AttributeConfig(
-        **_SOLENOID_DEFAULTS.get("z_rotation", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _SOLENOID_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
+class EmfieldCartesianConfig(ConfigBase):
+    rf_field_scale: AttributeConfig | None = AttributeConfig()
+    rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
+    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="theta0")
+    radius: AttributeConfig | None = AttributeConfig(unit="m")
+    x_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    y_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    x_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    y_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    z_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
 
 
-_DIPOLE_DEFAULTS: dict[str, dict] = {
-    "b_field": {"unit": "T"},
-    "b_field_x": {"unit": "T"},
-    "half_gap": {"unit": "m"},
-}
-
-
-class DipoleConfig(BaseModel):
-    b_field: AttributeConfig | None = AttributeConfig(
-        **_DIPOLE_DEFAULTS.get("b_field", {})
-    )
-    b_field_x: AttributeConfig | None = AttributeConfig(
-        **_DIPOLE_DEFAULTS.get("b_field_x", {})
-    )
-    #     filename: AttributeConfig | None = AttributeConfig()
-    half_gap: AttributeConfig | None = AttributeConfig(
-        **_DIPOLE_DEFAULTS.get("half_gap", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _DIPOLE_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
-
-
-_SOLRF_DEFAULTS: dict[str, dict] = {
-    "rf_frequency": {"unit": "Hz"},
-    "theta0_deg": {"unit": "deg", "alias": "theta0"},
-    "radius": {"unit": "m"},
-    "x_offset": {"unit": "m"},
-    "y_offset": {"unit": "m"},
-    "x_rotation": {"unit": "deg"},
-    "y_rotation": {"unit": "deg"},
-    "z_rotation": {"unit": "deg"},
-}
-
-
-class SolrfConfig(BaseModel):
-    rf_field_scale: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("rf_field_scale", {})
-    )
-    rf_frequency: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("rf_frequency", {})
-    )
-    theta0_deg: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("theta0_deg", {})
-    )
-    #     filename: AttributeConfig | None = AttributeConfig()
-    radius: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("radius", {})
-    )
-    solenoid_field_scale: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("solenoid_field_scale", {})
-    )
-    x_offset: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("x_offset", {})
-    )
-    y_offset: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("y_offset", {})
-    )
-    x_rotation: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("x_rotation", {})
-    )
-    y_rotation: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("y_rotation", {})
-    )
-    z_rotation: AttributeConfig | None = AttributeConfig(
-        **_SOLRF_DEFAULTS.get("z_rotation", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _SOLRF_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
-
-
-_EMFIELD_CARTESIAN_DEFAULTS: dict[str, dict] = {
-    "rf_frequency": {"unit": "Hz"},
-    "theta0_deg": {"unit": "deg", "alias": "theta0"},
-    "radius": {"unit": "m"},
-    "x_offset": {"unit": "m"},
-    "y_offset": {"unit": "m"},
-    "x_rotation": {"unit": "deg"},
-    "y_rotation": {"unit": "deg"},
-    "z_rotation": {"unit": "deg"},
-}
-
-
-class EmfieldCartesianConfig(BaseModel):
-    rf_field_scale: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("rf_field_scale", {})
-    )
-    rf_frequency: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("rf_frequency", {})
-    )
-    theta0_deg: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("theta0_deg", {})
-    )
-    #     filename: AttributeConfig | None = AttributeConfig()
-    radius: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("radius", {})
-    )
-    x_offset: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("x_offset", {})
-    )
-    y_offset: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("y_offset", {})
-    )
-    x_rotation: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("x_rotation", {})
-    )
-    y_rotation: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("y_rotation", {})
-    )
-    z_rotation: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CARTESIAN_DEFAULTS.get("z_rotation", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _EMFIELD_CARTESIAN_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
-
-
-_EMFIELD_CYLINDRICAL_DEFAULTS: dict[str, dict] = {
-    "rf_frequency": {"unit": "Hz"},
-    "theta0_deg": {"unit": "deg", "alias": "theta0"},
-    "radius": {"unit": "m"},
-    "x_offset": {"unit": "m"},
-    "y_offset": {"unit": "m"},
-    "x_rotation": {"unit": "deg"},
-    "y_rotation": {"unit": "deg"},
-    "z_rotation": {"unit": "deg"},
-}
-
-
-class EmfieldCylindricalConfig(BaseModel):
-    rf_field_scale: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("rf_field_scale", {})
-    )
-    rf_frequency: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("rf_frequency", {})
-    )
-    theta0_deg: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("theta0_deg", {})
-    )
-    #     filename: AttributeConfig | None = AttributeConfig()
-    radius: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("radius", {})
-    )
-    x_offset: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("x_offset", {})
-    )
-    y_offset: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("y_offset", {})
-    )
-    x_rotation: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("x_rotation", {})
-    )
-    y_rotation: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("y_rotation", {})
-    )
-    z_rotation: AttributeConfig | None = AttributeConfig(
-        **_EMFIELD_CYLINDRICAL_DEFAULTS.get("z_rotation", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _EMFIELD_CYLINDRICAL_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
+class EmfieldCylindricalConfig(ConfigBase):
+    rf_field_scale: AttributeConfig | None = AttributeConfig()
+    rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
+    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="theta0")
+    radius: AttributeConfig | None = AttributeConfig(unit="m")
+    x_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    y_offset: AttributeConfig | None = AttributeConfig(unit="m")
+    x_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    y_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
+    z_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
 
 
 # ------------------------------------------------------------------
 # Header config
 # ------------------------------------------------------------------
 
-_HEADER_DEFAULTS: dict[str, dict] = {
-    # Time stepping
-    "Dt": {"unit": "s"},
-    # Beam / bunch
-    "Bcurr": {"unit": "A"},
-    "Bkenergy": {"unit": "eV"},
-    "Bmass": {"unit": "eV"},
-    "Bfreq": {"unit": "Hz"},
-    "Tini": {"unit": "s"},
-    # Grid
-    "Xrad": {"unit": "m"},
-    "Yrad": {"unit": "m"},
-    "Perdlen": {"unit": "m"},
-    "Zimage": {"unit": "m"},
-    # Emission
-    "Temission": {"unit": "s"},
-    # Distribution parameters — alias strips the "(m)" from the header key
-    "sigx_m": {"unit": "m", "alias": "sigx"},
-    "xmu1_m": {"unit": "m", "alias": "xmu1"},
-    "sigy_m": {"unit": "m", "alias": "sigy"},
-    "ymu1_m": {"unit": "m", "alias": "ymu1"},
-    "sigz_m": {"unit": "m", "alias": "sigz"},
-    "zmu1_m": {"unit": "m", "alias": "zmu1"},
-}
 
-
-class HeaderConfig(BaseModel):
+class HeaderConfig(ConfigBase):
     model_config = ConfigDict(populate_by_name=True)
 
     pattern: str = "header/{key}"
@@ -409,166 +178,83 @@ class HeaderConfig(BaseModel):
         return result
 
     # Processor domain
-    Npcol: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Npcol", {}))
-    Nprow: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Nprow", {}))
+    Npcol: AttributeConfig | None = AttributeConfig()
+    Nprow: AttributeConfig | None = AttributeConfig()
     # Time stepping
-    Dt: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Dt", {}))
-    Ntstep: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Ntstep", {})
-    )
+    Dt: AttributeConfig | None = AttributeConfig(unit="s")
+    Ntstep: AttributeConfig | None = AttributeConfig()
     # Beam / bunch
-    Nbunch: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Nbunch", {})
-    )
-    Np: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Np", {}))
-    Bcurr: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Bcurr", {}))
-    Bkenergy: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Bkenergy", {})
-    )
-    Bmass: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Bmass", {}))
-    Bcharge: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Bcharge", {})
-    )
-    Bfreq: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Bfreq", {}))
-    Tini: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Tini", {}))
+    Nbunch: AttributeConfig | None = AttributeConfig()
+    Np: AttributeConfig | None = AttributeConfig()
+    Bcurr: AttributeConfig | None = AttributeConfig(unit="A")
+    Bkenergy: AttributeConfig | None = AttributeConfig(unit="eV")
+    Bmass: AttributeConfig | None = AttributeConfig(unit="eV")
+    Bcharge: AttributeConfig | None = AttributeConfig()
+    Bfreq: AttributeConfig | None = AttributeConfig(unit="Hz")
+    Tini: AttributeConfig | None = AttributeConfig(unit="s")
     # Flags
-    Flagmap: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Flagmap", {})
-    )
-    Flagerr: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Flagerr", {})
-    )
-    Flagdiag: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Flagdiag", {})
-    )
-    Flagimg: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Flagimg", {})
-    )
-    Flagdist: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Flagdist", {})
-    )
-    Flagbc: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Flagbc", {})
-    )
-    Rstartflg: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Rstartflg", {})
-    )
-    Flagsbstp: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Flagsbstp", {})
-    )
+    Flagmap: AttributeConfig | None = AttributeConfig()
+    Flagerr: AttributeConfig | None = AttributeConfig()
+    Flagdiag: AttributeConfig | None = AttributeConfig()
+    Flagimg: AttributeConfig | None = AttributeConfig()
+    Flagdist: AttributeConfig | None = AttributeConfig()
+    Flagbc: AttributeConfig | None = AttributeConfig()
+    Rstartflg: AttributeConfig | None = AttributeConfig()
+    Flagsbstp: AttributeConfig | None = AttributeConfig()
     # Grid
-    Dim: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Dim", {}))
-    Nx: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Nx", {}))
-    Ny: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Ny", {}))
-    Nz: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Nz", {}))
-    Xrad: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Xrad", {}))
-    Yrad: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("Yrad", {}))
-    Perdlen: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Perdlen", {})
-    )
-    Zimage: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Zimage", {})
-    )
+    Dim: AttributeConfig | None = AttributeConfig()
+    Nx: AttributeConfig | None = AttributeConfig()
+    Ny: AttributeConfig | None = AttributeConfig()
+    Nz: AttributeConfig | None = AttributeConfig()
+    Xrad: AttributeConfig | None = AttributeConfig(unit="m")
+    Yrad: AttributeConfig | None = AttributeConfig(unit="m")
+    Perdlen: AttributeConfig | None = AttributeConfig(unit="m")
+    Zimage: AttributeConfig | None = AttributeConfig(unit="m")
     # Emission
-    Nemission: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Nemission", {})
-    )
-    Temission: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("Temission", {})
-    )
+    Nemission: AttributeConfig | None = AttributeConfig()
+    Temission: AttributeConfig | None = AttributeConfig(unit="s")
     # Distribution parameters
     sigx_m: AttributeConfig | None = Field(
-        AttributeConfig(**_HEADER_DEFAULTS.get("sigx_m", {})), alias="sigx(m)"
+        AttributeConfig(unit="m", alias="sigx"), alias="sigx(m)"
     )
-    sigpx: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("sigpx", {}))
-    muxpx: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("muxpx", {}))
-    xscale: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("xscale", {})
-    )
-    pxscale: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("pxscale", {})
-    )
+    sigpx: AttributeConfig | None = AttributeConfig()
+    muxpx: AttributeConfig | None = AttributeConfig()
+    xscale: AttributeConfig | None = AttributeConfig()
+    pxscale: AttributeConfig | None = AttributeConfig()
     xmu1_m: AttributeConfig | None = Field(
-        AttributeConfig(**_HEADER_DEFAULTS.get("xmu1_m", {})), alias="xmu1(m)"
+        AttributeConfig(unit="m", alias="xmu1"), alias="xmu1(m)"
     )
-    xmu2: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("xmu2", {}))
+    xmu2: AttributeConfig | None = AttributeConfig()
     sigy_m: AttributeConfig | None = Field(
-        AttributeConfig(**_HEADER_DEFAULTS.get("sigy_m", {})), alias="sigy(m)"
+        AttributeConfig(unit="m", alias="sigy"), alias="sigy(m)"
     )
-    sigpy: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("sigpy", {}))
-    muxpy: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("muxpy", {}))
-    yscale: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("yscale", {})
-    )
-    pyscale: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("pyscale", {})
-    )
+    sigpy: AttributeConfig | None = AttributeConfig()
+    muxpy: AttributeConfig | None = AttributeConfig()
+    yscale: AttributeConfig | None = AttributeConfig()
+    pyscale: AttributeConfig | None = AttributeConfig()
     ymu1_m: AttributeConfig | None = Field(
-        AttributeConfig(**_HEADER_DEFAULTS.get("ymu1_m", {})), alias="ymu1(m)"
+        AttributeConfig(unit="m", alias="ymu1"), alias="ymu1(m)"
     )
-    ymu2: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("ymu2", {}))
+    ymu2: AttributeConfig | None = AttributeConfig()
     sigz_m: AttributeConfig | None = Field(
-        AttributeConfig(**_HEADER_DEFAULTS.get("sigz_m", {})), alias="sigz(m)"
+        AttributeConfig(unit="m", alias="sigz"), alias="sigz(m)"
     )
-    sigpz: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("sigpz", {}))
-    muxpz: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("muxpz", {}))
-    zscale: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("zscale", {})
-    )
-    pzscale: AttributeConfig | None = AttributeConfig(
-        **_HEADER_DEFAULTS.get("pzscale", {})
-    )
+    sigpz: AttributeConfig | None = AttributeConfig()
+    muxpz: AttributeConfig | None = AttributeConfig()
+    zscale: AttributeConfig | None = AttributeConfig()
+    pzscale: AttributeConfig | None = AttributeConfig()
     zmu1_m: AttributeConfig | None = Field(
-        AttributeConfig(**_HEADER_DEFAULTS.get("zmu1_m", {})), alias="zmu1(m)"
+        AttributeConfig(unit="m", alias="zmu1"), alias="zmu1(m)"
     )
-    zmu2: AttributeConfig | None = AttributeConfig(**_HEADER_DEFAULTS.get("zmu2", {}))
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _HEADER_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
+    zmu2: AttributeConfig | None = AttributeConfig()
 
 
 # ------------------------------------------------------------------
 # Stats config
 # ------------------------------------------------------------------
 
-_STATS_DEFAULTS: dict[str, dict] = {
-    "mean_kinetic_energy": {"unit": "eV"},
-    "mean_x": {"unit": "m"},
-    "mean_y": {"unit": "m"},
-    "mean_z": {"unit": "m"},
-    "sigma_x": {"unit": "m"},
-    "sigma_y": {"unit": "m"},
-    "sigma_z": {"unit": "m"},
-    "norm_emit_x": {"unit": "m"},
-    "norm_emit_y": {"unit": "m"},
-    "norm_emit_z": {"unit": "m"},
-}
 
-
-class StatAttributeConfig(BaseModel):
-    """Config for a single output stat variable.
-
-    Parameters
-    ----------
-    unit : str, optional
-        Physical unit string passed to ``ScalarVariable``.
-    alias : str, optional
-        Override the token used in the variable name pattern. If omitted the
-        field name is used (e.g. ``"mean_x"``).
-    """
-
-    unit: str | None = None
-    alias: str | None = None
-
-
-class StatsConfig(BaseModel):
+class StatsConfig(ConfigBase):
     pattern: str = "stat/{name}"
 
     @property
@@ -583,59 +269,24 @@ class StatsConfig(BaseModel):
                 result[stat_cfg.alias] = field_name
         return result
 
-    mean_kinetic_energy: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("mean_kinetic_energy", {})
-    )
-    mean_x: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("mean_x", {})
-    )
-    mean_y: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("mean_y", {})
-    )
-    mean_z: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("mean_z", {})
-    )
-    sigma_x: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("sigma_x", {})
-    )
-    sigma_y: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("sigma_y", {})
-    )
-    sigma_z: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("sigma_z", {})
-    )
-    norm_emit_x: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("norm_emit_x", {})
-    )
-    norm_emit_y: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("norm_emit_y", {})
-    )
-    norm_emit_z: StatAttributeConfig | None = StatAttributeConfig(
-        **_STATS_DEFAULTS.get("norm_emit_z", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _STATS_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
+    mean_kinetic_energy: StatAttributeConfig | None = StatAttributeConfig(unit="eV")
+    mean_x: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    mean_y: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    mean_z: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    sigma_x: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    sigma_y: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    sigma_z: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    norm_emit_x: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    norm_emit_y: StatAttributeConfig | None = StatAttributeConfig(unit="m")
+    norm_emit_z: StatAttributeConfig | None = StatAttributeConfig(unit="m")
 
 
 # ------------------------------------------------------------------
 # Run info config
 # ------------------------------------------------------------------
 
-_RUN_INFO_DEFAULTS: dict[str, dict] = {
-    "run_time": {"unit": "s"},
-    "error": {},
-}
 
-
-class RunInfoConfig(BaseModel):
+class RunInfoConfig(ConfigBase):
     pattern: str = "run_info/{key}"
 
     @property
@@ -650,22 +301,8 @@ class RunInfoConfig(BaseModel):
                 result[stat_cfg.alias] = field_name
         return result
 
-    run_time: StatAttributeConfig | None = StatAttributeConfig(
-        **_RUN_INFO_DEFAULTS.get("run_time", {})
-    )
-    error: StatAttributeConfig | None = StatAttributeConfig(
-        **_RUN_INFO_DEFAULTS.get("error", {})
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def apply_defaults(cls, data):
-        if not isinstance(data, dict):
-            return data
-        for field, default in _RUN_INFO_DEFAULTS.items():
-            if field in data and isinstance(data[field], dict):
-                data[field] = {**default, **data[field]}
-        return data
+    run_time: StatAttributeConfig | None = StatAttributeConfig(unit="s")
+    error: StatAttributeConfig | None = StatAttributeConfig()
 
 
 # ------------------------------------------------------------------
@@ -800,9 +437,7 @@ def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
                 if field_name not in impact.ele[ele_name]:
                     continue
 
-                attrib_token = (
-                    attr_cfg.alias or field_name
-                )
+                attrib_token = attr_cfg.alias or field_name
                 variable_name = config.elements.pattern.format(
                     type=type_token, name=name_token, attrib=attrib_token
                 )
