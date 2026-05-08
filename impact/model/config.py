@@ -258,6 +258,7 @@ class HeaderConfig(ConfigBase):
 
 class StatsConfig(ConfigBase):
     pattern: str = "stat/{name}"
+    max_size: int | None = None
 
     @property
     def name_map(self) -> dict[str, str]:
@@ -446,12 +447,16 @@ def _make_stat_actions(impact: Any, config: StatsConfig) -> list[Action]:
             continue
         name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
         stat_array = impact.stat(field_name)
+        if config.max_size is not None:
+            shape = (int(config.max_size * 1.1),)
+        else:
+            shape = stat_array.shape
         actions.append(
             StatAction(
                 stat_name=field_name,
                 var=NDVariable(
                     name=config.pattern.format(name=name_token),
-                    shape=stat_array.shape,
+                    shape=shape,
                     default_value=stat_array,
                     unit=stat_cfg.unit,
                     read_only=True,

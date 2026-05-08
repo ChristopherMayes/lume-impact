@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 from pydantic import model_validator
 
 from impact.impact import Impact
@@ -51,7 +52,13 @@ class StatAction(ImpactAction):
     stat_name: str
 
     def _get(self, simulator: Impact) -> Any:
-        return simulator.stat(self.stat_name)
+        arr = simulator.stat(self.stat_name)
+        if arr.shape[0] == self.var.shape[0]:
+            return arr
+        out = np.full(self.var.shape[0], np.nan, dtype=float)
+        n = min(arr.shape[0], self.var.shape[0])
+        out[:n] = arr[:n]
+        return out
 
 
 class RunInfoAction(ImpactAction):
