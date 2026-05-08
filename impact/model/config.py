@@ -399,12 +399,12 @@ def _make_element_actions(impact: Any, config: ElementsConfig) -> list[Action]:
     ele_name_map = (
         {v: k for k, v in config.control_to_tool_name.items()}
         if config.control_to_tool_name
-        else None
+        else {}
     )
     ele_type_map = (
         {v: k for k, v in config.control_to_tool_type.items()}
         if config.control_to_tool_type
-        else None
+        else {}
     )
     for ele in impact.lattice:
         ele_type: str = ele.get("type", "")
@@ -412,8 +412,8 @@ def _make_element_actions(impact: Any, config: ElementsConfig) -> list[Action]:
         type_cfg = getattr(config, ele_type, None)
         if not isinstance(type_cfg, BaseModel):
             continue
-        name_token = ele_name_map.get(ele_name, ele_name) if ele_name_map else ele_name
-        type_token = ele_type_map.get(ele_type, ele_type) if ele_type_map else ele_type
+        name_token = ele_name_map.get(ele_name, ele_name)
+        type_token = ele_type_map.get(ele_type, ele_type)
         for field_name in type(type_cfg).model_fields:
             attr_cfg = getattr(type_cfg, field_name)
             if not isinstance(attr_cfg, AttributeConfig):
