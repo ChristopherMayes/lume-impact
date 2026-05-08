@@ -4,6 +4,7 @@ from typing import Any, Generic, TypeVar
 from pydantic import BaseModel, model_validator
 
 from lume.variables import Variable
+from impact.model.exceptions import ReadOnlyError
 
 SimT = TypeVar("SimT")
 
@@ -28,7 +29,7 @@ class Action(ABC, BaseModel, Generic[SimT]):
     @model_validator(mode="after")
     def _check_var(self) -> "Action[SimT]":
         if not self.var.read_only:
-            raise ValueError(f"{type(self).__name__} requires a read-only variable")
+            raise ReadOnlyError(f"{type(self).__name__} requires a read-only variable")
         return self
 
     @abstractmethod
@@ -54,5 +55,5 @@ class WritableAction(Action[SimT], Generic[SimT]):
 
     def set(self, simulator: SimT, value: Any) -> None:
         if self.var.read_only:
-            raise TypeError(f"'{self.name}' is read-only")
+            raise ReadOnlyError(f"'{self.name}' is read-only")
         self.force_set(simulator, value)
