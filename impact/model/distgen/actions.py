@@ -28,5 +28,5 @@ class DistgenInputAction(WritableDistgenAction):
     def get(self, gen: Generator) -> Any:
         return gen[self.key]
 
-    def force_set(self, gen: Generator, value: Any) -> None:
+    def _set(self, gen: Generator, value: Any) -> None:
         gen[self.key] = value

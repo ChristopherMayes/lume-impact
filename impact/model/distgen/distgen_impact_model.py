@@ -6,7 +6,6 @@ from distgen import Generator
 from impact.impact import Impact
 from lume.model import LUMEModel
 from lume.variables import Variable
-from pydantic import Field
 
 from impact.model.actions import ImpactAction, WritableImpactAction
 from impact.model.config import VariableMappingConfig
@@ -49,19 +48,15 @@ class LUMEDistgenImpactModel(LUMEModel):
         cls,
         gen: Generator,
         impact: Impact,
-        distgen_config: DistgenVariableMappingConfig = Field(
-            default_factory=DistgenVariableMappingConfig
-        ),
-        impact_config: VariableMappingConfig = Field(
-            default_factory=VariableMappingConfig
-        ),
+        distgen_config: DistgenVariableMappingConfig | None = None,
+        impact_config: VariableMappingConfig | None = None,
         **kwargs,
     ) -> "LUMEDistgenImpactModel":
         return cls(
             gen,
             impact,
-            make_distgen_variables(gen, distgen_config),
-            make_impact_variables(impact, impact_config),
+            make_distgen_variables(gen, distgen_config or DistgenVariableMappingConfig()),
+            make_impact_variables(impact, impact_config or VariableMappingConfig()),
             **kwargs,
         )
 

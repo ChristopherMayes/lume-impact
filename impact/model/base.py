@@ -45,7 +45,7 @@ class WritableAction(Action[SimT], Generic[SimT]):
     Subclasses must implement ``get`` and ``set``.
 
     The model calls ``set``, which enforces the read-only guard before
-    delegating to ``force_set``.
+    delegating to ``_set``.
     """
 
     @model_validator(mode="after")
@@ -53,9 +53,30 @@ class WritableAction(Action[SimT], Generic[SimT]):
         return self
 
     @abstractmethod
-    def force_set(self, simulator: SimT, value: Any) -> None: ...
+    def _set(self, simulator: SimT, value: Any) -> None:
+        """
+        User implentation for action goes here.
+
+        Parameters
+        ----------
+        simulator: SimT
+            The simulator object
+        value: Any
+            The value the variable associated with the action is being set to
+        """
+        ...
 
     def set(self, simulator: SimT, value: Any) -> None:
+        """
+        Outside facing set method with read-only checking.
+    
+        Parameters
+        ----------
+        simulator: SimT
+            The simulator object
+        value: Any
+            The value the variable associated with the action is being set to
+        """
         if self.var.read_only:
             raise ReadOnlyError(f"'{self.name}' is read-only")
-        self.force_set(simulator, value)
+        self._set(simulator, value)

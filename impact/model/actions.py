@@ -27,7 +27,7 @@ class EleAction(WritableImpactAction):
     def get(self, simulator: Impact) -> Any:
         return simulator.ele[self.ele_name][self.attribute]
 
-    def force_set(self, simulator: Impact, value: Any) -> None:
+    def _set(self, simulator: Impact, value: Any) -> None:
         simulator.ele[self.ele_name][self.attribute] = value
 
 
@@ -40,7 +40,7 @@ class HeaderAction(WritableImpactAction):
     def get(self, simulator: Impact) -> Any:
         return simulator.header[self.key]
 
-    def force_set(self, simulator: Impact, value: Any) -> None:
+    def _set(self, simulator: Impact, value: Any) -> None:
         simulator.header[self.key] = value
 
 
@@ -86,5 +86,5 @@ class ParticleGroupAction(WritableImpactAction):
     def get(self, simulator: Impact) -> Any:
         return simulator.particles[self.tool_name]
 
-    def force_set(self, simulator: Impact, value: Any) -> None:
+    def _set(self, simulator: Impact, value: Any) -> None:
         simulator.initial_particles = value
