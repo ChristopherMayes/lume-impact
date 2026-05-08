@@ -42,15 +42,15 @@ class LUMEImpactModel(LUMEModel):
         return {name: self._state[name] for name in names}
 
     def _set(self, values: dict[str, Any]) -> None:
-        actions = {}
+        to_set: list[tuple[WritableImpactAction, Any]] = []
         for name, value in values.items():
             action = self._action_by_name[name]
             if not isinstance(action, WritableImpactAction):
                 raise ReadOnlyError(f"'{action.name}' is read-only")
-            actions[action] = value
+            to_set.append((action, value))
         try:
-            for action, value in actions.items():
-                action.set(self.impact, value)
+            for action, value in to_set:
+                action._set(self.impact, value)
             if not self.dummy_run:
                 self.impact.run()
         finally:

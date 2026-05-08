@@ -14,6 +14,7 @@ from impact.model.actions import (
     WritableImpactAction,
 )
 from impact.model.base import Action, WritableAction
+from impact.model.exceptions import ReadOnlyError
 
 
 @pytest.fixture
@@ -48,7 +49,7 @@ def pg_var(name="test_pg", read_only=False):
 
 
 def test_read_only_action_requires_read_only_var():
-    with pytest.raises(ValueError, match="read-only"):
+    with pytest.raises(ReadOnlyError, match="read-only"):
         StatAction(stat_name="mean_x", var=nd_var(read_only=False))
 
 
@@ -135,9 +136,9 @@ def test_safe_set_succeeds_for_writable_var(impact):
 
 
 def test_set_bypasses_read_only_guard(impact):
-    # set() is the raw implementation with no guard; set is what models call
+    # _set() is the raw implementation with no guard; set() adds the read-only check
     action = HeaderAction(key="Np", var=scalar_var(read_only=True))
-    action.set(impact, 999)
+    action._set(impact, 999)
     assert impact.header["Np"] == 999
 
 
@@ -177,12 +178,12 @@ def test_particle_group_action_requires_particle_group_var():
 
 
 def test_stat_action_requires_read_only_var():
-    with pytest.raises(ValueError, match="read-only"):
+    with pytest.raises(ReadOnlyError, match="read-only"):
         StatAction(stat_name="mean_x", var=nd_var(read_only=False))
 
 
 def test_run_info_action_requires_read_only_var():
-    with pytest.raises(ValueError, match="read-only"):
+    with pytest.raises(ReadOnlyError, match="read-only"):
         RunInfoAction(key="run_time", var=scalar_var(read_only=False))
 
 
