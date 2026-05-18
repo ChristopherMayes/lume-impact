@@ -8,10 +8,10 @@ from pydantic import BaseModel, model_validator
 from lume.variables import Variable
 from impact.model.exceptions import ReadOnlyError
 
-SimT = TypeVar("SimT")
+SimulatorT = TypeVar("SimulatorT")
 
 
-class Action(ABC, BaseModel, Generic[SimT]):
+class Action(ABC, BaseModel, Generic[SimulatorT]):
     """Base for read-only actions over a generic simulator type.
 
     Subclasses must implement ``_get``.  The ``model_validator`` enforces
@@ -29,37 +29,37 @@ class Action(ABC, BaseModel, Generic[SimT]):
         return getattr(self.var, "read_only")
 
     @model_validator(mode="after")
-    def _check_var(self) -> "Action[SimT]":
+    def _check_var(self) -> "Action[SimulatorT]":
         if not self.var.read_only:
             raise ReadOnlyError(f"{type(self).__name__} requires a read-only variable")
         return self
 
     @abstractmethod
-    def _get(self, simulator: SimT) -> Any:
+    def _get(self, simulator: SimulatorT) -> Any:
         """
         The child-class implementation of the get method. Override this method and
         not `get` for defining the action's functionality.
 
         Parameters
         ----------
-        simulator: SimT
+        simulator: SimulatorT
             The simulator object the parameter is pulled from
         """
         ...
 
-    def get(self, simulator: SimT) -> Any:
+    def get(self, simulator: SimulatorT) -> Any:
         """
         Outside facing get method.
 
         Parameters
         ----------
-        simulator: SimT
+        simulator: SimulatorT
             The simulator object the parameter is pulled from
         """
         return self._get(simulator)
 
 
-class WritableAction(Action[SimT], Generic[SimT]):
+class WritableAction(Action[SimulatorT], Generic[SimulatorT]):
     """Base for actions that support both get and set.
 
     Overrides ``_check_var`` so writable variables are accepted.
@@ -74,27 +74,27 @@ class WritableAction(Action[SimT], Generic[SimT]):
         return self
 
     @abstractmethod
-    def _set(self, simulator: SimT, value: Any) -> None:
+    def _set(self, simulator: SimulatorT, value: Any) -> None:
         """
         The child-class implementation of the set method. Overrid this method and
         not `set` for defining the action's set method.
 
         Parameters
         ----------
-        simulator: SimT
+        simulator: SimulatorT
             The simulator object
         value: Any
             The value the variable associated with the action is being set to
         """
         ...
 
-    def set(self, simulator: SimT, value: Any) -> None:
+    def set(self, simulator: SimulatorT, value: Any) -> None:
         """
         Outside facing set method with read-only checking.
 
         Parameters
         ----------
-        simulator: SimT
+        simulator: SimulatorT
             The simulator object
         value: Any
             The value the variable associated with the action is being set to
