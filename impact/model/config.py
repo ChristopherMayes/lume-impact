@@ -464,7 +464,9 @@ def _make_element_actions(impact: Any, config: ElementsConfig) -> list[Action]:
     return actions
 
 
-def _make_stat_actions(impact: Any, config: StatsConfig) -> list[Action]:
+def _make_stat_actions(
+    impact: Any, config: StatsConfig, stat_size_expansion: float
+) -> list[Action]:
     actions = []
     for field_name in StatsConfig.model_fields:
         stat_cfg = getattr(config, field_name)
@@ -475,7 +477,7 @@ def _make_stat_actions(impact: Any, config: StatsConfig) -> list[Action]:
         if config.max_size is not None:
             shape = (config.max_size,)
         else:
-            shape = (int(stat_array.shape[0] * 1.1),)
+            shape = (int(stat_array.shape[0] * stat_size_expansion),)
         actions.append(
             StatAction(
                 stat_name=field_name,
@@ -537,11 +539,23 @@ def _make_particle_actions(impact: Any, config: ParticlesConfig) -> list[Action]
     return actions
 
 
-def make_actions(impact: Impact, config: VariableMappingConfig) -> list[Action]:
+def make_actions(
+    impact: Impact,
+    config: VariableMappingConfig,
+    stat_size_expansion: float = 1.1,
+) -> list[Action]:
     """Build variable actions for every element attribute, header key, and output
     described by *config*.
 
-    The current value in *impact* is used as ``default_value`` for each variable.
+    Parameters
+    ----------
+    impact : Impact
+        Already run Impact-T simulator object from which variables will be generated.
+    config : VariableMappingConfig
+        Configuration for how variables are generated from Impact-T
+    stat_size_expansion : float
+        Multiplier applied to the current stat array length to pre-size the
+        NDVariable shape when ``StatsConfig.max_size`` is not set.
     """
     actions: list[Action] = []
     if config.header is not None:
@@ -549,7 +563,7 @@ def make_actions(impact: Impact, config: VariableMappingConfig) -> list[Action]:
     if config.elements is not None:
         actions += _make_element_actions(impact, config.elements)
     if config.stats is not None:
-        actions += _make_stat_actions(impact, config.stats)
+        actions += _make_stat_actions(impact, config.stats, stat_size_expansion)
     if config.run_info is not None:
         actions += _make_run_info_actions(impact, config.run_info)
     if config.particles is not None:
