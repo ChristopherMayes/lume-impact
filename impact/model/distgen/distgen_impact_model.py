@@ -13,6 +13,7 @@ from impact.model.config import make_actions as make_impact_variables
 from impact.model.distgen.actions import DistgenAction, WritableDistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig
 from impact.model.distgen.config import make_actions as make_distgen_variables
+from impact.model.exceptions import ReadOnlyError
 
 
 class LUMEDistgenImpactModel(LUMEModel):
@@ -90,12 +91,12 @@ class LUMEDistgenImpactModel(LUMEModel):
             if name in distgen_by_name:
                 action = distgen_by_name[name]
                 if not isinstance(action, WritableDistgenAction):
-                    raise Impact(f"'{action.name}' is read-only")
+                    raise ReadOnlyError(f"'{action.name}' is read-only")
                 distgen_actions[name] = value
             elif name in impact_by_name:
                 action = impact_by_name[name]
                 if not isinstance(action, WritableImpactAction):
-                    raise Impact(f"'{action.name}' is read-only")
+                    raise ReadOnlyError(f"'{action.name}' is read-only")
                 impact_actions[name] = value
             else:
                 raise ValueError(
