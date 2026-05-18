@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+
+import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 
@@ -270,6 +272,9 @@ class StatsConfig(ConfigBase):
 
     `pattern` is a python f-string and the value `name` is passed to it during formatting to generate variables names. `name`
     corresponds to the name of the value within Impact-T's stats data.
+
+    `max_size` is the maximum size of the stats array. Arrays will be padded and trimmed to this length to fit the fixed-length
+    variable. If unset, the length of stats arrays in the Impact-T object will be used.
     """
 
     pattern: str = "stat:{name}"
@@ -478,13 +483,16 @@ def _make_stat_actions(
             shape = (config.max_size,)
         else:
             shape = (int(stat_array.shape[0] * stat_size_expansion),)
+        default_value = np.full(shape[0], np.nan, dtype=float)
+        n = min(stat_array.shape[0], shape[0])
+        default_value[:n] = stat_array[:n]
         actions.append(
             StatAction(
                 stat_name=field_name,
                 var=NDVariable(
                     name=config.pattern.format(name=name_token),
                     shape=shape,
-                    default_value=stat_array,
+                    default_value=default_value,
                     unit=stat_cfg.unit,
                     read_only=True,
                 ),
