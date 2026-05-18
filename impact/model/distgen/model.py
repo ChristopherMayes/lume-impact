@@ -18,7 +18,6 @@ class LUMEDistgenModel(LUMEModel):
         dummy_run: bool = False,
     ):
         self.gen = gen
-        self.actions = actions
         self._action_by_name: dict[str, DistgenAction] = {m.name: m for m in actions}
         self.dummy_run = dummy_run
         self._state: dict[str, Any] = {}
@@ -35,7 +34,7 @@ class LUMEDistgenModel(LUMEModel):
 
     @property
     def supported_variables(self) -> dict[str, Variable]:
-        return {m.name: m.var for m in self.actions}
+        return {m.name: m.var for m in self._action_by_name.values()}
 
     def _get(self, names: list[str]) -> dict[str, Any]:
         return {name: self._state[name] for name in names}
@@ -49,7 +48,7 @@ class LUMEDistgenModel(LUMEModel):
         self.update_state()
 
     def update_state(self) -> None:
-        for m in self.actions:
+        for m in self._action_by_name.values():
             self._state[m.name] = m.get(self.gen)
 
     def register_action(self, action: DistgenAction) -> None:
@@ -60,10 +59,6 @@ class LUMEDistgenModel(LUMEModel):
         it is replaced.
         """
         name = action.name
-        if name in self._action_by_name:
-            self.actions[self.actions.index(self._action_by_name[name])] = action
-        else:
-            self.actions.append(action)
         self._action_by_name[name] = action
         self._state[name] = action.get(self.gen)
 
@@ -71,7 +66,7 @@ class LUMEDistgenModel(LUMEModel):
         self.set(
             {
                 m.name: m.var.default_value
-                for m in self.actions
+                for m in self._action_by_name.values()
                 if not m.read_only and hasattr(m.var, "default_value")
             }
         )
