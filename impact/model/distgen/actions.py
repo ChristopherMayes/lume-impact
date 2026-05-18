@@ -25,8 +25,8 @@ class DistgenInputAction(WritableDistgenAction):
     key: str
     has_units: bool
 
-    def _get(self, gen: Generator) -> Any:
-        return gen[self.key]
+    def _get(self, simulator: Generator) -> Any:
+        return simulator[self.key]
 
-    def _set(self, gen: Generator, value: Any) -> None:
-        gen[self.key] = value
+    def _set(self, simulator: Generator, value: Any) -> None:
+        simulator[self.key] = value
