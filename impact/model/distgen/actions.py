@@ -16,14 +16,9 @@ class WritableDistgenAction(WritableAction[Generator], DistgenAction):
 
 
 class DistgenInputAction(WritableDistgenAction):
-    """Maps a distgen input parameter via a colon-separated key (e.g. ``r_dist:sigma_xy:value``).
-
-    If ``has_units`` is True the parameter is a quantity dict; the ``:value``
-    suffix is already included in ``key`` and only the magnitude is read/written.
-    """
+    """Maps a distgen input parameter via a colon-separated key (e.g. ``r_dist:sigma_xy:value``)."""
 
     key: str
-    has_units: bool
 
     def _get(self, simulator: Generator) -> Any:
         return simulator[self.key]

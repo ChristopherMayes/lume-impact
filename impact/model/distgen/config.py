@@ -257,7 +257,7 @@ def _process_dist_config(
         if has_units:
             full_key += ":value"
         var = _make_var(var_name, val, default_unit, read_only=False)
-        actions.append(DistgenInputAction(var=var, key=full_key, has_units=has_units))
+        actions.append(DistgenInputAction(var=var, key=full_key))
     return actions
 
 
@@ -322,9 +322,7 @@ def _process_start_config(
             if has_units:
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
-            actions.append(
-                DistgenInputAction(var=var, key=full_key, has_units=has_units)
-            )
+            actions.append(DistgenInputAction(var=var, key=full_key))
     return actions
 
 
@@ -379,9 +377,7 @@ def make_actions(
             if has_units:
                 full_key += ":value"
             var = _make_var(var_name, param_cfg, default_unit, read_only=False)
-            actions.append(
-                DistgenInputAction(var=var, key=full_key, has_units=has_units)
-            )
+            actions.append(DistgenInputAction(var=var, key=full_key))
 
     # Start
     if inp_cfg.start is not None:

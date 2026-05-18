@@ -128,7 +128,6 @@ def test_register_new_distgen_action(gen):
     model = LUMEDistgenModel.from_generator(gen, dummy_run=True)
     action = DistgenInputAction(
         key="n_particle",
-        has_units=False,
         var=ScalarVariable(name="distgen:n_particle_custom", default_value=None),
     )
     model.register_action(action)
@@ -140,7 +139,6 @@ def test_register_distgen_action_replaces_existing(gen):
     count_before = len(model.actions)
     action = DistgenInputAction(
         key="n_particle",
-        has_units=False,
         var=ScalarVariable(name="distgen:n_particle", default_value=None),
     )
     model.register_action(action)
@@ -200,7 +198,6 @@ def test_register_distgen_action_on_combined(gen, fast_impact):
     model = LUMEDistgenImpactModel.from_objects(gen, fast_impact, dummy_run=True)
     action = DistgenInputAction(
         key="n_particle",
-        has_units=False,
         var=ScalarVariable(name="distgen:n_particle_v2", default_value=None),
     )
     model.register_action(action)
