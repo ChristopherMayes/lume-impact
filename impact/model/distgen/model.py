@@ -20,8 +20,6 @@ class LUMEDistgenModel(LUMEModel):
         self.gen = gen
         self._action_by_name: dict[str, DistgenAction] = {m.name: m for m in actions}
         self.dummy_run = dummy_run
-        self._state: dict[str, Any] = {}
-        self.update_state()
 
     @classmethod
     def from_generator(
@@ -37,7 +35,7 @@ class LUMEDistgenModel(LUMEModel):
         return {m.name: m.var for m in self._action_by_name.values()}
 
     def _get(self, names: list[str]) -> dict[str, Any]:
-        return {name: self._state[name] for name in names}
+        return {name: self._action_by_name[name].get(self.gen) for name in names}
 
     def _set(self, values: dict[str, Any]) -> None:
         for name, value in values.items():
@@ -45,22 +43,14 @@ class LUMEDistgenModel(LUMEModel):
             action.set(self.gen, value)
         if not self.dummy_run:
             self.gen.run()
-        self.update_state()
-
-    def update_state(self) -> None:
-        for m in self._action_by_name.values():
-            self._state[m.name] = m.get(self.gen)
 
     def register_action(self, action: DistgenAction) -> None:
         """Add a user-defined action to the model.
 
-        The action's current value is read from ``gen`` immediately and
-        stored in the state. If an action with the same name already exists
-        it is replaced.
+        If an action with the same name already exists it is replaced.
         """
         name = action.name
         self._action_by_name[name] = action
-        self._state[name] = action.get(self.gen)
 
     def reset(self) -> None:
         self.set(

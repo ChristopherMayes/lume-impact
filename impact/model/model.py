@@ -22,8 +22,6 @@ class LUMEImpactModel(LUMEModel):
         self.actions = actions
         self._action_by_name: dict[str, ImpactAction] = {m.name: m for m in actions}
         self.dummy_run = dummy_run
-        self._state: dict[str, Any] = {}
-        self.update_state()
 
     @classmethod
     def from_impact(
@@ -39,7 +37,7 @@ class LUMEImpactModel(LUMEModel):
         return {m.name: m.var for m in self.actions}
 
     def _get(self, names: list[str]) -> dict[str, Any]:
-        return {name: self._state[name] for name in names}
+        return {name: self._action_by_name[name].get(self.impact) for name in names}
 
     def _set(self, values: dict[str, Any]) -> None:
         to_set: list[tuple[WritableImpactAction, Any]] = []
@@ -48,24 +46,15 @@ class LUMEImpactModel(LUMEModel):
             if not isinstance(action, WritableImpactAction):
                 raise ReadOnlyError(f"'{action.name}' is read-only")
             to_set.append((action, value))
-        try:
-            for action, value in to_set:
-                action._set(self.impact, value)
-            if not self.dummy_run:
-                self.impact.run()
-        finally:
-            self.update_state()
-
-    def update_state(self) -> None:
-        for m in self.actions:
-            self._state[m.name] = m.get(self.impact)
+        for action, value in to_set:
+            action._set(self.impact, value)
+        if not self.dummy_run:
+            self.impact.run()
 
     def register_action(self, action: ImpactAction) -> None:
         """Add a user-defined action to the model.
 
-        The action's current value is read from ``impact`` immediately and
-        stored in the state. If an action with the same name already exists
-        it is replaced.
+        If an action with the same name already exists it is replaced.
         """
         name = action.name
         if name in self._action_by_name:
@@ -73,7 +62,6 @@ class LUMEImpactModel(LUMEModel):
         else:
             self.actions.append(action)
         self._action_by_name[name] = action
-        self._state[name] = action.get(self.impact)
 
     def unregister_action(self, name: str) -> None:
         """Remove an action from the model by name.
@@ -92,7 +80,6 @@ class LUMEImpactModel(LUMEModel):
             raise KeyError(f"No action named '{name}' is registered")
         action = self._action_by_name.pop(name)
         self.actions.remove(action)
-        self._state.pop(name, None)
 
     def reset(self) -> None:
         self.set(

@@ -41,8 +41,6 @@ class LUMEDistgenImpactModel(LUMEModel):
         self.distgen_actions = distgen_actions
         self.impact_actions = impact_actions
         self.dummy_run = dummy_run
-        self._state: dict[str, Any] = {}
-        self.update_state()
 
     @classmethod
     def from_objects(
@@ -79,7 +77,16 @@ class LUMEDistgenImpactModel(LUMEModel):
         }
 
     def _get(self, names: list[str]) -> dict[str, Any]:
-        return {name: self._state[name] for name in names}
+        distgen_by_name = self._distgen_by_name
+        impact_by_name = self._impact_by_name
+        return {
+            name: (
+                distgen_by_name[name].get(self.gen)
+                if name in distgen_by_name
+                else impact_by_name[name].get(self.impact)
+            )
+            for name in names
+        }
 
     def _set(self, values: dict[str, Any]) -> None:
         distgen_by_name = self._distgen_by_name
@@ -103,29 +110,19 @@ class LUMEDistgenImpactModel(LUMEModel):
                     f"'{name}' is not a recognized distgen or impact action"
                 )
 
-        try:
-            for name, value in distgen_actions.items():
-                distgen_by_name[name].set(self.gen, value)
-            if not self.dummy_run:
-                self.gen.run()
-                self.impact.initial_particles = self.gen.particles
-            for name, value in impact_actions.items():
-                impact_by_name[name].set(self.impact, value)
-            if not self.dummy_run:
-                self.impact.run()
-        finally:
-            self.update_state()
-
-    def update_state(self) -> None:
-        for m in self.distgen_actions:
-            self._state[m.name] = m.get(self.gen)
-        for m in self.impact_actions:
-            self._state[m.name] = m.get(self.impact)
+        for name, value in distgen_actions.items():
+            distgen_by_name[name].set(self.gen, value)
+        if not self.dummy_run:
+            self.gen.run()
+            self.impact.initial_particles = self.gen.particles
+        for name, value in impact_actions.items():
+            impact_by_name[name].set(self.impact, value)
+        if not self.dummy_run:
+            self.impact.run()
 
     def register_action(self, action: DistgenAction | ImpactAction) -> None:
         """Add a user-defined action to the model, routed by type.
 
-        The action's current value is read immediately and stored in the state.
         If an action with the same name already exists it is replaced.
         """
         name = action.name
@@ -136,7 +133,6 @@ class LUMEDistgenImpactModel(LUMEModel):
                 ] = action
             else:
                 self.distgen_actions.append(action)
-            self._state[name] = action.get(self.gen)
         elif isinstance(action, ImpactAction):
             if name in self._impact_by_name:
                 self.impact_actions[
@@ -144,7 +140,6 @@ class LUMEDistgenImpactModel(LUMEModel):
                 ] = action
             else:
                 self.impact_actions.append(action)
-            self._state[name] = action.get(self.impact)
         else:
             raise TypeError(
                 f"Expected DistgenAction or ImpactAction, got {type(action)}"
