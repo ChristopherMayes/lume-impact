@@ -102,6 +102,13 @@ class CathodeStartConfig(BaseModel):
 
 
 class StartConfig(BaseModel):
+    """
+    Configuration for translating start parameters in distgen to variables.
+
+    `pattern` is a python f-string accepting the parameters `type` (type of start config) and `key` (parameter within
+    the start config this variable represents).
+    """
+
     pattern: str = "distgen:start:{type}:{key}"
     cathode: CathodeStartConfig | None = CathodeStartConfig()
 
@@ -112,6 +119,13 @@ class StartConfig(BaseModel):
 
 
 class DistgenRootConfig(BaseModel):
+    """
+    Configuration for making variables from distgen root parameters.
+
+    `pattern` is a python f-string used to generate the variable name. The parameter `key` is passed to it with the distgen
+    name of the root parameter.
+    """
+
     pattern: str = "distgen:{key}"
     n_particle: DistgenParamConfig | None = DistgenParamConfig()
     total_charge: DistgenParamConfig | None = DistgenParamConfig()
@@ -138,8 +152,8 @@ class DistConfig(BaseModel):
 class DistSlotsConfig(BaseModel):
     """Groups all distribution slots under a single shared pattern.
 
-    ``pattern`` supports ``{slot}``, ``{dist_type}``, and ``{token}``
-    as format variables.
+    `pattern` is a python f-string used to generate the variable name. It supports the parameters  `slot`, `dist_type`,
+    and `token` inside it.
     """
 
     pattern: str = "distgen:{slot}:{token}"
