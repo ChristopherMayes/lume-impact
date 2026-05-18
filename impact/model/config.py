@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
+
+from impact.impact import Impact
 from impact.model.actions import (
     Action,
     EleAction,
@@ -512,7 +513,7 @@ def _make_particle_actions(impact: Any, config: ParticlesConfig) -> list[Action]
     return actions
 
 
-def make_actions(impact: Any, config: VariableMappingConfig) -> list[Action]:
+def make_actions(impact: Impact, config: VariableMappingConfig) -> list[Action]:
     """Build variable actions for every element attribute, header key, and output
     described by *config*.
 
