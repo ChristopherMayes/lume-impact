@@ -90,12 +90,12 @@ class LUMEDistgenImpactModel(LUMEModel):
             if name in distgen_by_name:
                 action = distgen_by_name[name]
                 if not isinstance(action, WritableDistgenAction):
-                    raise TypeError(f"'{action.name}' is read-only")
+                    raise Impact(f"'{action.name}' is read-only")
                 distgen_actions[name] = value
             elif name in impact_by_name:
                 action = impact_by_name[name]
                 if not isinstance(action, WritableImpactAction):
-                    raise TypeError(f"'{action.name}' is read-only")
+                    raise Impact(f"'{action.name}' is read-only")
                 impact_actions[name] = value
             else:
                 raise ValueError(
