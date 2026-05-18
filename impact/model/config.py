@@ -473,9 +473,9 @@ def _make_stat_actions(impact: Any, config: StatsConfig) -> list[Action]:
         name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
         stat_array = impact.stat(field_name)
         if config.max_size is not None:
-            shape = (int(config.max_size * 1.1),)
+            shape = (config.max_size,)
         else:
-            shape = stat_array.shape
+            shape = (int(stat_array.shape[0] * 1.1),)
         actions.append(
             StatAction(
                 stat_name=field_name,
