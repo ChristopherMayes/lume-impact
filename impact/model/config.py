@@ -160,6 +160,13 @@ class EmfieldCylindricalConfig(ConfigBase):
 
 
 class HeaderConfig(ConfigBase):
+    """
+    Configuration for variables generated from Impact-T's header data.
+
+    `pattern` is a python f-string which is used to set the variable name. The parameter `key` is passed to it representing the
+    name of the value in Impact-T's header data.
+    """
+
     model_config = ConfigDict(populate_by_name=True)
 
     pattern: str = "header:{key}"
@@ -258,6 +265,13 @@ class HeaderConfig(ConfigBase):
 
 
 class StatsConfig(ConfigBase):
+    """
+    Configuration for making variables from Impact-T stats data.
+
+    `pattern` is a python f-string and the value `name` is passed to it during formatting to generate variables names. `name`
+    corresponds to the name of the value within Impact-T's stats data.
+    """
+
     pattern: str = "stat:{name}"
     max_size: int | None = None
 
@@ -291,6 +305,13 @@ class StatsConfig(ConfigBase):
 
 
 class RunInfoConfig(ConfigBase):
+    """
+    Configuration for variables corresponding to "run info" within Impact-T.
+
+    `pattern` is a python f-string where the value `k`y corresponding to the run info key name in LUMEImpact is
+    passed during formatting to make the variable name.
+    """
+
     pattern: str = "run_info:{key}"
 
     @property
@@ -318,6 +339,9 @@ class ElementsConfig(BaseModel):
     """Groups all per-element-type attribute configs and element routing settings.
 
     Set a type to ``None`` to skip all variables for that element type.
+
+    `pattern` is a python f-string where the values `name` and `attribute` corresponding to the element name and name of the
+    attribute are passed during formatting to generate the variable name.
     """
 
     pattern: str = "ele:{name}:{attrib}"
