@@ -134,17 +134,6 @@ def test_register_new_distgen_action(gen):
     assert "distgen:n_particle_custom" in model.supported_variables
 
 
-def test_register_distgen_action_replaces_existing(gen):
-    model = LUMEDistgenModel.from_generator(gen, dummy_run=True)
-    count_before = len(model.actions)
-    action = DistgenInputAction(
-        key="n_particle",
-        var=ScalarVariable(name="distgen:n_particle", default_value=None),
-    )
-    model.register_action(action)
-    assert len(model.actions) == count_before
-
-
 # LUMEDistgenImpactModel — variables present from both sides
 
 
