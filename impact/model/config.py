@@ -345,7 +345,7 @@ class ElementsConfig(BaseModel):
 
     Set a type to ``None`` to skip all variables for that element type.
 
-    `pattern` is a python f-string where the values `name` and `attribute` corresponding to the element name and name of the
+    `pattern` is a python f-string where the values `name` and `attrib` corresponding to the element name and name of the
     attribute are passed during formatting to generate the variable name.
     """
 
