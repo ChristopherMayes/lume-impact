@@ -379,7 +379,11 @@ class ElementsConfig(BaseModel):
 
 
 class ParticlesConfig(BaseModel):
-    """Config for particle group variables."""
+    """
+    Config for particle group variables.
+
+    `pattern` is a python f-string where the value `name` correspond to the named particle group the variable exposes.
+    """
 
     pattern: str = "particles:{name}"
     control_to_tool_name: dict[str, str] | None = None  # control_name -> tool_name
