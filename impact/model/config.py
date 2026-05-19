@@ -313,7 +313,7 @@ class RunInfoConfig(ConfigBase):
     """
     Configuration for variables corresponding to "run info" within Impact-T.
 
-    `pattern` is a python f-string where the value `k`y corresponding to the run info key name in LUMEImpact is
+    `pattern` is a python f-string where the value `key` corresponding to the run info key name in LUMEImpact is
     passed during formatting to make the variable name.
     """
 
