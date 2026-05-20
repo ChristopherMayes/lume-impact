@@ -15,7 +15,7 @@ dependencies = [
   # Distgen is not yet on PyPI:
   # "distgen",
   # "distgen @ git+https://github.com/ColwynGulliford/distgen.git@v2.2.5",
-  "lume-base",
+  "lume-base >= 0.4.0",
   "matplotlib",
   "numpy",
   "openpmd-beamphysics >=0.14.0",
