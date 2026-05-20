@@ -3,6 +3,7 @@ name: lume-impact-dev
 channels:
   - conda-forge
 dependencies:
+  - pip
   - impact-t=*=mpi_openmpi*
   - impact-z=*=mpi_openmpi*
   # Well, also bmad for PyTao tests
