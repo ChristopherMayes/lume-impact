@@ -11,7 +11,7 @@ dependencies:
   - impact-z=*=mpi_openmpi*
   # - impact-z=*=mpi_mpich*
   - jupyter_bokeh
-  - lume-base>=0.4.0
+  - lume-base>=0.4.2
   - matplotlib
   - openpmd-beamphysics>=0.14.0
   - polars
