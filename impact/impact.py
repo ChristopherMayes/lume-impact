@@ -1193,7 +1193,7 @@ DEFAULT_INPUT = {
         "zscale": 1.0,
         "pzscale": 1.0,
         "zmu1": 0.0,
-        "zmu2": 19.569511835591836,  # gammma => 10 MeV energy
+        "zmu2": 19.569511835591836,  # gamma => 10 MeV energy
         "Bcurr": 1.0,
         "Bkenergy": 1.0,
         "Bmass": 510998.95,  # electrons
