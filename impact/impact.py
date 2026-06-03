@@ -563,6 +563,15 @@ class Impact(CommandWrapper):
 
         pathlib.Path(path).mkdir(exist_ok=True, parents=True)
 
+        # Normalize deprecated alias keys (e.g. "xmu1(m)" -> "xmu1") so any
+        # user code that set header values via the old names still affects
+        # the written ImpactT.in. Updated in place to preserve identity of
+        # ``self.header`` for callers holding a reference.
+        H = self.header
+        normalized = header_bookkeeper(H, verbose=self.verbose)
+        H.clear()
+        H.update(normalized)
+
         filePath = os.path.join(path, input_filename)
 
         # Write fieldmaps
