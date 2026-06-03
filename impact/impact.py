@@ -513,8 +513,11 @@ class Impact(CommandWrapper):
         if update_header:
             # Normalize any deprecated alias keys (e.g. "xmu1(m)" -> "xmu1")
             # so the canonical-key reads/writes below see user-set values.
-            H = header_bookkeeper(H, verbose=self.verbose)
-            self.input["header"] = H
+            # Update in place to preserve the existing header dict identity
+            # for callers holding a reference to ``self.header``.
+            normalized = header_bookkeeper(H, verbose=self.verbose)
+            H.clear()
+            H.update(normalized)
 
             for k, v in res.items():
                 if k in H:
