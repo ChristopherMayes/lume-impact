@@ -100,20 +100,21 @@ def header_bookkeeper(header, defaults=HEADER_DEFAULT, verbose=True):
     rewritten to their canonical form (``"sigx"``) for backwards
     compatibility.
     """
-    # Translate deprecated aliases (e.g. "sigx(m)" -> "sigx")
+    # Translate deprecated aliases (e.g. "sigx(m)" -> "sigx").
+    # Precedence: last assignment wins, based on dict insertion order.
+    # If both forms are present with different values, warn.
     newheader = {}
     for k, v in header.items():
-        if k in HEADER_ALIASES:
-            canonical = HEADER_ALIASES[k]
-            if verbose:
-                print(
-                    f"Header bookkeeper: deprecated key {k!r} renamed to {canonical!r}"
-                )
-            if canonical in newheader:
-                continue
-            newheader[canonical] = v
-        else:
-            newheader[k] = v
+        canonical = HEADER_ALIASES.get(k, k)
+        if k in HEADER_ALIASES and verbose:
+            print(f"Header bookkeeper: deprecated key {k!r} renamed to {canonical!r}")
+        if verbose and canonical in newheader and newheader[canonical] != v:
+            print(
+                f"Warning: header has both canonical and deprecated forms for "
+                f"{canonical!r} with different values "
+                f"({newheader[canonical]!r} vs {v!r}); using the later value {v!r}."
+            )
+        newheader[canonical] = v
 
     # Check for bad keys
     for k in newheader:
@@ -197,8 +198,8 @@ help["xmu1"] = "Distribution mean for x in meters"
 help["xmu2"] = "Distribution mean for px, where px is gamma*beta_x"
 
 help["sigy"] = "Distribution sigma_y in meters"
-help["sigpy"] = "Distribution sigma_py, where px is gamma*beta_y"
-help["muypy"] = "Distribution correlation <y py>, where py is gamma*beta_y"
+help["sigpy"] = "Distribution sigma_py, where py is gamma*beta_y"
+help["muxpy"] = "Distribution correlation <y py>, where py is gamma*beta_y"
 help["yscale"] = "Scale factor for distribution y"
 help["pyscale"] = "Scale factor for distribution py"
 help["ymu1"] = "Distribution mean for y in meters"
@@ -206,7 +207,7 @@ help["ymu2"] = "Distribution mean for py, where py is gamma*beta_y"
 
 help["sigz"] = "Distribution sigma_z in meters"
 help["sigpz"] = "Distribution sigma_pz, where pz is gamma*beta_z"
-help["muzpz"] = "Distribution correlation <z pz>, where pz is gamma*beta_z"
+help["muxpz"] = "Distribution correlation <z pz>, where pz is gamma*beta_z"
 help["zscale"] = "Scale factor for distribution z"
 help["pzscale"] = "Scale factor for distribution pz"
 help["zmu1"] = "Distribution mean for z in meters"
