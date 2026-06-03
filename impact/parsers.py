@@ -49,15 +49,26 @@ HTYPES[5] = [int, int, int, int, float]
 HDEFAULTS[5] = [16, 0, 0, 400, 1.4e-11]
 
 # Line 6-8
-HNAMES[6] = ["sigx(m)", "sigpx", "muxpx", "xscale", "pxscale", "xmu1(m)", "xmu2"]
+HNAMES[6] = ["sigx", "sigpx", "muxpx", "xscale", "pxscale", "xmu1", "xmu2"]
 HTYPES[6] = [float for i in range(len(HNAMES[6]))]
 HDEFAULTS[6] = [0.0 for i in range(len(HNAMES[6]))]
-HNAMES[7] = ["sigy(m)", "sigpy", "muxpy", "yscale", "pyscale", "ymu1(m)", "ymu2"]
+HNAMES[7] = ["sigy", "sigpy", "muxpy", "yscale", "pyscale", "ymu1", "ymu2"]
 HTYPES[7] = HTYPES[6]
 HDEFAULTS[7] = [0.0 for i in range(len(HNAMES[7]))]
-HNAMES[8] = ["sigz(m)", "sigpz", "muxpz", "zscale", "pzscale", "zmu1(m)", "zmu2"]
+HNAMES[8] = ["sigz", "sigpz", "muxpz", "zscale", "pzscale", "zmu1", "zmu2"]
 HTYPES[8] = HTYPES[6]
 HDEFAULTS[8] = [0.0 for i in range(len(HNAMES[8]))]
+
+# Backwards-compatible aliases for old header keys that contained units in
+# parentheses (e.g. "sigx(m)"). Maps deprecated_name -> canonical_name.
+HEADER_ALIASES = {
+    "sigx(m)": "sigx",
+    "xmu1(m)": "xmu1",
+    "sigy(m)": "sigy",
+    "ymu1(m)": "ymu1",
+    "sigz(m)": "sigz",
+    "zmu1(m)": "zmu1",
+}
 
 # Line 9
 HNAMES[9] = ["Bcurr", "Bkenergy", "Bmass", "Bcharge", "Bfreq", "Tini"]
@@ -84,12 +95,30 @@ HEADER_TYPE = dict(zip(ALL_HEADER_NAMES, ALL_HEADER_TYPES))
 def header_bookkeeper(header, defaults=HEADER_DEFAULT, verbose=True):
     """
     Checks header for missing or bad keys, fills in defaults.
+
+    Deprecated keys with units in parentheses (e.g. ``"sigx(m)"``) are
+    rewritten to their canonical form (``"sigx"``) for backwards
+    compatibility.
     """
+    # Translate deprecated aliases (e.g. "sigx(m)" -> "sigx")
+    newheader = {}
+    for k, v in header.items():
+        if k in HEADER_ALIASES:
+            canonical = HEADER_ALIASES[k]
+            if verbose:
+                print(
+                    f"Header bookkeeper: deprecated key {k!r} renamed to {canonical!r}"
+                )
+            if canonical in newheader:
+                continue
+            newheader[canonical] = v
+        else:
+            newheader[k] = v
+
     # Check for bad keys
-    for k in header:
+    for k in newheader:
         if verbose and k not in defaults:
             print("Warning:", k, "does not belong in header.")
-    newheader = header.copy()
     # Fill defaults
     for k in defaults:
         if k not in newheader:
@@ -159,29 +188,33 @@ help["Temission"] = (
 )
 
 # Line 6-8
-help["sigx(m)"] = "Distribution sigma_x in meters"
+help["sigx"] = "Distribution sigma_x in meters"
 help["sigpx"] = "Distribution sigma_px, where px is gamma*beta_x"
 help["muxpx"] = "Distribution correlation <x px>, where px is gamma*beta_x"
 help["xscale"] = "Scale factor for distribution x"
 help["pxscale"] = "Scale factor for distribution px"
-help["xmu1(m)"] = "Distribution mean for x in meters"
+help["xmu1"] = "Distribution mean for x in meters"
 help["xmu2"] = "Distribution mean for px, where px is gamma*beta_x"
 
-help["sigy(m)"] = "Distribution sigma_y in meters"
+help["sigy"] = "Distribution sigma_y in meters"
 help["sigpy"] = "Distribution sigma_py, where px is gamma*beta_y"
 help["muypy"] = "Distribution correlation <y py>, where py is gamma*beta_y"
 help["yscale"] = "Scale factor for distribution y"
 help["pyscale"] = "Scale factor for distribution py"
-help["ymu1(m)"] = "Distribution mean for y in meters"
+help["ymu1"] = "Distribution mean for y in meters"
 help["ymu2"] = "Distribution mean for py, where py is gamma*beta_y"
 
-help["sigz(m)"] = "Distribution sigma_z in meters"
+help["sigz"] = "Distribution sigma_z in meters"
 help["sigpz"] = "Distribution sigma_pz, where pz is gamma*beta_z"
 help["muzpz"] = "Distribution correlation <z pz>, where pz is gamma*beta_z"
 help["zscale"] = "Scale factor for distribution z"
 help["pzscale"] = "Scale factor for distribution pz"
-help["zmu1(m)"] = "Distribution mean for z in meters"
+help["zmu1"] = "Distribution mean for z in meters"
 help["zmu2"] = "Distribution mean for pz, where pz is gamma*beta_z"
+
+# Aliases for the deprecated keys above, kept for backwards compatibility.
+for _old_key, _new_key in HEADER_ALIASES.items():
+    help[_old_key] = help[_new_key]
 
 
 # Line 9

@@ -526,7 +526,7 @@ class Impact(CommandWrapper):
                     H[k] = 1.0
                     self.vprint(f"Changing particle scale factor {k} to 1.0")
             # Zero out offsets.
-            for k in ["xmu1(m)", "xmu2", "ymu1(m)", "ymu2", "zmu1(m)", "zmu2"]:
+            for k in ["xmu1", "xmu2", "ymu1", "ymu2", "zmu1", "zmu2"]:
                 if H[k] != 0:
                     H[k] = 0
                     self.vprint(f"Changing particle offset factor {k} to 0")
@@ -1168,26 +1168,26 @@ DEFAULT_INPUT = {
         "Flagsbstp": 0,
         "Nemission": 0,
         "Temission": 0.0,
-        "sigx(m)": 0.001,
+        "sigx": 0.001,
         "sigpx": 0.0,
         "muxpx": 0.0,
         "xscale": 1.0,
         "pxscale": 1.0,
-        "xmu1(m)": 0.0,
+        "xmu1": 0.0,
         "xmu2": 0.0,
-        "sigy(m)": 0.001,
+        "sigy": 0.001,
         "sigpy": 0.0,
         "muxpy": 0.0,
         "yscale": 1.0,
         "pyscale": 1.0,
-        "ymu1(m)": 0.0,
+        "ymu1": 0.0,
         "ymu2": 0.0,
-        "sigz(m)": 0.0001,
+        "sigz": 0.0001,
         "sigpz": 0.0,
         "muxpz": 0.0,
         "zscale": 1.0,
         "pzscale": 1.0,
-        "zmu1(m)": 0.0,
+        "zmu1": 0.0,
         "zmu2": 19.569511835591836,  # gammma => 10 MeV energy
         "Bcurr": 1.0,
         "Bkenergy": 1.0,
