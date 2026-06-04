@@ -1,10 +1,12 @@
 import pathlib
+import warnings
 from .parsers import (
     parse_impact_input,
     load_many_fort,
     FORT_STAT_TYPES,
     FORT_DIPOLE_STAT_TYPES,
     FORT_PARTICLE_TYPES,
+    HEADER_ALIASES,
     header_str,
     header_bookkeeper,
     parse_impact_particles,
@@ -46,6 +48,43 @@ EXTRA_UNITS = {
     "Bz": pmd_unit("T"),
     "Ez": pmd_unit("V/m"),
 }
+
+
+def _translate_header_key(attrib):
+    """Translate a deprecated header key (e.g. ``"sigx(m)"``) to its
+    canonical form, emitting a ``DeprecationWarning`` when one is used.
+    Unknown keys are returned unchanged.
+    """
+    canonical = HEADER_ALIASES.get(attrib)
+    if canonical is None:
+        return attrib
+    warnings.warn(
+        f"Header key {attrib!r} is deprecated; use {canonical!r} instead.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+    return canonical
+
+
+def _normalize_header_keys(header):
+    """Rewrite any deprecated alias keys in ``header`` to their canonical
+    names in place, preserving insertion order. Emits a
+    ``DeprecationWarning`` for each deprecated key seen.
+    """
+    for old in list(header):
+        canonical = HEADER_ALIASES.get(old)
+        if canonical is None:
+            continue
+        warnings.warn(
+            f"Header key {old!r} is deprecated; use {canonical!r} instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        # Rebuild dict to keep insertion order predictable: replace key
+        # in place when canonical not already present, otherwise drop it.
+        value = header.pop(old)
+        if canonical not in header:
+            header[canonical] = value
 
 
 class Impact(CommandWrapper):
@@ -511,14 +550,6 @@ class Impact(CommandWrapper):
         )
 
         if update_header:
-            # Normalize any deprecated alias keys (e.g. "xmu1(m)" -> "xmu1")
-            # so the canonical-key reads/writes below see user-set values.
-            # Update in place to preserve the existing header dict identity
-            # for callers holding a reference to ``self.header``.
-            normalized = header_bookkeeper(H, verbose=self.verbose)
-            H.clear()
-            H.update(normalized)
-
             for k, v in res.items():
                 if k in H:
                     H[k] = v
@@ -562,15 +593,6 @@ class Impact(CommandWrapper):
             path = self.path
 
         pathlib.Path(path).mkdir(exist_ok=True, parents=True)
-
-        # Normalize deprecated alias keys (e.g. "xmu1(m)" -> "xmu1") so any
-        # user code that set header values via the old names still affects
-        # the written ImpactT.in. Updated in place to preserve identity of
-        # ``self.header`` for callers holding a reference.
-        H = self.header
-        normalized = header_bookkeeper(H, verbose=self.verbose)
-        H.clear()
-        H.update(normalized)
 
         filePath = os.path.join(path, input_filename)
 
@@ -719,6 +741,9 @@ class Impact(CommandWrapper):
             g = h5
 
         self.input = archive.read_input_h5(g["input"], verbose=self.verbose)
+        # Rewrite legacy header keys (e.g. "sigx(m)") to their canonical
+        # form on load so the in-memory header is always canonical.
+        _normalize_header_keys(self.input["header"])
         self.output, self._units = archive.read_output_h5(
             g["output"], verbose=self.verbose
         )
@@ -1064,6 +1089,7 @@ class Impact(CommandWrapper):
         name, attrib = x[0], x[1]
 
         if name == "header":
+            attrib = _translate_header_key(attrib)
             return self.header[attrib]
         elif name in self.ele:
             return self.ele[name][attrib]
@@ -1092,6 +1118,7 @@ class Impact(CommandWrapper):
         name, attrib = key.split(":")
         # Try header or lattice
         if name == "header":
+            attrib = _translate_header_key(attrib)
             self.header[attrib] = item
         elif attrib == "autophase_deg":
             self._autophase_settings[name] = item
