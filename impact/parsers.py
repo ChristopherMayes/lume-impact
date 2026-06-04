@@ -96,33 +96,12 @@ def header_bookkeeper(header, defaults=HEADER_DEFAULT, verbose=True):
     """
     Checks header for missing or bad keys, fills in defaults.
 
-    Deprecated keys with units in parentheses (e.g. ``"sigx(m)"``) are
-    rewritten to their canonical form (``"sigx"``) for backwards
-    compatibility.
+    The header is expected to use canonical key names. Translation from
+    deprecated aliases (e.g. ``"sigx(m)"`` -> ``"sigx"``) happens at the
+    user-facing boundaries (``Impact.__getitem__``/``__setitem__`` and
+    archive loading), so internally the header dict is always canonical.
     """
-    # Translate deprecated aliases (e.g. "sigx(m)" -> "sigx").
-    # Precedence: last assignment wins, based on dict insertion order.
-    # If both forms are present with different values, warn.
-    newheader = {}
-    for k, v in header.items():
-        canonical = HEADER_ALIASES.get(k, k)
-        if k in HEADER_ALIASES:
-            warnings.warn(
-                f"Header key {k!r} is deprecated; use {canonical!r} instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            if verbose:
-                print(
-                    f"Header bookkeeper: deprecated key {k!r} renamed to {canonical!r}"
-                )
-        if verbose and canonical in newheader and newheader[canonical] != v:
-            print(
-                f"Warning: header has both canonical and deprecated forms for "
-                f"{canonical!r} with different values "
-                f"({newheader[canonical]!r} vs {v!r}); using the later value {v!r}."
-            )
-        newheader[canonical] = v
+    newheader = dict(header)
 
     # Check for bad keys
     for k in newheader:
