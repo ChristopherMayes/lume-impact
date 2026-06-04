@@ -1,5 +1,9 @@
 """Tests for backwards-compatible header key aliases in ``impact.parsers``."""
 
+import warnings
+
+import pytest
+
 from impact.parsers import HEADER_ALIASES, HEADER_DEFAULT, header_bookkeeper
 
 
@@ -54,3 +58,16 @@ def test_canonical_keys_are_in_defaults():
     """All alias targets exist as canonical keys in the default header."""
     for canonical in HEADER_ALIASES.values():
         assert canonical in HEADER_DEFAULT
+
+
+def test_deprecated_alias_emits_deprecation_warning():
+    """Encountering a deprecated key issues a DeprecationWarning."""
+    with pytest.warns(DeprecationWarning, match=r"sigx\(m\).*sigx"):
+        header_bookkeeper({"sigx(m)": 1.0}, verbose=False)
+
+
+def test_canonical_only_emits_no_deprecation_warning():
+    """Canonical-only headers do not raise a DeprecationWarning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        header_bookkeeper({"sigx": 1.0}, verbose=False)

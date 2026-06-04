@@ -106,8 +106,16 @@ def header_bookkeeper(header, defaults=HEADER_DEFAULT, verbose=True):
     newheader = {}
     for k, v in header.items():
         canonical = HEADER_ALIASES.get(k, k)
-        if k in HEADER_ALIASES and verbose:
-            print(f"Header bookkeeper: deprecated key {k!r} renamed to {canonical!r}")
+        if k in HEADER_ALIASES:
+            warnings.warn(
+                f"Header key {k!r} is deprecated; use {canonical!r} instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if verbose:
+                print(
+                    f"Header bookkeeper: deprecated key {k!r} renamed to {canonical!r}"
+                )
         if verbose and canonical in newheader and newheader[canonical] != v:
             print(
                 f"Warning: header has both canonical and deprecated forms for "
