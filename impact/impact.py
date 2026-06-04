@@ -71,7 +71,7 @@ def _normalize_header_keys(header):
     names in place, preserving insertion order. Emits a
     ``DeprecationWarning`` for each deprecated key seen.
     """
-    for old in list(header):
+    for old in header:
         canonical = HEADER_ALIASES.get(old)
         if canonical is None:
             continue
