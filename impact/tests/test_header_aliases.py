@@ -79,6 +79,22 @@ def test_normalize_all_aliases():
         assert header[canonical] == float(i)
 
 
+def test_normalize_preserves_key_order():
+    """Non-alias keys keep their original position; alias slots become
+    canonical names without moving."""
+    header = {
+        "Np": 100,
+        "sigx(m)": 1.5,
+        "Bcurr": 0.0,
+        "xmu1(m)": 2.5,
+        "Tini": 0.0,
+    }
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        _normalize_header_keys(header)
+    assert list(header) == ["Np", "sigx", "Bcurr", "xmu1", "Tini"]
+
+
 # ----------
 # Impact boundary translation
 # ----------

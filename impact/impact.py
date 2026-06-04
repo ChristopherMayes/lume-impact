@@ -68,23 +68,32 @@ def _translate_header_key(attrib):
 
 def _normalize_header_keys(header):
     """Rewrite any deprecated alias keys in ``header`` to their canonical
-    names in place, preserving insertion order. Emits a
-    ``DeprecationWarning`` for each deprecated key seen.
+    names in place, preserving the original insertion order of every key.
+    Emits a ``DeprecationWarning`` for each deprecated key seen. When both
+    a canonical and an alias form are present, the canonical value wins.
     """
-    for old in header:
-        canonical = HEADER_ALIASES.get(old)
-        if canonical is None:
-            continue
+    aliased = [k for k in header if k in HEADER_ALIASES]
+    if not aliased:
+        return
+    for old in aliased:
         warnings.warn(
-            f"Header key {old!r} is deprecated; use {canonical!r} instead.",
+            f"Header key {old!r} is deprecated; use {HEADER_ALIASES[old]!r} instead.",
             DeprecationWarning,
             stacklevel=3,
         )
-        # Rebuild dict to keep insertion order predictable: replace key
-        # in place when canonical not already present, otherwise drop it.
-        value = header.pop(old)
-        if canonical not in header:
-            header[canonical] = value
+
+    # Rebuild in original key order: each alias slot becomes its canonical
+    # name. If the canonical key already appears earlier (or later) in the
+    # dict, keep that value and drop the alias entry.
+    rebuilt = {}
+    for k, v in header.items():
+        canonical = HEADER_ALIASES.get(k, k)
+        if k in HEADER_ALIASES and canonical in header and canonical != k:
+            # Canonical exists elsewhere in the dict; defer to it.
+            continue
+        rebuilt[canonical] = v
+    header.clear()
+    header.update(rebuilt)
 
 
 class Impact(CommandWrapper):
