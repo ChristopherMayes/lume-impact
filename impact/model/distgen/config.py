@@ -18,8 +18,6 @@ class DistgenParamConfig(BaseModel):
     ----------
     name : str, optional
         Override the full variable name, bypassing the pattern entirely.
-    alias : str, optional
-        Override the variable name token within the pattern.
     distgen_param : str, optional
         Override the distgen parameter key (e.g. ``"sigma_t"`` instead of derived name).
     unit : str, optional
@@ -29,7 +27,6 @@ class DistgenParamConfig(BaseModel):
     """
 
     name: str | None = None
-    alias: str | None = None
     distgen_param: str | None = None
     unit: str | None = None
     read_only: bool = False
@@ -41,7 +38,11 @@ class DistgenParamConfig(BaseModel):
 # ------------------------------------------------------------------
 
 
-class GaussianDistConfig(BaseModel):
+class DistgenConfigBase(BaseModel):
+    param_map: dict[str, str] = {}
+
+
+class GaussianDistConfig(DistgenConfigBase):
     sigma: DistgenParamConfig | None = DistgenParamConfig()
     avg: DistgenParamConfig | None = None
     n_sigma_cutoff: DistgenParamConfig | None = None
@@ -49,26 +50,26 @@ class GaussianDistConfig(BaseModel):
     n_sigma_cutoff_right: DistgenParamConfig | None = None
 
 
-class UniformDistConfig(BaseModel):
+class UniformDistConfig(DistgenConfigBase):
     min: DistgenParamConfig | None = DistgenParamConfig()
     max: DistgenParamConfig | None = DistgenParamConfig()
     avg: DistgenParamConfig | None = None
     sigma: DistgenParamConfig | None = None
 
 
-class SuperGaussianDistConfig(BaseModel):
+class SuperGaussianDistConfig(DistgenConfigBase):
     sigma: DistgenParamConfig | None = DistgenParamConfig()
     avg: DistgenParamConfig | None = None
     p: DistgenParamConfig | None = DistgenParamConfig()
     n_sigma_cutoff: DistgenParamConfig | None = None
 
 
-class TukeyDistConfig(BaseModel):
+class TukeyDistConfig(DistgenConfigBase):
     length: DistgenParamConfig | None = DistgenParamConfig()
     ratio: DistgenParamConfig | None = DistgenParamConfig()
 
 
-class RadialGaussianDistConfig(BaseModel):
+class RadialGaussianDistConfig(DistgenConfigBase):
     sigma_xy: DistgenParamConfig | None = DistgenParamConfig()
     n_sigma_cutoff: DistgenParamConfig | None = None
     n_sigma_cutoff_left: DistgenParamConfig | None = None
@@ -77,17 +78,17 @@ class RadialGaussianDistConfig(BaseModel):
     truncation_fraction: DistgenParamConfig | None = None
 
 
-class RadialUniformDistConfig(BaseModel):
+class RadialUniformDistConfig(DistgenConfigBase):
     max_r: DistgenParamConfig | None = DistgenParamConfig()
     min_r: DistgenParamConfig | None = None
 
 
-class RadialSuperGaussianDistConfig(BaseModel):
+class RadialSuperGaussianDistConfig(DistgenConfigBase):
     sigma_xy: DistgenParamConfig | None = DistgenParamConfig()
     p: DistgenParamConfig | None = DistgenParamConfig()
 
 
-class RadialTukeyDistConfig(BaseModel):
+class RadialTukeyDistConfig(DistgenConfigBase):
     length: DistgenParamConfig | None = DistgenParamConfig()
     ratio: DistgenParamConfig | None = DistgenParamConfig()
 
@@ -97,7 +98,7 @@ class RadialTukeyDistConfig(BaseModel):
 # ------------------------------------------------------------------
 
 
-class CathodeStartConfig(BaseModel):
+class CathodeStartConfig(DistgenConfigBase):
     MTE: DistgenParamConfig | None = DistgenParamConfig()
 
 
@@ -118,7 +119,7 @@ class StartConfig(BaseModel):
 # ------------------------------------------------------------------
 
 
-class DistgenRootConfig(BaseModel):
+class DistgenRootConfig(DistgenConfigBase):
     """
     Configuration for making variables from distgen root parameters.
 
@@ -263,7 +264,7 @@ def _process_dist_config(
             continue
         has_units = _is_quantity(raw)
         default_unit = raw.get("units") if has_units else None
-        token = val.alias or field
+        token = getattr(type_cfg, "param_map", {}).get(field, field)
         var_name = val.name or dist_pattern.format(
             slot=slot, dist_type=dist_type, token=token
         )
@@ -328,7 +329,7 @@ def _process_start_config(
                 continue
             has_units = _is_quantity(raw)
             default_unit = raw.get("units") if has_units else None
-            token = param_cfg.alias or field
+            token = cfg.param_map.get(field, field)
             var_name = param_cfg.name or start_cfg.pattern.format(
                 type=type_field, key=token
             )
@@ -377,7 +378,7 @@ def make_actions(
             if field == "pattern":
                 continue
             param_cfg: DistgenParamConfig | None = getattr(root_cfg, field)
-            if param_cfg is None:
+            if not isinstance(param_cfg, DistgenParamConfig):
                 continue
             distgen_key = param_cfg.distgen_param or field
             raw = gen_input.get(distgen_key)
@@ -385,7 +386,7 @@ def make_actions(
                 continue
             has_units = _is_quantity(raw)
             default_unit = raw.get("units") if has_units else None
-            token = param_cfg.alias or field
+            token = root_cfg.param_map.get(field, field)
             var_name = param_cfg.name or root_cfg.pattern.format(key=token)
             full_key = distgen_key
             if has_units:
