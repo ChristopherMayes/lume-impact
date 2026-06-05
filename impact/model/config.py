@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, model_validator
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 
 from impact.impact import Impact
@@ -25,16 +25,12 @@ class AttributeConfig(BaseModel):
 
     Parameters
     ----------
-    alias : str, optional
-        Name to substitute for ``{attrib}`` in the pattern.
-        If omitted, the attribute name itself is used.
     unit : str, optional
         Physical unit string passed to ``ScalarVariable``.
     read_only : bool, optional
         Whether the variable is read-only.  Defaults to ``False``.
     """
 
-    alias: str | None = None
     unit: str | None = None
     read_only: bool = False
 
@@ -46,13 +42,9 @@ class StatAttributeConfig(BaseModel):
     ----------
     unit : str, optional
         Physical unit string passed to ``ScalarVariable``.
-    alias : str, optional
-        Override the token used in the variable name pattern. If omitted the
-        field name is used (e.g. ``"mean_x"``).
     """
 
     unit: str | None = None
-    alias: str | None = None
 
 
 class ConfigBase(BaseModel):
@@ -65,14 +57,9 @@ class ConfigBase(BaseModel):
             default = field.default
             if not isinstance(default, BaseModel):
                 continue
-            key = (
-                name
-                if name in data
-                else (field.alias if field.alias and field.alias in data else None)
-            )
-            if key is None:
+            if name not in data:
                 continue
-            field_data = data[key]
+            field_data = data[name]
             if isinstance(field_data, dict):
                 for attr, val in default.model_dump().items():
                     field_data.setdefault(attr, val)
@@ -169,25 +156,7 @@ class HeaderConfig(ConfigBase):
     name of the value in Impact-T's header data.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
-
     pattern: str = "header:{key}"
-
-    @property
-    def key_map(self) -> dict[str, str]:
-        """Maps variable token (alias) -> actual impact.header key, for aliased fields."""
-        result = {}
-        for field_name, field_info in HeaderConfig.model_fields.items():
-            attr_cfg = getattr(self, field_name)
-            if not isinstance(attr_cfg, AttributeConfig):
-                continue
-            header_key = (
-                field_info.alias if field_info.alias is not None else field_name
-            )
-            key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
-            if key_token != header_key:
-                result[key_token] = header_key
-        return result
 
     # Processor domain
     Npcol: AttributeConfig | None = AttributeConfig()
@@ -268,18 +237,6 @@ class StatsConfig(ConfigBase):
     pattern: str = "stat:{name}"
     max_size: int | None = None
 
-    @property
-    def name_map(self) -> dict[str, str]:
-        """Maps variable token (alias) -> actual Impact stat key, for aliased stats."""
-        result = {}
-        for field_name in StatsConfig.model_fields:
-            stat_cfg = getattr(self, field_name)
-            if not isinstance(stat_cfg, StatAttributeConfig):
-                continue
-            if stat_cfg.alias is not None and stat_cfg.alias != field_name:
-                result[stat_cfg.alias] = field_name
-        return result
-
     mean_kinetic_energy: StatAttributeConfig | None = StatAttributeConfig(unit="eV")
     mean_x: StatAttributeConfig | None = StatAttributeConfig(unit="m")
     mean_y: StatAttributeConfig | None = StatAttributeConfig(unit="m")
@@ -306,18 +263,6 @@ class RunInfoConfig(ConfigBase):
     """
 
     pattern: str = "run_info:{key}"
-
-    @property
-    def key_map(self) -> dict[str, str]:
-        """Maps variable token (alias) -> actual run_info key, for aliased fields."""
-        result = {}
-        for field_name in RunInfoConfig.model_fields:
-            stat_cfg = getattr(self, field_name)
-            if not isinstance(stat_cfg, StatAttributeConfig):
-                continue
-            if stat_cfg.alias is not None and stat_cfg.alias != field_name:
-                result[stat_cfg.alias] = field_name
-        return result
 
     run_time: StatAttributeConfig | None = StatAttributeConfig(unit="s")
     error: StatAttributeConfig | None = StatAttributeConfig()
@@ -348,22 +293,6 @@ class ElementsConfig(BaseModel):
     solrf: SolrfConfig | None = SolrfConfig()
     emfield_cartesian: EmfieldCartesianConfig | None = EmfieldCartesianConfig()
     emfield_cylindrical: EmfieldCylindricalConfig | None = EmfieldCylindricalConfig()
-
-    @property
-    def attrib_map(self) -> dict[str, str]:
-        """Maps attrib token (alias) -> actual impact.ele field name, for aliased attributes."""
-        result = {}
-        for type_field in ElementsConfig.model_fields:
-            type_cfg = getattr(self, type_field)
-            if not isinstance(type_cfg, BaseModel):
-                continue
-            for field_name in type(type_cfg).model_fields:
-                attr_cfg = getattr(type_cfg, field_name)
-                if not isinstance(attr_cfg, AttributeConfig):
-                    continue
-                if attr_cfg.alias is not None and attr_cfg.alias != field_name:
-                    result[attr_cfg.alias] = field_name
-        return result
 
 
 class ParticlesConfig(BaseModel):
@@ -397,18 +326,16 @@ class VariableMappingConfig(BaseModel):
 
 def _make_header_actions(impact: Any, config: HeaderConfig) -> list[Action]:
     actions = []
-    for field_name, field_info in HeaderConfig.model_fields.items():
+    for field_name in HeaderConfig.model_fields:
         attr_cfg = getattr(config, field_name)
         if not isinstance(attr_cfg, AttributeConfig):
             continue
-        header_key = field_info.alias if field_info.alias is not None else field_name
-        key_token = attr_cfg.alias if attr_cfg.alias is not None else header_key
         actions.append(
             HeaderAction(
-                key=header_key,
+                key=field_name,
                 var=ScalarVariable(
-                    name=config.pattern.format(key=key_token),
-                    default_value=impact.header.get(header_key),
+                    name=config.pattern.format(key=field_name),
+                    default_value=impact.header.get(field_name),
                     unit=attr_cfg.unit,
                     read_only=attr_cfg.read_only,
                 ),
@@ -443,14 +370,13 @@ def _make_element_actions(impact: Any, config: ElementsConfig) -> list[Action]:
                 continue
             if field_name not in impact.ele[ele_name]:
                 continue
-            attrib_token = attr_cfg.alias or field_name
             actions.append(
                 EleAction(
                     ele_name=ele_name,
                     attribute=field_name,
                     var=ScalarVariable(
                         name=config.pattern.format(
-                            type=type_token, name=name_token, attrib=attrib_token
+                            type=type_token, name=name_token, attrib=field_name
                         ),
                         default_value=impact.ele[ele_name][field_name],
                         unit=attr_cfg.unit,
@@ -469,7 +395,6 @@ def _make_stat_actions(
         stat_cfg = getattr(config, field_name)
         if not isinstance(stat_cfg, StatAttributeConfig):
             continue
-        name_token = stat_cfg.alias if stat_cfg.alias is not None else field_name
         stat_array = impact.stat(field_name)
         if config.max_size is not None:
             shape = (config.max_size,)
@@ -482,7 +407,7 @@ def _make_stat_actions(
             StatAction(
                 stat_name=field_name,
                 var=NDVariable(
-                    name=config.pattern.format(name=name_token),
+                    name=config.pattern.format(name=field_name),
                     shape=shape,
                     default_value=default_value,
                     unit=stat_cfg.unit,
@@ -500,12 +425,11 @@ def _make_run_info_actions(impact: Any, config: RunInfoConfig) -> list[Action]:
         run_info_cfg = getattr(config, field_name)
         if not isinstance(run_info_cfg, StatAttributeConfig):
             continue
-        key_token = run_info_cfg.alias if run_info_cfg.alias is not None else field_name
         actions.append(
             RunInfoAction(
                 key=field_name,
                 var=ScalarVariable(
-                    name=config.pattern.format(key=key_token),
+                    name=config.pattern.format(key=field_name),
                     default_value=run_info_data.get(field_name),
                     unit=run_info_cfg.unit,
                     read_only=True,
