@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
 
 from impact.impact import Impact
@@ -95,7 +95,7 @@ class QuadrupoleConfig(ConfigBase):
     L_effective: AttributeConfig | None = AttributeConfig(unit="m")
     radius: AttributeConfig | None = AttributeConfig(unit="m")
     rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
-    rf_phase_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="rf_phase")
+    rf_phase_deg: AttributeConfig | None = AttributeConfig(unit="deg")
     x_offset: AttributeConfig | None = AttributeConfig(unit="m")
     y_offset: AttributeConfig | None = AttributeConfig(unit="m")
     x_rotation: AttributeConfig | None = AttributeConfig(unit="deg")
@@ -122,7 +122,7 @@ class DipoleConfig(ConfigBase):
 class SolrfConfig(ConfigBase):
     rf_field_scale: AttributeConfig | None = AttributeConfig()
     rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
-    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="theta0")
+    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg")
     radius: AttributeConfig | None = AttributeConfig(unit="m")
     solenoid_field_scale: AttributeConfig | None = AttributeConfig()
     x_offset: AttributeConfig | None = AttributeConfig(unit="m")
@@ -135,7 +135,7 @@ class SolrfConfig(ConfigBase):
 class EmfieldCartesianConfig(ConfigBase):
     rf_field_scale: AttributeConfig | None = AttributeConfig()
     rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
-    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="theta0")
+    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg")
     radius: AttributeConfig | None = AttributeConfig(unit="m")
     x_offset: AttributeConfig | None = AttributeConfig(unit="m")
     y_offset: AttributeConfig | None = AttributeConfig(unit="m")
@@ -147,7 +147,7 @@ class EmfieldCartesianConfig(ConfigBase):
 class EmfieldCylindricalConfig(ConfigBase):
     rf_field_scale: AttributeConfig | None = AttributeConfig()
     rf_frequency: AttributeConfig | None = AttributeConfig(unit="Hz")
-    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg", alias="theta0")
+    theta0_deg: AttributeConfig | None = AttributeConfig(unit="deg")
     radius: AttributeConfig | None = AttributeConfig(unit="m")
     x_offset: AttributeConfig | None = AttributeConfig(unit="m")
     y_offset: AttributeConfig | None = AttributeConfig(unit="m")
@@ -226,38 +226,26 @@ class HeaderConfig(ConfigBase):
     Nemission: AttributeConfig | None = AttributeConfig()
     Temission: AttributeConfig | None = AttributeConfig(unit="s")
     # Distribution parameters
-    sigx_m: AttributeConfig | None = Field(
-        AttributeConfig(unit="m", alias="sigx"), alias="sigx(m)"
-    )
+    sigx: AttributeConfig | None = AttributeConfig(unit="m")
     sigpx: AttributeConfig | None = AttributeConfig()
     muxpx: AttributeConfig | None = AttributeConfig()
     xscale: AttributeConfig | None = AttributeConfig()
     pxscale: AttributeConfig | None = AttributeConfig()
-    xmu1_m: AttributeConfig | None = Field(
-        AttributeConfig(unit="m", alias="xmu1"), alias="xmu1(m)"
-    )
+    xmu1: AttributeConfig | None = AttributeConfig(unit="m")
     xmu2: AttributeConfig | None = AttributeConfig()
-    sigy_m: AttributeConfig | None = Field(
-        AttributeConfig(unit="m", alias="sigy"), alias="sigy(m)"
-    )
+    sigy: AttributeConfig | None = AttributeConfig(unit="m")
     sigpy: AttributeConfig | None = AttributeConfig()
     muxpy: AttributeConfig | None = AttributeConfig()
     yscale: AttributeConfig | None = AttributeConfig()
     pyscale: AttributeConfig | None = AttributeConfig()
-    ymu1_m: AttributeConfig | None = Field(
-        AttributeConfig(unit="m", alias="ymu1"), alias="ymu1(m)"
-    )
+    ymu1: AttributeConfig | None = AttributeConfig(unit="m")
     ymu2: AttributeConfig | None = AttributeConfig()
-    sigz_m: AttributeConfig | None = Field(
-        AttributeConfig(unit="m", alias="sigz"), alias="sigz(m)"
-    )
+    sigz: AttributeConfig | None = AttributeConfig(unit="m")
     sigpz: AttributeConfig | None = AttributeConfig()
     muxpz: AttributeConfig | None = AttributeConfig()
     zscale: AttributeConfig | None = AttributeConfig()
     pzscale: AttributeConfig | None = AttributeConfig()
-    zmu1_m: AttributeConfig | None = Field(
-        AttributeConfig(unit="m", alias="zmu1"), alias="zmu1(m)"
-    )
+    zmu1: AttributeConfig | None = AttributeConfig(unit="m")
     zmu2: AttributeConfig | None = AttributeConfig()
 
 
