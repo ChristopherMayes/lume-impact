@@ -1,10 +1,12 @@
 import pathlib
+import warnings
 from .parsers import (
     parse_impact_input,
     load_many_fort,
     FORT_STAT_TYPES,
     FORT_DIPOLE_STAT_TYPES,
     FORT_PARTICLE_TYPES,
+    HEADER_ALIASES,
     header_str,
     header_bookkeeper,
     parse_impact_particles,
@@ -46,6 +48,52 @@ EXTRA_UNITS = {
     "Bz": pmd_unit("T"),
     "Ez": pmd_unit("V/m"),
 }
+
+
+def _translate_header_key(attrib):
+    """Translate a deprecated header key (e.g. ``"sigx(m)"``) to its
+    canonical form, emitting a ``DeprecationWarning`` when one is used.
+    Unknown keys are returned unchanged.
+    """
+    canonical = HEADER_ALIASES.get(attrib)
+    if canonical is None:
+        return attrib
+    warnings.warn(
+        f"Header key {attrib!r} is deprecated; use {canonical!r} instead.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+    return canonical
+
+
+def _normalize_header_keys(header):
+    """Rewrite any deprecated alias keys in ``header`` to their canonical
+    names in place, preserving the original insertion order of every key.
+    Emits a ``DeprecationWarning`` for each deprecated key seen. When both
+    a canonical and an alias form are present, the canonical value wins.
+    """
+    aliased = [k for k in header if k in HEADER_ALIASES]
+    if not aliased:
+        return
+    for old in aliased:
+        warnings.warn(
+            f"Header key {old!r} is deprecated; use {HEADER_ALIASES[old]!r} instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+    # Rebuild in original key order: each alias slot becomes its canonical
+    # name. If the canonical key already appears earlier (or later) in the
+    # dict, keep that value and drop the alias entry.
+    rebuilt = {}
+    for k, v in header.items():
+        canonical = HEADER_ALIASES.get(k, k)
+        if k in HEADER_ALIASES and canonical in header and canonical != k:
+            # Canonical exists elsewhere in the dict; defer to it.
+            continue
+        rebuilt[canonical] = v
+    header.clear()
+    header.update(rebuilt)
 
 
 class Impact(CommandWrapper):
@@ -526,7 +574,7 @@ class Impact(CommandWrapper):
                     H[k] = 1.0
                     self.vprint(f"Changing particle scale factor {k} to 1.0")
             # Zero out offsets.
-            for k in ["xmu1(m)", "xmu2", "ymu1(m)", "ymu2", "zmu1(m)", "zmu2"]:
+            for k in ["xmu1", "xmu2", "ymu1", "ymu2", "zmu1", "zmu2"]:
                 if H[k] != 0:
                     H[k] = 0
                     self.vprint(f"Changing particle offset factor {k} to 0")
@@ -702,6 +750,9 @@ class Impact(CommandWrapper):
             g = h5
 
         self.input = archive.read_input_h5(g["input"], verbose=self.verbose)
+        # Rewrite legacy header keys (e.g. "sigx(m)") to their canonical
+        # form on load so the in-memory header is always canonical.
+        _normalize_header_keys(self.input["header"])
         self.output, self._units = archive.read_output_h5(
             g["output"], verbose=self.verbose
         )
@@ -1047,6 +1098,7 @@ class Impact(CommandWrapper):
         name, attrib = x[0], x[1]
 
         if name == "header":
+            attrib = _translate_header_key(attrib)
             return self.header[attrib]
         elif name in self.ele:
             return self.ele[name][attrib]
@@ -1075,6 +1127,7 @@ class Impact(CommandWrapper):
         name, attrib = key.split(":")
         # Try header or lattice
         if name == "header":
+            attrib = _translate_header_key(attrib)
             self.header[attrib] = item
         elif attrib == "autophase_deg":
             self._autophase_settings[name] = item
@@ -1168,27 +1221,27 @@ DEFAULT_INPUT = {
         "Flagsbstp": 0,
         "Nemission": 0,
         "Temission": 0.0,
-        "sigx(m)": 0.001,
+        "sigx": 0.001,
         "sigpx": 0.0,
         "muxpx": 0.0,
         "xscale": 1.0,
         "pxscale": 1.0,
-        "xmu1(m)": 0.0,
+        "xmu1": 0.0,
         "xmu2": 0.0,
-        "sigy(m)": 0.001,
+        "sigy": 0.001,
         "sigpy": 0.0,
         "muxpy": 0.0,
         "yscale": 1.0,
         "pyscale": 1.0,
-        "ymu1(m)": 0.0,
+        "ymu1": 0.0,
         "ymu2": 0.0,
-        "sigz(m)": 0.0001,
+        "sigz": 0.0001,
         "sigpz": 0.0,
         "muxpz": 0.0,
         "zscale": 1.0,
         "pzscale": 1.0,
-        "zmu1(m)": 0.0,
-        "zmu2": 19.569511835591836,  # gammma => 10 MeV energy
+        "zmu1": 0.0,
+        "zmu2": 19.569511835591836,  # gamma => 10 MeV energy
         "Bcurr": 1.0,
         "Bkenergy": 1.0,
         "Bmass": 510998.95,  # electrons
