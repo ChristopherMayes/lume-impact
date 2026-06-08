@@ -7,6 +7,8 @@ from .parsers import (
     FORT_DIPOLE_STAT_TYPES,
     FORT_PARTICLE_TYPES,
     HEADER_ALIASES,
+    HEADER_UNITS,
+    ELE_UNITS,
     header_str,
     header_bookkeeper,
     parse_impact_particles,
@@ -27,7 +29,7 @@ from .interfaces.bmad import impact_from_tao
 
 
 from beamphysics import ParticleGroup
-from beamphysics.units import pmd_unit
+from beamphysics.units import pmd_unit, unit
 from beamphysics.interfaces.impact import impact_particles_to_particle_data
 
 from scipy.interpolate import interp1d
@@ -48,6 +50,29 @@ EXTRA_UNITS = {
     "Bz": pmd_unit("T"),
     "Ez": pmd_unit("V/m"),
 }
+
+# Units for keys produced after a run lands in ``self.output["run_info"]``.
+# Only entries with a real physical unit; bool/string entries are omitted.
+RUN_INFO_UNITS = {
+    "run_time": "s",
+    "start_time": "s",
+}
+
+
+def _build_static_units():
+    """Convert the string-valued ``HEADER_UNITS``, ``ELE_UNITS``, and
+    ``RUN_INFO_UNITS`` dicts into a single mapping of ``pmd_unit`` objects,
+    suitable for seeding ``Impact._units``.
+    """
+    out = {}
+    for src in (HEADER_UNITS, ELE_UNITS, RUN_INFO_UNITS):
+        for k, v in src.items():
+            out[k] = unit(v)
+    out.update(EXTRA_UNITS)
+    return out
+
+
+STATIC_UNITS = _build_static_units()
 
 
 def _translate_header_key(attrib):
@@ -123,7 +148,7 @@ class Impact(CommandWrapper):
         self.input = {"header": {}, "lattice": []}
         self.output = {}
         self._units = {}
-        self._units.update(EXTRA_UNITS)
+        self._units.update(STATIC_UNITS)
         self.group = {}
 
         # MPI
@@ -756,7 +781,7 @@ class Impact(CommandWrapper):
         self.output, self._units = archive.read_output_h5(
             g["output"], verbose=self.verbose
         )
-        self._units.update(EXTRA_UNITS)
+        self._units.update(STATIC_UNITS)
 
         if "initial_particles" in g:
             self.initial_particles = ParticleGroup(h5=g["initial_particles"])
