@@ -29,7 +29,7 @@ from .interfaces.bmad import impact_from_tao
 
 
 from beamphysics import ParticleGroup
-from beamphysics.units import pmd_unit, unit
+from beamphysics.units import pmd_unit
 from beamphysics.interfaces.impact import impact_particles_to_particle_data
 
 from scipy.interpolate import interp1d
@@ -67,7 +67,7 @@ def _build_static_units():
     out = {}
     for src in (HEADER_UNITS, ELE_UNITS, RUN_INFO_UNITS):
         for k, v in src.items():
-            out[k] = unit(v)
+            out[k] = pmd_unit(v)
     out.update(EXTRA_UNITS)
     return out
 
