@@ -91,6 +91,28 @@ ALL_HEADER_DEFAULTS = [item for sublist in HEADER_DEFAULTS for item in sublist]
 HEADER_DEFAULT = dict(zip(ALL_HEADER_NAMES, ALL_HEADER_DEFAULTS))
 HEADER_TYPE = dict(zip(ALL_HEADER_NAMES, ALL_HEADER_TYPES))
 
+# Physical units for header keys (only those with a non-dimensionless unit).
+# Integer counts, flags, seeds, and dimensionless scale factors are omitted.
+HEADER_UNITS = {
+    "Dt": "s",
+    "Zimage": "m",
+    "Xrad": "m",
+    "Yrad": "m",
+    "Perdlen": "m",
+    "Temission": "s",
+    "Bcurr": "A",
+    "Bkenergy": "eV",
+    "Bmass": "eV",
+    "Bfreq": "Hz",
+    "Tini": "s",
+    "sigx": "m",
+    "sigy": "m",
+    "sigz": "m",
+    "xmu1": "m",
+    "ymu1": "m",
+    "zmu1": "m",
+}
+
 
 def header_bookkeeper(header, defaults=HEADER_DEFAULT, verbose=True):
     """
@@ -1424,6 +1446,41 @@ VALID_KEYS = {}
 for k in ELE_DEFAULTS:
     ELE_DEFAULTS[k].update({"L": 0, "Bnseg": 0, "Bmpstp": 0})
     VALID_KEYS[k] = list(ELE_DEFAULTS[k])
+
+# Physical units for element attributes (only those with a non-dimensionless
+# unit). The mapping is flat because every attribute name has a single,
+# consistent unit across all element types it appears in.
+ELE_UNITS = {
+    # lengths
+    "L": "m",
+    "L_effective": "m",
+    "cutoff_radius": "m",
+    "gap": "m",
+    "half_gap": "m",
+    "iris_radius": "m",
+    "period": "m",
+    "radius": "m",
+    "s": "m",
+    "s_begin": "m",
+    "x_offset": "m",
+    "y_offset": "m",
+    "z_offset": "m",
+    "zedge": "m",
+    # rotations
+    "x_rotation": "rad",
+    "y_rotation": "rad",
+    "z_rotation": "rad",
+    # fields
+    "b1_gradient": "T/m",
+    "b_field": "T",
+    "b_field_x": "T",
+    # rf
+    "rf_frequency": "Hz",
+    "rf_phase_deg": "deg",
+    "theta0_deg": "deg",
+    # time
+    "dt": "s",
+}
 
 for k in VALID_KEYS:
     VALID_KEYS[k] += ["description", "original", "name", "type"]
