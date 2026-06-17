@@ -18,7 +18,7 @@ dependencies = [
   "lume-base >= 0.4.4",
   "matplotlib",
   "numpy",
-  "openpmd-beamphysics >=0.14.0",
+  "openpmd-beamphysics >=0.15.1",
   "polars",
   "prettytable",
   "psutil",
