@@ -1,0 +1,414 @@
+from __future__ import annotations
+
+import logging
+from typing import Any
+from pydantic import BaseModel
+from distgen import Generator
+from lume.variables import ScalarVariable
+
+from impact.model.distgen.actions import Action, DistgenInputAction
+
+logger = logging.getLogger(__name__)
+
+
+class DistgenParamConfig(BaseModel):
+    """Config for a single distgen parameter.
+
+    Parameters
+    ----------
+    name : str, optional
+        Override the full variable name, bypassing the pattern entirely.
+    distgen_param : str, optional
+        Override the distgen parameter key (e.g. ``"sigma_t"`` instead of derived name).
+    unit : str, optional
+        Physical unit string passed to ``ScalarVariable``.
+    read_only : bool, optional
+        Whether the variable is read-only.  Defaults to ``False``.
+    """
+
+    name: str | None = None
+    distgen_param: str | None = None
+    unit: str | None = None
+    read_only: bool = False
+
+
+# ------------------------------------------------------------------
+# Distribution type configs
+# Set a field to DistgenParamConfig() to include it; set to None to exclude.
+# ------------------------------------------------------------------
+
+
+class DistgenConfigBase(BaseModel):
+    param_map: dict[str, str] = {}
+
+
+class GaussianDistConfig(DistgenConfigBase):
+    sigma: DistgenParamConfig | None = DistgenParamConfig()
+    avg: DistgenParamConfig | None = None
+    n_sigma_cutoff: DistgenParamConfig | None = None
+    n_sigma_cutoff_left: DistgenParamConfig | None = None
+    n_sigma_cutoff_right: DistgenParamConfig | None = None
+
+
+class UniformDistConfig(DistgenConfigBase):
+    min: DistgenParamConfig | None = DistgenParamConfig()
+    max: DistgenParamConfig | None = DistgenParamConfig()
+    avg: DistgenParamConfig | None = None
+    sigma: DistgenParamConfig | None = None
+
+
+class SuperGaussianDistConfig(DistgenConfigBase):
+    sigma: DistgenParamConfig | None = DistgenParamConfig()
+    avg: DistgenParamConfig | None = None
+    p: DistgenParamConfig | None = DistgenParamConfig()
+    n_sigma_cutoff: DistgenParamConfig | None = None
+
+
+class TukeyDistConfig(DistgenConfigBase):
+    length: DistgenParamConfig | None = DistgenParamConfig()
+    ratio: DistgenParamConfig | None = DistgenParamConfig()
+
+
+class RadialGaussianDistConfig(DistgenConfigBase):
+    sigma_xy: DistgenParamConfig | None = DistgenParamConfig()
+    n_sigma_cutoff: DistgenParamConfig | None = None
+    n_sigma_cutoff_left: DistgenParamConfig | None = None
+    n_sigma_cutoff_right: DistgenParamConfig | None = None
+    truncation_radius: DistgenParamConfig | None = None
+    truncation_fraction: DistgenParamConfig | None = None
+
+
+class RadialUniformDistConfig(DistgenConfigBase):
+    max_r: DistgenParamConfig | None = DistgenParamConfig()
+    min_r: DistgenParamConfig | None = None
+
+
+class RadialSuperGaussianDistConfig(DistgenConfigBase):
+    sigma_xy: DistgenParamConfig | None = DistgenParamConfig()
+    p: DistgenParamConfig | None = DistgenParamConfig()
+
+
+class RadialTukeyDistConfig(DistgenConfigBase):
+    length: DistgenParamConfig | None = DistgenParamConfig()
+    ratio: DistgenParamConfig | None = DistgenParamConfig()
+
+
+# ------------------------------------------------------------------
+# Start configs
+# ------------------------------------------------------------------
+
+
+class CathodeStartConfig(DistgenConfigBase):
+    MTE: DistgenParamConfig | None = DistgenParamConfig()
+
+
+class StartConfig(BaseModel):
+    """
+    Configuration for translating start parameters in distgen to variables.
+
+    `pattern` is a python f-string accepting the parameters `type` (type of start config) and `key` (parameter within
+    the start config this variable represents).
+    """
+
+    pattern: str = "distgen:start:{type}:{key}"
+    cathode: CathodeStartConfig | None = CathodeStartConfig()
+
+
+# ------------------------------------------------------------------
+# Root params config
+# ------------------------------------------------------------------
+
+
+class DistgenRootConfig(DistgenConfigBase):
+    """
+    Configuration for making variables from distgen root parameters.
+
+    `pattern` is a python f-string used to generate the variable name. The parameter `key` is passed to it with the distgen
+    name of the root parameter.
+    """
+
+    pattern: str = "distgen:{key}"
+    n_particle: DistgenParamConfig | None = DistgenParamConfig()
+    total_charge: DistgenParamConfig | None = DistgenParamConfig()
+
+
+# ------------------------------------------------------------------
+# Dist config — shared across all distribution slots
+# ------------------------------------------------------------------
+
+
+class DistConfig(BaseModel):
+    """Config for a single distribution slot (r_dist, t_dist, x_dist, etc.)."""
+
+    gaussian: GaussianDistConfig | None = GaussianDistConfig()
+    uniform: UniformDistConfig | None = UniformDistConfig()
+    super_gaussian: SuperGaussianDistConfig | None = None
+    tukey: TukeyDistConfig | None = TukeyDistConfig()
+    radial_gaussian: RadialGaussianDistConfig | None = RadialGaussianDistConfig()
+    radial_uniform: RadialUniformDistConfig | None = RadialUniformDistConfig()
+    radial_super_gaussian: RadialSuperGaussianDistConfig | None = None
+    radial_tukey: RadialTukeyDistConfig | None = None
+
+
+class DistSlotsConfig(BaseModel):
+    """Groups all distribution slots under a single shared pattern.
+
+    `pattern` is a python f-string used to generate the variable name. It supports the parameters  `slot`, `dist_type`,
+    and `token` inside it.
+    """
+
+    pattern: str = "distgen:{slot}:{token}"
+    r_dist: DistConfig | None = DistConfig()
+    t_dist: DistConfig | None = DistConfig()
+    x_dist: DistConfig | None = DistConfig()
+    y_dist: DistConfig | None = DistConfig()
+    z_dist: DistConfig | None = DistConfig()
+    px_dist: DistConfig | None = DistConfig()
+    py_dist: DistConfig | None = DistConfig()
+    pz_dist: DistConfig | None = DistConfig()
+
+
+# ------------------------------------------------------------------
+# Mapping from slot name → coordinate suffix used for 1D dist params
+# (e.g. sigma_t for t_dist, sigma_x for x_dist; radial has no suffix)
+# ------------------------------------------------------------------
+
+_COORD_FROM_DIST: dict[str, str | None] = {
+    "r_dist": None,
+    "t_dist": "t",
+    "x_dist": "x",
+    "y_dist": "y",
+    "z_dist": "z",
+    "px_dist": "px",
+    "py_dist": "py",
+    "pz_dist": "pz",
+}
+
+
+# ------------------------------------------------------------------
+# Top-level input config
+# ------------------------------------------------------------------
+
+
+class DistgenInputConfig(BaseModel):
+    """Config for the distgen generator input."""
+
+    root: DistgenRootConfig | None = DistgenRootConfig()
+    start: StartConfig | None = StartConfig()
+    distributions: DistSlotsConfig | None = DistSlotsConfig()
+
+
+class DistgenVariableMappingConfig(BaseModel):
+    """Top-level config for building distgen variables and transformers."""
+
+    inputs: DistgenInputConfig | None = DistgenInputConfig()
+
+
+# ------------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------------
+
+
+def _resolve_param_key(field: str, coord: str | None) -> str:
+    """Return the distgen parameter key for a 1D dist field + coord.
+
+    For radial dists (coord=None) the field IS the key.
+    For 1D dists, params that carry the coordinate get ``{field}_{coord}``
+    (e.g. ``sigma_t``); coord-independent params use the bare field name.
+    """
+    _COORD_PARAMS = {"sigma", "avg", "min", "max", "scale", "lambda"}
+    if coord is None:
+        return field
+    if field in _COORD_PARAMS:
+        return f"{field}_{coord}"
+    return field
+
+
+def _is_quantity(raw: Any) -> bool:
+    return isinstance(raw, dict) and "value" in raw
+
+
+def _make_var(
+    name: str,
+    param_cfg: DistgenParamConfig,
+    default_unit: str | None,
+    read_only: bool,
+) -> ScalarVariable:
+    unit = param_cfg.unit if param_cfg.unit is not None else default_unit
+    return ScalarVariable(
+        name=name,
+        default_value=None,
+        unit=unit,
+        read_only=read_only or param_cfg.read_only,
+    )
+
+
+def _process_dist_config(
+    gen_input: dict,
+    slot: str,
+    dist_type: str,
+    type_cfg: BaseModel,
+    coord: str | None,
+    dist_pattern: str,
+) -> list[Action]:
+    """Walk a distribution type config and return variable actions."""
+    actions: list[Action] = []
+    dist_params = gen_input.get(slot, {})
+    for field in type(type_cfg).model_fields:
+        val = getattr(type_cfg, field)
+        if val is None or not isinstance(val, DistgenParamConfig):
+            continue
+        distgen_key = val.distgen_param or _resolve_param_key(field, coord)
+        raw = dist_params.get(distgen_key)
+        if raw is None:
+            continue
+        has_units = _is_quantity(raw)
+        default_unit = raw.get("units") if has_units else None
+        token = getattr(type_cfg, "param_map", {}).get(field, field)
+        var_name = val.name or dist_pattern.format(
+            slot=slot, dist_type=dist_type, token=token
+        )
+        full_key = f"{slot}:{distgen_key}"
+        if has_units:
+            full_key += ":value"
+        var = _make_var(var_name, val, default_unit, read_only=False)
+        actions.append(DistgenInputAction(var=var, key=full_key))
+    return actions
+
+
+def _process_slot_config(
+    gen_input: dict,
+    slot: str,
+    slot_cfg: DistConfig,
+    coord: str | None,
+    dist_pattern: str,
+) -> list[Action]:
+    """Walk a per-slot config and return variable actions for the active dist type."""
+    actions: list[Action] = []
+    dist_params = gen_input.get(slot, {})
+    if not dist_params:
+        return actions
+    active_type = dist_params.get("type", "")
+    for type_field in type(slot_cfg).model_fields:
+        cfg = getattr(slot_cfg, type_field)
+        if cfg is None or not isinstance(cfg, BaseModel):
+            continue
+        if active_type and type_field != active_type:
+            continue
+        actions.extend(
+            _process_dist_config(gen_input, slot, type_field, cfg, coord, dist_pattern)
+        )
+    return actions
+
+
+def _process_start_config(
+    gen_input: dict,
+    start_cfg: StartConfig,
+) -> list[Action]:
+    """Walk the start config and return variable actions for the active start type."""
+    actions: list[Action] = []
+    start_params = gen_input.get("start", {})
+    if not start_params:
+        return actions
+    active_type = start_params.get("type", "")
+    for type_field in type(start_cfg).model_fields:
+        if type_field == "pattern":
+            continue
+        cfg = getattr(start_cfg, type_field)
+        if cfg is None or not isinstance(cfg, BaseModel):
+            continue
+        if active_type and type_field != active_type:
+            continue
+        for field in type(cfg).model_fields:
+            param_cfg = getattr(cfg, field)
+            if param_cfg is None or not isinstance(param_cfg, DistgenParamConfig):
+                continue
+            distgen_key = param_cfg.distgen_param or field
+            raw = start_params.get(distgen_key)
+            if raw is None:
+                continue
+            has_units = _is_quantity(raw)
+            default_unit = raw.get("units") if has_units else None
+            token = cfg.param_map.get(field, field)
+            var_name = param_cfg.name or start_cfg.pattern.format(
+                type=type_field, key=token
+            )
+            full_key = f"start:{distgen_key}"
+            if has_units:
+                full_key += ":value"
+            var = _make_var(var_name, param_cfg, default_unit, read_only=False)
+            actions.append(DistgenInputAction(var=var, key=full_key))
+    return actions
+
+
+# ------------------------------------------------------------------
+# Public API
+# ------------------------------------------------------------------
+
+
+def make_actions(
+    gen: Generator,
+    config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
+) -> list[DistgenInputAction]:
+    """Build variable mappings from a distgen Generator and config.
+
+    Parameters
+    ----------
+    gen :
+        A distgen ``Generator`` instance.
+    config :
+        Variable mapping configuration.  Defaults to auto-discovering all
+        parameters present in ``gen.input``.
+
+    Returns
+    -------
+    list[Action]
+    """
+    actions: list[Action] = []
+    inp_cfg = config.inputs
+    if inp_cfg is None:
+        return actions
+
+    gen_input = gen.input
+
+    # Root params (n_particle, total_charge)
+    if inp_cfg.root is not None:
+        root_cfg = inp_cfg.root
+        for field in type(root_cfg).model_fields:
+            if field == "pattern":
+                continue
+            param_cfg: DistgenParamConfig | None = getattr(root_cfg, field)
+            if not isinstance(param_cfg, DistgenParamConfig):
+                continue
+            distgen_key = param_cfg.distgen_param or field
+            raw = gen_input.get(distgen_key)
+            if raw is None:
+                continue
+            has_units = _is_quantity(raw)
+            default_unit = raw.get("units") if has_units else None
+            token = root_cfg.param_map.get(field, field)
+            var_name = param_cfg.name or root_cfg.pattern.format(key=token)
+            full_key = distgen_key
+            if has_units:
+                full_key += ":value"
+            var = _make_var(var_name, param_cfg, default_unit, read_only=False)
+            actions.append(DistgenInputAction(var=var, key=full_key))
+
+    # Start
+    if inp_cfg.start is not None:
+        actions.extend(_process_start_config(gen_input, inp_cfg.start))
+
+    # Distribution slots
+    if inp_cfg.distributions is not None:
+        dists_cfg = inp_cfg.distributions
+        dist_pattern = dists_cfg.pattern
+        for slot in _COORD_FROM_DIST:
+            slot_cfg = getattr(dists_cfg, slot)
+            if slot_cfg is None:
+                continue
+            coord = _COORD_FROM_DIST[slot]
+            actions.extend(
+                _process_slot_config(gen_input, slot, slot_cfg, coord, dist_pattern)
+            )
+
+    return actions

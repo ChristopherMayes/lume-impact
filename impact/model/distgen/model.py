@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+from typing import Any
+
+from distgen import Generator
+from lume.model import LUMEModel
+from lume.variables import Variable
+
+from impact.model.distgen.actions import DistgenAction
+from impact.model.distgen.config import DistgenVariableMappingConfig, make_actions
+
+
+class LUMEDistgenModel(LUMEModel):
+    def __init__(
+        self,
+        gen: Generator,
+        actions: list[DistgenAction],
+        dummy_run: bool = False,
+    ):
+        self.gen = gen
+        self._action_by_name: dict[str, DistgenAction] = {m.name: m for m in actions}
+        self.dummy_run = dummy_run
+
+    @classmethod
+    def from_generator(
+        cls,
+        gen: Generator,
+        config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
+        **kwargs,
+    ) -> "LUMEDistgenModel":
+        return cls(gen, make_actions(gen, config), **kwargs)
+
+    @property
+    def supported_variables(self) -> dict[str, Variable]:
+        return {m.name: m.var for m in self._action_by_name.values()}
+
+    def _get(self, names: list[str]) -> dict[str, Any]:
+        return {name: self._action_by_name[name].get(self.gen) for name in names}
+
+    def _set(self, values: dict[str, Any]) -> None:
+        for name, value in values.items():
+            action = self._action_by_name[name]
+            action.set(self.gen, value)
+        if not self.dummy_run:
+            self.gen.run()
+
+    def register_action(self, action: DistgenAction) -> None:
+        """Add a user-defined action to the model.
+
+        If an action with the same name already exists it is replaced.
+        """
+        name = action.name
+        self._action_by_name[name] = action
+
+    def reset(self) -> None:
+        self.set(
+            {
+                m.name: m.var.default_value
+                for m in self._action_by_name.values()
+                if not m.read_only and hasattr(m.var, "default_value")
+            }
+        )

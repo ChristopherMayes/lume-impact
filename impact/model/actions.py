@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+from typing import Any
+
+import numpy as np
+from pydantic import model_validator
+
+from impact.impact import Impact
+from impact.model.base import Action, WritableAction
+from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
+
+
+class ImpactAction(Action[Impact]):
+    """Abstract base for all Impact actions."""
+
+
+class WritableImpactAction(WritableAction[Impact], ImpactAction):
+    """Abstract base for writable Impact actions."""
+
+
+class EleAction(WritableImpactAction):
+    """Maps an element attribute: ``impact.ele[ele_name][attribute]``."""
+
+    var: ScalarVariable
+    ele_name: str
+    attribute: str
+
+    def _get(self, simulator: Impact) -> Any:
+        return simulator.ele[self.ele_name][self.attribute]
+
+    def _set(self, simulator: Impact, value: Any) -> None:
+        simulator.ele[self.ele_name][self.attribute] = value
+
+
+class HeaderAction(WritableImpactAction):
+    """Maps a header key: ``impact.header[key]``."""
+
+    var: ScalarVariable
+    key: str
+
+    def _get(self, simulator: Impact) -> Any:
+        return simulator.header[self.key]
+
+    def _set(self, simulator: Impact, value: Any) -> None:
+        simulator.header[self.key] = value
+
+
+class StatAction(ImpactAction):
+    """Maps an output stat: ``impact.stat(stat_name)``. Read-only."""
+
+    var: NDVariable
+    stat_name: str
+
+    def _get(self, simulator: Impact) -> Any:
+        arr = simulator.stat(self.stat_name)
+        if arr.shape[0] == self.var.shape[0]:
+            return arr
+        out = np.full(self.var.shape[0], np.nan, dtype=float)
+        n = min(arr.shape[0], self.var.shape[0])
+        out[:n] = arr[:n]
+        return out
+
+
+class RunInfoAction(ImpactAction):
+    """Maps a run_info entry: ``impact.output['run_info'][key]``. Read-only."""
+
+    var: ScalarVariable
+    key: str
+
+    def _get(self, simulator: Impact) -> Any:
+        return simulator.output["run_info"][self.key]
+
+
+class ParticleGroupAction(WritableImpactAction):
+    """Maps a particle group: ``impact.particles[tool_name]``.
+
+    Only ``initial_particles`` is writable; all other tool names must be
+    constructed with ``var.read_only=True``.
+    """
+
+    var: ParticleGroupVariable
+    tool_name: str
+
+    @model_validator(mode="after")
+    def _check_initial_particles(self) -> "ParticleGroupAction":
+        if self.tool_name != "initial_particles" and not self.var.read_only:
+            raise ValueError(
+                f"Particle group '{self.tool_name}' is not writable; "
+                "set var.read_only=True for non-initial_particles groups"
+            )
+        return self
+
+    def _get(self, simulator: Impact) -> Any:
+        return simulator.particles[self.tool_name]
+
+    def _set(self, simulator: Impact, value: Any) -> None:
+        simulator.initial_particles = value

@@ -58,6 +58,19 @@ RUN_INFO_UNITS = {
     "start_time": "s",
 }
 
+STAT_UNITS = {
+    "mean_kinetic_energy": "eV",
+    "mean_x": "m",
+    "mean_y": "m",
+    "mean_z": "m",
+    "sigma_x": "m",
+    "sigma_y": "m",
+    "sigma_z": "m",
+    "norm_emit_x": "m",
+    "norm_emit_y": "m",
+    "norm_emit_z": "m",
+}
+
 
 def _build_static_units():
     """Convert the string-valued ``HEADER_UNITS``, ``ELE_UNITS``, and
