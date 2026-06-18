@@ -22,6 +22,7 @@ nav:
               - examples/input_parsing_example.ipynb
               - examples/output_parsing_example.ipynb
               - examples/plotting_example.ipynb
+              - examples/lume_model_tutorial.ipynb
           - Conversion:
               - examples/bmad_to_impact/corrector_coil/bmad_to_impact.ipynb
               - examples/bmad_to_impact/corrector_coil/compare.ipynb
