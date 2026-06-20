@@ -289,14 +289,17 @@ def plot_stats_with_layout(
         fig, all_axis = plt.subplots(2, gridspec_kw={"height_ratios": [4, 1]}, **kwargs)
         ax_plot = [all_axis[0]]
         ax_layout = all_axis[-1]
+        owns_fig = True
     elif ax is not None:
         ax_plot = [ax]
         ax_layout = None
         fig = ax.get_figure()
+        owns_fig = False
     else:
         fig, all_axis = plt.subplots(**kwargs)
         ax_plot = [all_axis]
         ax_layout = None
+        owns_fig = True
 
     ax_plot = cast(list[matplotlib.axes.Axes], ax_plot)
 
@@ -468,6 +471,10 @@ def plot_stats_with_layout(
             include_markers=include_markers,
             include_marker_labels=include_marker_labels,
         )
+
+    # Reserve room so the stats x-axis label is not clipped by the layout below
+    if owns_fig:
+        fig.tight_layout()
 
     if return_figure:
         return fig

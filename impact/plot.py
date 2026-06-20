@@ -253,12 +253,15 @@ def plot_stats_with_layout(
         fig, all_axis = plt.subplots(2, gridspec_kw={"height_ratios": [4, 1]}, **kwargs)
         ax_layout = all_axis[-1]
         ax_plot = [all_axis[0]]
+        owns_fig = True
     elif ax is not None:
         ax_plot = [ax]
         fig = ax.get_figure()
+        owns_fig = False
     else:
         fig, all_axis = plt.subplots(**kwargs)
         ax_plot = [all_axis]
+        owns_fig = True
 
     # collect axes
     if isinstance(ykeys, str):
@@ -427,6 +430,10 @@ def plot_stats_with_layout(
             field_t=field_t,
             include_markers=include_markers,
         )
+
+    # Reserve room so the stats x-axis label is not clipped by the layout below
+    if owns_fig:
+        fig.tight_layout()
 
     if return_figure:
         return fig
