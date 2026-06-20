@@ -1,4 +1,4 @@
-from beamphysics.units import nice_array, nice_scale_prefix
+from beamphysics.units import nice_scale_prefix, plottable_array_and_units
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -39,20 +39,9 @@ def plot_stat(impact_object, y="sigma_x", x="mean_z", nice=True):
     I = impact_object  # convenience
     fig, ax = plt.subplots()
 
-    units1 = str(I.units(x))
-    units2 = str(I.units(y))
+    X, f1, units1, *_ = plottable_array_and_units(I.stat(x), I.units(x), nice=nice)
+    Y, f2, units2, *_ = plottable_array_and_units(I.stat(y), I.units(y), nice=nice)
 
-    X = I.stat(x)
-    Y = I.stat(y)
-
-    if nice:
-        X, f1, prefix1 = nice_array(X)
-        Y, f2, prefix2 = nice_array(Y)
-        units1 = prefix1 + units1
-        units2 = prefix2 + units2
-    else:
-        f1 = 1
-        f2 = 1
     ax.set_xlabel(x + f" ({units1})")
     ax.set_ylabel(y + f" ({units2})")
 
@@ -315,12 +304,7 @@ def plot_stats_with_layout(
         Pnames = []
 
     # X axis scaling
-    units_x = str(I.units(xkey))
-    if nice:
-        X, factor_x, prefix_x = nice_array(X)
-        units_x = prefix_x + units_x
-    else:
-        factor_x = 1
+    X, factor_x, units_x, *_ = plottable_array_and_units(X, I.units(xkey), nice=nice)
 
     # set all but the layout
 
@@ -348,17 +332,16 @@ def plot_stats_with_layout(
         if len(ulist) > 1:
             for u2 in ulist[1:]:
                 assert ulist[0] == u2, f"Incompatible units: {ulist[0]} and {u2}"
-        # String representation
-        unit = str(ulist[0])
 
         # Data
         data = [I.stat(key)[good] for key in keys]
 
         if nice:
-            factor, prefix = nice_scale_prefix(np.ptp(data))
-            unit = prefix + unit
+            factor, _ = nice_scale_prefix(np.ptp(data))
+            unit = ulist[0].scaled_symbol(factor)
         else:
             factor = 1
+            unit = str(ulist[0])
 
         # Make a line and point
         for key, dat in zip(keys, data):
@@ -512,12 +495,12 @@ def add_fieldmaps_to_axes(
             ]
         )
 
-        y, factor, prefix = nice_array(fz)
+        y, factor, units_str, *_ = plottable_array_and_units(fz, units, nice=True)
 
         line = ax1.plot(zlist / xfactor, y, color=color, label=label)
         lines += line
 
-        ylabel = f"{label} ({prefix}{units})"
+        ylabel = f"{label} ({units_str})"
         ax1.set_ylabel(ylabel)
 
     labels = [line.get_label() for line in lines]

@@ -11,7 +11,7 @@ import numpy as np
 import pydantic.dataclasses as dataclasses
 from impact.z.constants import MultipoleType
 from impact.z.input import AnyInputElement, Multipole, ZElement
-from beamphysics.units import nice_array, nice_scale_prefix
+from beamphysics.units import nice_scale_prefix, plottable_array_and_units
 from pydantic import ConfigDict, Field
 from typing_extensions import Literal
 
@@ -342,12 +342,9 @@ def plot_stats_with_layout(
         Pnames = []
 
     # X axis scaling
-    units_x = str(output.units(xkey))
-    if nice:
-        X, factor_x, prefix_x = nice_array(X)
-        units_x = prefix_x + units_x
-    else:
-        factor_x = 1
+    X, factor_x, units_x, *_ = plottable_array_and_units(
+        X, output.units(xkey), nice=nice
+    )
 
     # set all but the layout
 
@@ -375,17 +372,16 @@ def plot_stats_with_layout(
         if len(ulist) > 1:
             for u2 in ulist[1:]:
                 assert ulist[0] == u2, f"Incompatible units: {ulist[0]} and {u2}"
-        # String representation
-        unit = str(ulist[0])
 
         # Data
         data = [output.stat(key)[good] for key in keys]
 
         if nice:
-            factor, prefix = nice_scale_prefix(np.ptp(data))
-            unit = prefix + unit
+            factor, _ = nice_scale_prefix(np.ptp(data))
+            unit = ulist[0].scaled_symbol(factor)
         else:
             factor = 1
+            unit = str(ulist[0])
 
         # Make a line and point
         for key, dat in zip(keys, data):
