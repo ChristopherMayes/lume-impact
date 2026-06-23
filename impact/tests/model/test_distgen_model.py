@@ -157,7 +157,7 @@ def test_register_distgen_action_on_combined(gen, fast_impact):
     )
     model.register_distgen_action_variable(action)
     assert "distgen:n_particle_v2" in model.supported_variables
-    assert "distgen:n_particle_v2" in model._distgen_by_name
+    assert "distgen:n_particle_v2" in model.distgen_model.supported_variables
 
 
 def test_register_impact_action_on_combined(gen, fast_impact):
@@ -165,4 +165,4 @@ def test_register_impact_action_on_combined(gen, fast_impact):
     action = HeaderAction(key="Ntstep", name="header:Ntstep", default_value=1000)
     model.register_impact_action_variable(action)
     assert "header:Ntstep" in model.supported_variables
-    assert "header:Ntstep" in model._impact_by_name
+    assert "header:Ntstep" in model.impact_model.supported_variables

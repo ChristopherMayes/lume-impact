@@ -66,11 +66,3 @@ class LUMEDistgenImpactModel(StagedModel):
     def unregister_impact_action_variable(self, name: str) -> None:
         """Unregister an action variable from the impact sub-model by name."""
         self.impact_model.unregister_action_variable(name)
-
-    @property
-    def _distgen_by_name(self) -> dict:
-        return self.distgen_model.supported_variables
-
-    @property
-    def _impact_by_name(self) -> dict:
-        return self.impact_model.supported_variables
