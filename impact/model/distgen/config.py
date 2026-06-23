@@ -4,9 +4,8 @@ import logging
 from typing import Any
 from pydantic import BaseModel
 from distgen import Generator
-from lume.variables import ScalarVariable
 
-from impact.model.distgen.actions import Action, DistgenInputAction
+from impact.model.distgen.actions import DistgenInputAction
 
 logger = logging.getLogger(__name__)
 
@@ -228,14 +227,16 @@ def _is_quantity(raw: Any) -> bool:
     return isinstance(raw, dict) and "value" in raw
 
 
-def _make_var(
+def _make_action(
     name: str,
     param_cfg: DistgenParamConfig,
     default_unit: str | None,
-    read_only: bool,
-) -> ScalarVariable:
+    key: str,
+    read_only: bool = False,
+) -> DistgenInputAction:
     unit = param_cfg.unit if param_cfg.unit is not None else default_unit
-    return ScalarVariable(
+    return DistgenInputAction(
+        key=key,
         name=name,
         default_value=None,
         unit=unit,
@@ -250,9 +251,9 @@ def _process_dist_config(
     type_cfg: BaseModel,
     coord: str | None,
     dist_pattern: str,
-) -> list[Action]:
+) -> list[DistgenInputAction]:
     """Walk a distribution type config and return variable actions."""
-    actions: list[Action] = []
+    actions: list[DistgenInputAction] = []
     dist_params = gen_input.get(slot, {})
     for field in type(type_cfg).model_fields:
         val = getattr(type_cfg, field)
@@ -271,8 +272,7 @@ def _process_dist_config(
         full_key = f"{slot}:{distgen_key}"
         if has_units:
             full_key += ":value"
-        var = _make_var(var_name, val, default_unit, read_only=False)
-        actions.append(DistgenInputAction(var=var, key=full_key))
+        actions.append(_make_action(var_name, val, default_unit, full_key))
     return actions
 
 
@@ -282,9 +282,9 @@ def _process_slot_config(
     slot_cfg: DistConfig,
     coord: str | None,
     dist_pattern: str,
-) -> list[Action]:
+) -> list[DistgenInputAction]:
     """Walk a per-slot config and return variable actions for the active dist type."""
-    actions: list[Action] = []
+    actions: list[DistgenInputAction] = []
     dist_params = gen_input.get(slot, {})
     if not dist_params:
         return actions
@@ -304,9 +304,9 @@ def _process_slot_config(
 def _process_start_config(
     gen_input: dict,
     start_cfg: StartConfig,
-) -> list[Action]:
+) -> list[DistgenInputAction]:
     """Walk the start config and return variable actions for the active start type."""
-    actions: list[Action] = []
+    actions: list[DistgenInputAction] = []
     start_params = gen_input.get("start", {})
     if not start_params:
         return actions
@@ -336,8 +336,7 @@ def _process_start_config(
             full_key = f"start:{distgen_key}"
             if has_units:
                 full_key += ":value"
-            var = _make_var(var_name, param_cfg, default_unit, read_only=False)
-            actions.append(DistgenInputAction(var=var, key=full_key))
+            actions.append(_make_action(var_name, param_cfg, default_unit, full_key))
     return actions
 
 
@@ -362,9 +361,9 @@ def make_actions(
 
     Returns
     -------
-    list[Action]
+    list[DistgenInputAction]
     """
-    actions: list[Action] = []
+    actions: list[DistgenInputAction] = []
     inp_cfg = config.inputs
     if inp_cfg is None:
         return actions
@@ -391,8 +390,7 @@ def make_actions(
             full_key = distgen_key
             if has_units:
                 full_key += ":value"
-            var = _make_var(var_name, param_cfg, default_unit, read_only=False)
-            actions.append(DistgenInputAction(var=var, key=full_key))
+            actions.append(_make_action(var_name, param_cfg, default_unit, full_key))
 
     # Start
     if inp_cfg.start is not None:

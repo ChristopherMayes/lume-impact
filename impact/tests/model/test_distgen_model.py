@@ -2,7 +2,6 @@ import os
 
 import pytest
 from distgen import Generator
-from lume.variables import ScalarVariable
 
 from impact import Impact
 from impact.model.distgen.actions import DistgenInputAction
@@ -127,10 +126,9 @@ def test_no_vars_when_inputs_none(gen):
 def test_register_new_distgen_action(gen):
     model = LUMEDistgenModel.from_generator(gen, dummy_run=True)
     action = DistgenInputAction(
-        key="n_particle",
-        var=ScalarVariable(name="distgen:n_particle_custom", default_value=None),
+        key="n_particle", name="distgen:n_particle_custom", default_value=None
     )
-    model.register_action(action)
+    model.register_action_variable(action)
     assert "distgen:n_particle_custom" in model.supported_variables
 
 
@@ -186,20 +184,16 @@ def test_set_impact_var_updates_impact(gen, fast_impact):
 def test_register_distgen_action_on_combined(gen, fast_impact):
     model = LUMEDistgenImpactModel.from_objects(gen, fast_impact, dummy_run=True)
     action = DistgenInputAction(
-        key="n_particle",
-        var=ScalarVariable(name="distgen:n_particle_v2", default_value=None),
+        key="n_particle", name="distgen:n_particle_v2", default_value=None
     )
-    model.register_action(action)
+    model.register_distgen_action_variable(action)
     assert "distgen:n_particle_v2" in model.supported_variables
     assert "distgen:n_particle_v2" in model._distgen_by_name
 
 
 def test_register_impact_action_on_combined(gen, fast_impact):
     model = LUMEDistgenImpactModel.from_objects(gen, fast_impact, dummy_run=True)
-    action = HeaderAction(
-        key="Ntstep",
-        var=ScalarVariable(name="header:Ntstep", default_value=1000),
-    )
-    model.register_action(action)
+    action = HeaderAction(key="Ntstep", name="header:Ntstep", default_value=1000)
+    model.register_impact_action_variable(action)
     assert "header:Ntstep" in model.supported_variables
     assert "header:Ntstep" in model._impact_by_name

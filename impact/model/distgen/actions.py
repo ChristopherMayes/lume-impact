@@ -4,18 +4,11 @@ from typing import Any
 
 from distgen import Generator
 
-from impact.model.base import Action, WritableAction
+from lume.actions import WritableActionMixin
+from lume.variables import ScalarVariable
 
 
-class DistgenAction(Action[Generator]):
-    """Abstract base for all distgen actions."""
-
-
-class WritableDistgenAction(WritableAction[Generator], DistgenAction):
-    """Abstract base for writable distgen actions."""
-
-
-class DistgenInputAction(WritableDistgenAction):
+class DistgenInputAction(WritableActionMixin[Generator], ScalarVariable):
     """Maps a distgen input parameter via a colon-separated key (e.g. ``r_dist:sigma_xy:value``)."""
 
     key: str
