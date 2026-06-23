@@ -12,9 +12,9 @@ from impact.model.model import LUMEImpactModel
 
 
 class LUMEDistgenImpactModel(StagedModel):
-    """Combined distgen + Impact-T model backed by StagedModel.
+    """Combined distgen + Impact-T model using lume.StagedModel.
 
-    ``LUMEDistgenModel`` and ``LUMEImpactModel`` are staged in sequence:
+    ``LUMEDistgenModel`` and ``LUMEImpactModel`` are run in sequence:
     distgen runs first and its output particles are passed as initial particles
     to Impact before Impact runs.
     """
