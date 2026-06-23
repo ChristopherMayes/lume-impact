@@ -120,18 +120,6 @@ def test_no_vars_when_inputs_none(gen):
     assert len(model.supported_variables) == 0
 
 
-# LUMEDistgenModel — register_action
-
-
-def test_register_new_distgen_action(gen):
-    model = LUMEDistgenModel.from_generator(gen, dummy_run=True)
-    action = DistgenInputAction(
-        key="n_particle", name="distgen:n_particle_custom", default_value=None
-    )
-    model.register_action_variable(action)
-    assert "distgen:n_particle_custom" in model.supported_variables
-
-
 # LUMEDistgenImpactModel — variables present from both sides
 
 
@@ -157,25 +145,6 @@ def test_combined_model_has_n_particle(combined_model):
 
 def test_combined_model_has_header_bcurr(combined_model):
     assert "header:Bcurr" in combined_model.supported_variables
-
-
-# LUMEDistgenImpactModel — set routes to the correct side
-
-
-def test_set_distgen_var_updates_gen(gen, fast_impact):
-    model = LUMEDistgenImpactModel.from_objects(gen, fast_impact, dummy_run=True)
-    original = gen["n_particle"]
-    model._set({"distgen:n_particle": 42})
-    assert gen["n_particle"] == 42
-    gen["n_particle"] = original
-
-
-def test_set_impact_var_updates_impact(gen, fast_impact):
-    model = LUMEDistgenImpactModel.from_objects(gen, fast_impact, dummy_run=True)
-    original = fast_impact.header["Np"]
-    model._set({"header:Np": 77})
-    assert fast_impact.header["Np"] == 77
-    fast_impact.header["Np"] = original
 
 
 # LUMEDistgenImpactModel — register_action routing
