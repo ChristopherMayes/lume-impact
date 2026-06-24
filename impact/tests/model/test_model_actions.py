@@ -4,10 +4,10 @@ import pytest
 from unittest.mock import MagicMock
 
 from impact.model.actions import (
-    EleAction,
     HeaderAction,
     ParticleGroupAction,
-    RunInfoAction,
+    ScalarEleAction as EleAction,
+    ScalarRunInfoAction as RunInfoAction,
     StatAction,
 )
 

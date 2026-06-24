@@ -18,6 +18,7 @@ from impact.model.actions import (
     StatAction,
     StrEleAction,
     StrRunInfoAction,
+    _empty_particle_group,
 )
 
 logger = logging.getLogger(__name__)
@@ -498,6 +499,8 @@ def _make_particle_actions(impact: Any, config: ParticlesConfig) -> list[Action]
             if tool_name == "initial_particles"
             else particles_data.get(tool_name)
         )
+        if default_val is None:
+            default_val = _empty_particle_group()
         actions.append(
             ParticleGroupAction(
                 tool_name=tool_name,
