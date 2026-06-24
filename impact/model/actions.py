@@ -7,11 +7,30 @@ from pydantic import model_validator
 
 from impact.impact import Impact
 from lume.actions import ReadOnlyActionMixin, WritableActionMixin
-from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
+from lume.variables import (
+    BoolVariable,
+    NDVariable,
+    ParticleGroupVariable,
+    ScalarVariable,
+    StrVariable,
+)
 
 
-class EleAction(WritableActionMixin[Impact], ScalarVariable):
-    """Maps an element attribute: ``impact.ele[ele_name][attribute]``."""
+class ScalarEleAction(WritableActionMixin[Impact], ScalarVariable):
+    """Maps a numeric element attribute: ``impact.ele[ele_name][attribute]``."""
+
+    ele_name: str
+    attribute: str
+
+    def _get(self, simulator: Impact) -> Any:
+        return simulator.ele[self.ele_name][self.attribute]
+
+    def _set(self, simulator: Impact, value: Any) -> None:
+        simulator.ele[self.ele_name][self.attribute] = value
+
+
+class StrEleAction(WritableActionMixin[Impact], StrVariable):
+    """Maps a string element attribute: ``impact.ele[ele_name][attribute]``."""
 
     ele_name: str
     attribute: str
@@ -50,8 +69,26 @@ class StatAction(ReadOnlyActionMixin[Impact], NDVariable):
         return out
 
 
-class RunInfoAction(ReadOnlyActionMixin[Impact], ScalarVariable):
-    """Maps a run_info entry: ``impact.output['run_info'][key]``. Read-only."""
+class ScalarRunInfoAction(ReadOnlyActionMixin[Impact], ScalarVariable):
+    """Maps a numeric run_info entry: ``impact.output['run_info'][key]``. Read-only."""
+
+    key: str
+
+    def _get(self, simulator: Impact) -> Any:
+        return simulator.output["run_info"][self.key]
+
+
+class BoolRunInfoAction(ReadOnlyActionMixin[Impact], BoolVariable):
+    """Maps a boolean run_info entry: ``impact.output['run_info'][key]``. Read-only."""
+
+    key: str
+
+    def _get(self, simulator: Impact) -> Any:
+        return simulator.output["run_info"][self.key]
+
+
+class StrRunInfoAction(ReadOnlyActionMixin[Impact], StrVariable):
+    """Maps a string run_info entry: ``impact.output['run_info'][key]``. Read-only."""
 
     key: str
 

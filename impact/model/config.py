@@ -10,11 +10,14 @@ from lume.actions import Action
 from impact.impact import Impact, RUN_INFO_UNITS, STAT_UNITS
 from impact.parsers import ELE_UNITS, HEADER_UNITS
 from impact.model.actions import (
-    EleAction,
+    BoolRunInfoAction,
     HeaderAction,
-    StatAction,
-    RunInfoAction,
     ParticleGroupAction,
+    ScalarEleAction,
+    ScalarRunInfoAction,
+    StatAction,
+    StrEleAction,
+    StrRunInfoAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -378,18 +381,36 @@ def _make_element_actions(impact: Any, config: ElementsConfig) -> list[Action]:
             if field_name not in impact.ele[ele_name]:
                 continue
             attrib_token = type_cfg.attrib_map.get(field_name, field_name)
-            actions.append(
-                EleAction(
-                    ele_name=ele_name,
-                    attribute=field_name,
-                    name=config.pattern.format(
-                        type=type_token, name=name_token, attrib=attrib_token
-                    ),
-                    default_value=impact.ele[ele_name][field_name],
-                    unit=ELE_UNITS.get(field_name),
-                    read_only=attr_cfg.read_only,
-                )
+            val = impact.ele[ele_name][field_name]
+            var_name = config.pattern.format(
+                type=type_token, name=name_token, attrib=attrib_token
             )
+            if isinstance(val, str):
+                actions.append(
+                    StrEleAction(
+                        ele_name=ele_name,
+                        attribute=field_name,
+                        name=var_name,
+                        default_value=val,
+                        read_only=attr_cfg.read_only,
+                    )
+                )
+            elif isinstance(val, (int, float, np.integer, np.floating)):
+                actions.append(
+                    ScalarEleAction(
+                        ele_name=ele_name,
+                        attribute=field_name,
+                        name=var_name,
+                        default_value=val,
+                        unit=ELE_UNITS.get(field_name),
+                        read_only=attr_cfg.read_only,
+                    )
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported type {type(val)} for element attribute"
+                    f" '{ele_name}.{field_name}'"
+                )
     return actions
 
 
@@ -429,15 +450,40 @@ def _make_run_info_actions(impact: Any, config: RunInfoConfig) -> list[Action]:
         if not isinstance(enabled, bool) or not enabled:
             continue
         key_token = config.attrib_map.get(field_name, field_name)
-        actions.append(
-            RunInfoAction(
-                key=field_name,
-                name=config.pattern.format(key=key_token),
-                default_value=run_info_data.get(field_name),
-                unit=RUN_INFO_UNITS.get(field_name),
-                read_only=True,
+        val = run_info_data.get(field_name)
+        var_name = config.pattern.format(key=key_token)
+        if isinstance(val, bool):
+            actions.append(
+                BoolRunInfoAction(
+                    key=field_name,
+                    name=var_name,
+                    default_value=val,
+                    read_only=True,
+                )
             )
-        )
+        elif isinstance(val, str):
+            actions.append(
+                StrRunInfoAction(
+                    key=field_name,
+                    name=var_name,
+                    default_value=val,
+                    read_only=True,
+                )
+            )
+        elif isinstance(val, (int, float, np.integer, np.floating)):
+            actions.append(
+                ScalarRunInfoAction(
+                    key=field_name,
+                    name=var_name,
+                    default_value=val,
+                    unit=RUN_INFO_UNITS.get(field_name),
+                    read_only=True,
+                )
+            )
+        else:
+            raise ValueError(
+                f"Unsupported type {type(val)} for run_info key '{field_name}'"
+            )
     return actions
 
 
