@@ -3,7 +3,10 @@
 import pytest
 from unittest.mock import MagicMock
 
+from lume.actions import ActionModel
+
 from impact.model.actions import (
+    BoolRunInfoAction,
     HeaderAction,
     ParticleGroupAction,
     ScalarEleAction as EleAction,
@@ -70,8 +73,6 @@ def test_header_set(impact):
 
 
 def test_header_read_only_blocks_set_via_model(impact):
-    from lume.actions import ActionModel
-
     action = HeaderAction(key="Np", name="test", default_value=0.0, read_only=True)
     model = ActionModel(simulator=impact, action_variables=[action])
     with pytest.raises(Exception):
@@ -117,6 +118,28 @@ def test_run_info_get(impact):
         key="run_time", name="test", default_value=None, read_only=True
     )
     assert action._get(impact) == 3.2
+
+
+# ------------------------------------------------------------------
+# BoolRunInfoAction
+# ------------------------------------------------------------------
+
+
+def test_bool_run_info_get(impact):
+    action = BoolRunInfoAction(
+        key="error", name="run_info:error", default_value=False, read_only=True
+    )
+    assert action._get(impact) is False
+
+
+def test_bool_run_info_model_get_does_not_raise(impact):
+    """Regression: BoolRunInfoAction must not fail validate_value with a bool."""
+    action = BoolRunInfoAction(
+        key="error", name="run_info:error", default_value=False, read_only=True
+    )
+    model = ActionModel(simulator=impact, action_variables=[action])
+    result = model.get(["run_info:error"])
+    assert result == {"run_info:error": False}
 
 
 # ------------------------------------------------------------------
