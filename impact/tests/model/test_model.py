@@ -2,8 +2,6 @@ import os
 
 import pytest
 
-from lume.variables import ScalarVariable
-
 from impact import Impact
 from impact.model.actions import HeaderAction
 from impact.model.config import VariableMappingConfig
@@ -87,7 +85,11 @@ def test_stat_vars_present(default_model):
 
 
 def test_stat_vars_are_read_only(default_model):
-    stat_actions = [a for a in default_model.actions if a.name.startswith("stat:")]
+    stat_actions = [
+        a
+        for a in default_model.supported_variables.values()
+        if a.name.startswith("stat:")
+    ]
     assert stat_actions
     assert all(a.read_only for a in stat_actions)
 
@@ -145,21 +147,17 @@ def test_no_stat_vars_when_stats_none(fast_impact):
 
 def test_register_new_action(fast_impact):
     model = LUMEImpactModel.from_impact(fast_impact, dummy_run=True)
-    action = HeaderAction(
-        key="Ntstep", var=ScalarVariable(name="header:Ntstep", default_value=1000)
-    )
-    model.register_action(action)
+    action = HeaderAction(key="Ntstep", name="header:Ntstep", default_value=1000)
+    model.register_action_variable(action)
     assert "header:Ntstep" in model.supported_variables
 
 
 def test_register_action_replaces_existing(fast_impact):
     model = LUMEImpactModel.from_impact(fast_impact, dummy_run=True)
-    count_before = len(model.actions)
-    action = HeaderAction(
-        key="Bcurr", var=ScalarVariable(name="header:Bcurr", default_value=99.0)
-    )
-    model.register_action(action)
-    assert len(model.actions) == count_before
+    count_before = len(model.supported_variables)
+    action = HeaderAction(key="Bcurr", name="header:Bcurr", default_value=99.0)
+    model.register_action_variable(action)
+    assert len(model.supported_variables) == count_before
 
 
 # ---------------------------------------------------------------------------

@@ -5,17 +5,20 @@ from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, model_validator
-from lume.variables import NDVariable, ParticleGroupVariable, ScalarVariable
+from lume.actions import Action
 
 from impact.impact import Impact, RUN_INFO_UNITS, STAT_UNITS
 from impact.parsers import ELE_UNITS, HEADER_UNITS
 from impact.model.actions import (
-    Action,
-    EleAction,
+    BoolRunInfoAction,
     HeaderAction,
-    StatAction,
-    RunInfoAction,
     ParticleGroupAction,
+    ScalarEleAction,
+    ScalarRunInfoAction,
+    StatAction,
+    StrEleAction,
+    StrRunInfoAction,
+    _empty_particle_group,
 )
 
 logger = logging.getLogger(__name__)
@@ -343,12 +346,10 @@ def _make_header_actions(impact: Any, config: HeaderConfig) -> list[Action]:
         actions.append(
             HeaderAction(
                 key=header_key,
-                var=ScalarVariable(
-                    name=config.pattern.format(key=key_token),
-                    default_value=impact.header.get(header_key),
-                    unit=HEADER_UNITS.get(header_key),
-                    read_only=attr_cfg.read_only,
-                ),
+                name=config.pattern.format(key=key_token),
+                default_value=impact.header.get(header_key),
+                unit=HEADER_UNITS.get(header_key),
+                read_only=attr_cfg.read_only,
             )
         )
     return actions
@@ -381,20 +382,36 @@ def _make_element_actions(impact: Any, config: ElementsConfig) -> list[Action]:
             if field_name not in impact.ele[ele_name]:
                 continue
             attrib_token = type_cfg.attrib_map.get(field_name, field_name)
-            actions.append(
-                EleAction(
-                    ele_name=ele_name,
-                    attribute=field_name,
-                    var=ScalarVariable(
-                        name=config.pattern.format(
-                            type=type_token, name=name_token, attrib=attrib_token
-                        ),
-                        default_value=impact.ele[ele_name][field_name],
+            val = impact.ele[ele_name][field_name]
+            var_name = config.pattern.format(
+                type=type_token, name=name_token, attrib=attrib_token
+            )
+            if isinstance(val, str):
+                actions.append(
+                    StrEleAction(
+                        ele_name=ele_name,
+                        attribute=field_name,
+                        name=var_name,
+                        default_value=val,
+                        read_only=attr_cfg.read_only,
+                    )
+                )
+            elif isinstance(val, (int, float, np.integer, np.floating)):
+                actions.append(
+                    ScalarEleAction(
+                        ele_name=ele_name,
+                        attribute=field_name,
+                        name=var_name,
+                        default_value=val,
                         unit=ELE_UNITS.get(field_name),
                         read_only=attr_cfg.read_only,
-                    ),
+                    )
                 )
-            )
+            else:
+                raise ValueError(
+                    f"Unsupported type {type(val)} for element attribute"
+                    f" '{ele_name}.{field_name}'"
+                )
     return actions
 
 
@@ -417,13 +434,11 @@ def _make_stat_actions(
         actions.append(
             StatAction(
                 stat_name=field_name,
-                var=NDVariable(
-                    name=config.pattern.format(name=name_token),
-                    shape=shape,
-                    default_value=default_value,
-                    unit=STAT_UNITS.get(field_name),
-                    read_only=True,
-                ),
+                name=config.pattern.format(name=name_token),
+                shape=shape,
+                default_value=default_value,
+                unit=STAT_UNITS.get(field_name),
+                read_only=True,
             )
         )
     return actions
@@ -436,17 +451,40 @@ def _make_run_info_actions(impact: Any, config: RunInfoConfig) -> list[Action]:
         if not isinstance(enabled, bool) or not enabled:
             continue
         key_token = config.attrib_map.get(field_name, field_name)
-        actions.append(
-            RunInfoAction(
-                key=field_name,
-                var=ScalarVariable(
-                    name=config.pattern.format(key=key_token),
-                    default_value=run_info_data.get(field_name),
+        val = run_info_data.get(field_name)
+        var_name = config.pattern.format(key=key_token)
+        if isinstance(val, bool):
+            actions.append(
+                BoolRunInfoAction(
+                    key=field_name,
+                    name=var_name,
+                    default_value=val,
+                    read_only=True,
+                )
+            )
+        elif isinstance(val, str):
+            actions.append(
+                StrRunInfoAction(
+                    key=field_name,
+                    name=var_name,
+                    default_value=val,
+                    read_only=True,
+                )
+            )
+        elif isinstance(val, (int, float, np.integer, np.floating)):
+            actions.append(
+                ScalarRunInfoAction(
+                    key=field_name,
+                    name=var_name,
+                    default_value=val,
                     unit=RUN_INFO_UNITS.get(field_name),
                     read_only=True,
-                ),
+                )
             )
-        )
+        else:
+            raise ValueError(
+                f"Unsupported type {type(val)} for run_info key '{field_name}'"
+            )
     return actions
 
 
@@ -461,14 +499,14 @@ def _make_particle_actions(impact: Any, config: ParticlesConfig) -> list[Action]
             if tool_name == "initial_particles"
             else particles_data.get(tool_name)
         )
+        if default_val is None:
+            default_val = _empty_particle_group()
         actions.append(
             ParticleGroupAction(
                 tool_name=tool_name,
-                var=ParticleGroupVariable(
-                    name=config.pattern.format(name=control_name),
-                    default_value=default_val,
-                    read_only=tool_name != "initial_particles",
-                ),
+                name=config.pattern.format(name=control_name),
+                default_value=default_val,
+                read_only=tool_name != "initial_particles",
             )
         )
     return actions

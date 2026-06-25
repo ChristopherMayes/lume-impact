@@ -1,46 +1,38 @@
 from __future__ import annotations
 
-from typing import Any
-
 from distgen import Generator
 from impact.impact import Impact
-from lume.model import LUMEModel
-from lume.variables import Variable
+from lume.staged_model import StagedModel
 
-from impact.model.actions import ImpactAction, WritableImpactAction
+from lume.actions import Action
 from impact.model.config import VariableMappingConfig
-from impact.model.config import make_actions as make_impact_variables
-from impact.model.distgen.actions import DistgenAction, WritableDistgenAction
 from impact.model.distgen.config import DistgenVariableMappingConfig
-from impact.model.distgen.config import make_actions as make_distgen_variables
-from impact.model.exceptions import ReadOnlyError
+from impact.model.distgen.model import LUMEDistgenModel
+from impact.model.model import LUMEImpactModel
 
 
-class LUMEDistgenImpactModel(LUMEModel):
-    """Combined distgen + Impact-T model.
+class LUMEDistgenImpactModel(StagedModel):
+    """Combined distgen + Impact-T model using lume.StagedModel.
 
-    On each ``set`` call:
-    1. Distgen inputs are written to ``gen`` and distgen is run.
-    2. The resulting particle group is set as ``impact.initial_particles``.
-    3. Impact inputs are written to ``impact`` and Impact is run.
-
-    Variables are routed automatically based on which actions list each
-    variable name belongs to.
+    ``LUMEDistgenModel`` and ``LUMEImpactModel`` are run in sequence:
+    distgen runs first and its output particles are passed as initial particles
+    to Impact before Impact runs.
     """
 
     def __init__(
         self,
-        gen: Generator,
-        impact: Impact,
-        distgen_actions: list[DistgenAction],
-        impact_actions: list[ImpactAction],
-        dummy_run: bool = False,
+        distgen_model: LUMEDistgenModel,
+        impact_model: LUMEImpactModel,
     ):
-        self.gen = gen
-        self.impact = impact
-        self.distgen_actions = distgen_actions
-        self.impact_actions = impact_actions
-        self.dummy_run = dummy_run
+        super().__init__([distgen_model, impact_model])
+
+    @property
+    def distgen_model(self) -> LUMEDistgenModel:
+        return self.lume_model_instances[0]
+
+    @property
+    def impact_model(self) -> LUMEImpactModel:
+        return self.lume_model_instances[1]
 
     @classmethod
     def from_objects(
@@ -51,105 +43,26 @@ class LUMEDistgenImpactModel(LUMEModel):
         impact_config: VariableMappingConfig | None = None,
         **kwargs,
     ) -> "LUMEDistgenImpactModel":
-        return cls(
-            gen,
-            impact,
-            make_distgen_variables(
-                gen, distgen_config or DistgenVariableMappingConfig()
-            ),
-            make_impact_variables(impact, impact_config or VariableMappingConfig()),
-            **kwargs,
+        distgen_model = LUMEDistgenModel.from_generator(
+            gen, distgen_config or DistgenVariableMappingConfig(), **kwargs
         )
-
-    @property
-    def _distgen_by_name(self) -> dict[str, DistgenAction]:
-        return {m.name: m for m in self.distgen_actions}
-
-    @property
-    def _impact_by_name(self) -> dict[str, ImpactAction]:
-        return {m.name: m for m in self.impact_actions}
-
-    @property
-    def supported_variables(self) -> dict[str, Variable]:
-        return {
-            **{m.name: m.var for m in self.distgen_actions},
-            **{m.name: m.var for m in self.impact_actions},
-        }
-
-    def _get(self, names: list[str]) -> dict[str, Any]:
-        distgen_by_name = self._distgen_by_name
-        impact_by_name = self._impact_by_name
-        return {
-            name: (
-                distgen_by_name[name].get(self.gen)
-                if name in distgen_by_name
-                else impact_by_name[name].get(self.impact)
-            )
-            for name in names
-        }
-
-    def _set(self, values: dict[str, Any]) -> None:
-        distgen_by_name = self._distgen_by_name
-        impact_by_name = self._impact_by_name
-
-        distgen_actions: dict[str, Any] = {}
-        impact_actions: dict[str, Any] = {}
-        for name, value in values.items():
-            if name in distgen_by_name:
-                action = distgen_by_name[name]
-                if not isinstance(action, WritableDistgenAction):
-                    raise ReadOnlyError(f"'{action.name}' is read-only")
-                distgen_actions[name] = value
-            elif name in impact_by_name:
-                action = impact_by_name[name]
-                if not isinstance(action, WritableImpactAction):
-                    raise ReadOnlyError(f"'{action.name}' is read-only")
-                impact_actions[name] = value
-            else:
-                raise ValueError(
-                    f"'{name}' is not a recognized distgen or impact action"
-                )
-
-        for name, value in distgen_actions.items():
-            distgen_by_name[name].set(self.gen, value)
-        if not self.dummy_run:
-            self.gen.run()
-            self.impact.initial_particles = self.gen.particles
-        for name, value in impact_actions.items():
-            impact_by_name[name].set(self.impact, value)
-        if not self.dummy_run:
-            self.impact.run()
-
-    def register_action(self, action: DistgenAction | ImpactAction) -> None:
-        """Add a user-defined action to the model, routed by type.
-
-        If an action with the same name already exists it is replaced.
-        """
-        name = action.name
-        if isinstance(action, DistgenAction):
-            if name in self._distgen_by_name:
-                self.distgen_actions[
-                    self.distgen_actions.index(self._distgen_by_name[name])
-                ] = action
-            else:
-                self.distgen_actions.append(action)
-        elif isinstance(action, ImpactAction):
-            if name in self._impact_by_name:
-                self.impact_actions[
-                    self.impact_actions.index(self._impact_by_name[name])
-                ] = action
-            else:
-                self.impact_actions.append(action)
-        else:
-            raise TypeError(
-                f"Expected DistgenAction or ImpactAction, got {type(action)}"
-            )
-
-    def reset(self) -> None:
-        self.set(
-            {
-                m.name: m.var.default_value
-                for m in (*self.distgen_actions, *self.impact_actions)
-                if not m.read_only and hasattr(m.var, "default_value")
-            }
+        impact_model = LUMEImpactModel.from_impact(
+            impact, impact_config or VariableMappingConfig(), **kwargs
         )
+        return cls(distgen_model, impact_model)
+
+    def register_distgen_action_variable(self, action: Action) -> None:
+        """Register an action variable on the distgen sub-model."""
+        self.distgen_model.register_action_variable(action)
+
+    def unregister_distgen_action_variable(self, name: str) -> None:
+        """Unregister an action variable from the distgen sub-model by name."""
+        self.distgen_model.unregister_action_variable(name)
+
+    def register_impact_action_variable(self, action: Action) -> None:
+        """Register an action variable on the impact sub-model."""
+        self.impact_model.register_action_variable(action)
+
+    def unregister_impact_action_variable(self, name: str) -> None:
+        """Unregister an action variable from the impact sub-model by name."""
+        self.impact_model.unregister_action_variable(name)
