@@ -1,4 +1,5 @@
 import pathlib
+from typing import Sequence
 import warnings
 from .parsers import (
     parse_impact_input,
@@ -998,12 +999,12 @@ class Impact(CommandWrapper):
 
     def plot(
         self,
-        y=["sigma_x", "sigma_y"],
+        y: str | Sequence[str] = ("sigma_x", "sigma_y"),
         x="mean_z",
         xlim=None,
         ylim=None,
         ylim2=None,
-        y2=[],
+        y2: str | Sequence[str] = (),
         nice=True,
         include_layout=True,
         include_labels=False,
@@ -1017,6 +1018,10 @@ class Impact(CommandWrapper):
         **kwargs,
     ):
         """ """
+        if not isinstance(y, str):
+            y = list(y)
+        if not isinstance(y2, str):
+            y2 = list(y2)
 
         # Just plot fieldmaps if there are no stats
         if "stats" not in self.output:

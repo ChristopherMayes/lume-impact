@@ -25,9 +25,11 @@ class LUMEDistgenModel(LUMEModel):
     def from_generator(
         cls,
         gen: Generator,
-        config: DistgenVariableMappingConfig = DistgenVariableMappingConfig(),
+        config: DistgenVariableMappingConfig | None = None,
         **kwargs,
     ) -> "LUMEDistgenModel":
+        if config is None:
+            config = DistgenVariableMappingConfig()
         return cls(gen, make_actions(gen, config), **kwargs)
 
     @property
