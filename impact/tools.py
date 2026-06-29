@@ -8,6 +8,7 @@ import subprocess
 import sys
 from copy import deepcopy
 from hashlib import blake2b
+from typing import Sequence
 
 import numpy as np
 import psutil
@@ -82,10 +83,11 @@ def execute2(cmd, timeout=None, cwd=None):
     return output
 
 
-def runs_script(runscript=[], dir=None, log_file=None, verbose=True):
+def runs_script(runscript: Sequence[str] = (), dir=None, log_file=None, verbose=True):
     """
     Basic driver for running a script in a directory. Will
     """
+    runscript = list(runscript)
 
     # Save init dir
     init_dir = os.getcwd()
@@ -162,7 +164,12 @@ def find_executable(exename=None, envname=None):
     raise ValueError(f"Could not find executable: exename={exename}, envname={envname}")
 
 
-def find_property(s, key="name", separator=":", delims=[" ", ",", ";"]):
+def find_property(
+    s: str,
+    key: str = "name",
+    separator: str = ":",
+    delims: Sequence[str] = (" ", ",", ";"),
+):
     """
     Find property of the form key+delim+value
 

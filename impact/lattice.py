@@ -1,4 +1,6 @@
 # import numpy as np
+from typing import Sequence
+
 from . import parsers
 from .parsers import itype_of, VALID_KEYS
 
@@ -275,7 +277,9 @@ def ele_shapes(eles):
 
 
 # -----------------------------------------------------------------
-def remove_element_types(lattice, types=["stop", "comment", "write_beam", "wakefield"]):
+def remove_element_types(
+    lattice, types: Sequence[str] = ("stop", "comment", "write_beam", "wakefield")
+):
     """
     Removes particular types of elements from a lattice (list of elements)
     """
@@ -380,7 +384,7 @@ def insert_ele_by_s(ele, eles, verbose=False):
 # Constructors
 
 
-def new_write_beam(name=None, s=0, filename=None, sample_frequency=1, ref_eles=[]):
+def new_write_beam(name=None, s=0, filename=None, sample_frequency=1, ref_eles=()):
     """
     returns a new write_beam element.
 

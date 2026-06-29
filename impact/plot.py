@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from beamphysics.units import nice_scale_prefix, plottable_array_and_units
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -209,8 +211,8 @@ def plot_layout(
 
 def plot_stats_with_layout(
     impact_object,
-    ykeys=["sigma_x", "sigma_y"],
-    ykeys2=["mean_kinetic_energy"],
+    ykeys: str | Sequence[str] = ("sigma_x", "sigma_y"),
+    ykeys2: str | Sequence[str] = ("mean_kinetic_energy",),
     xkey="mean_z",
     xlim=None,
     ylim=None,
@@ -247,6 +249,11 @@ def plot_stats_with_layout(
         return_figure: return the figure object for further manipulation. Default: False
 
     """
+    if not isinstance(ykeys, str):
+        ykeys = list(ykeys)
+    if not isinstance(ykeys2, str):
+        ykeys2 = list(ykeys2)
+
     I = impact_object  # convenience
 
     if include_layout:

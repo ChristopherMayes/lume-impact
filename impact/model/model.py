@@ -27,9 +27,11 @@ class LUMEImpactModel(LUMEModel):
     def from_impact(
         cls,
         impact: Impact,
-        config: VariableMappingConfig = VariableMappingConfig(),
+        config: VariableMappingConfig | None = None,
         **kwargs,
     ) -> "LUMEImpactModel":
+        if config is None:
+            config = VariableMappingConfig()
         return cls(impact, make_actions(impact, config), **kwargs)
 
     @property

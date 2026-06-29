@@ -1,4 +1,5 @@
 import json
+from typing import Sequence
 
 
 class ControlGroup:
@@ -39,7 +40,7 @@ class ControlGroup:
 
     def __init__(
         self,
-        ele_names=[],
+        ele_names: Sequence[str] = (),
         var_name=None,
         # If underlying attribute is different
         attributes=None,
@@ -50,7 +51,7 @@ class ControlGroup:
         absolute=False,
         name=None,
     ):
-        self.ele_names = ele_names  # Link these.
+        self.ele_names = list(ele_names)  # Link these.
         self.var_name = var_name
 
         self.attributes = attributes

@@ -668,7 +668,7 @@ class ImpactZ(CommandWrapper):
         xlim=None,
         ylim=None,
         ylim2=None,
-        y2=[],
+        y2: str | Sequence[str] = (),
         nice=True,
         include_layout=True,
         include_labels=False,
@@ -719,6 +719,8 @@ class ImpactZ(CommandWrapper):
         fig : matplotlib.pyplot.figure.Figure
             The plot figure for further customizations or `None` if `return_figure` is set to False.
         """
+        if not isinstance(y2, str):
+            y2 = list(y2)
 
         if self.output is None:
             raise RuntimeError(
