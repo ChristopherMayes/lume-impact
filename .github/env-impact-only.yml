@@ -3,7 +3,9 @@ name: lume-impact-dev
 channels:
   - conda-forge
 dependencies:
-  - pip
+  # python gets pulled in via bmad -> xraylib -> numpy anyway,
+  # set this up so CI can control it at least
+  - python>=3.10
   - impact-t=*=mpi_openmpi*
   - impact-z=*=mpi_openmpi*
   # Well, also bmad for PyTao tests

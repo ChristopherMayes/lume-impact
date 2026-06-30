@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/conda-setup
         with:
-          python-version: ""
+          python-version: ${{ matrix.python-version }}
           filename: .github/env-impact-only.yml
           pip-package: "" # don't install lume-impact here
       - uses: actions/setup-python@v6
@@ -47,5 +47,5 @@ jobs:
         shell: bash -l -e -o pipefail {0}
         run: |
           echo -e '## Test results\n\n```' >> "$GITHUB_STEP_SUMMARY"
-          pytest -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          python -m pytest -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
