@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/conda-setup
         with:
-          python-version: ""
+          python-version: ${{ matrix.python-version }}
           filename: .github/env-impact-only.yml
           pip-package: "" # don't install lume-impact here
       - uses: actions/setup-python@v6
