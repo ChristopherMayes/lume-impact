@@ -237,6 +237,7 @@ class Impact(CommandWrapper):
         self.setup_workdir(workdir)
         self.vprint("Configured to run in:", self.path)
         self.configured = True
+        self.finished = False
 
     def input_parser(self, path):
         return parse_impact_input(path, verbose=self.verbose)
@@ -509,6 +510,7 @@ class Impact(CommandWrapper):
 
         # Clear output
         self.output = {}
+        self.finished = False
 
         # Autophase
         autophase_settings = self.autophase_bookkeeper()
