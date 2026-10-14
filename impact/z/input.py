@@ -109,7 +109,10 @@ class InputElement(BaseModel):
             has_input_file=has_input_file,
             has_output_file=has_output_file,
         )
-        cls._impactz_fields_ = tuple(cls.__annotations__)
+        # Private/ClassVar annotations are not part of the input line.
+        cls._impactz_fields_ = tuple(
+            attr for attr in cls.__annotations__ if not attr.startswith("_")
+        )
 
     @classmethod
     def class_information(cls):
@@ -1624,6 +1627,31 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     """
     Input element: read in RF cavity structure wakefield.
 
+    This is a zero-length switch element. Placing one of these with
+    `enable_wakefield > 0` turns the read-in wakefield on for all *subsequent*
+    lattice elements until another `RfcavityStructureWakefield` with
+    `enable_wakefield < 0` turns it back off.
+
+    The wake data are read from `rfdata{file_id}.in`, a four-column table:
+
+    ==========  ==========================================================
+    Column      Meaning
+    ==========  ==========================================================
+    ``z``       Distance behind the source particle, in meters. Must start
+                at (or be shifted to) 0 and be on a uniform grid.
+    ``Wz``      Longitudinal wake function, in V/C/m. Positive values
+                correspond to energy loss for a trailing particle.
+    ``Wx``      Horizontal transverse (dipole) wake function, in V/C/m^2.
+    ``Wy``      Vertical transverse (dipole) wake function, in V/C/m^2.
+    ==========  ==========================================================
+
+    Notes
+    -----
+    IMPACT-Z skips the entire collective-effects section when the beam current
+    is zero, so `ImpactZInput.average_current` must be nonzero for the
+    wakefield to have any effect. Space charge itself may still be disabled
+    through the boundary type.
+
     Attributes
     ----------
     length : float
@@ -1633,10 +1661,14 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     map_steps : int
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
+    scale_factor : float
+        Scale factor applied to the wake read in from the file. IMPACT-Z
+        multiplies the longitudinal and both transverse wakes by this value.
     file_id : float
         The file ID to load from.
     enable_wakefield : float
-        -1.0 RF off, 1.0 RF on, < 10 no transverse wakefield effects included
+        -1.0 wakefield off, 1.0 wakefield on without transverse wake effects,
+        10.0 wakefield on including transverse wake effects.
     """
 
     length: float = 0.0
@@ -1644,7 +1676,7 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     map_steps: int = 0
     type_id: Literal[-41] = -41
 
-    unused: float = 1.0
+    scale_factor: float = 1.0
     file_id: float = 0.0
     enable_wakefield: float = 0.0
 
@@ -2453,6 +2485,7 @@ class ImpactZInput(BaseModel):
         write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
         include_collimation: bool = True,
         integrator_type: IntegratorType = IntegratorType.linear_map,
+        wakefield_zmax: float | None = None,
     ) -> ImpactZInput:
         """
         Create an ImpactZInput object from a Tao instance's lattice.
@@ -2516,6 +2549,11 @@ class ImpactZInput(BaseModel):
             The integrator scheme to be used in the lattice conversion.
             Defaults to 'linear_map', but this may be switched automatically to
             Runge-Kutta depending on IMPACT-Z run requirements.
+        wakefield_zmax : float or None, optional
+            Largest trailing distance to tabulate short-range wakefields over,
+            in meters. IMPACT-Z indexes the wake table without bounds checking,
+            so this must reach at least the full length of the bunch. Defaults
+            to twice the extent of the initial particles.
 
         Returns
         -------
@@ -2543,6 +2581,7 @@ class ImpactZInput(BaseModel):
             initial_write_full_id=initial_write_full_id,
             write_beam_eles=write_beam_eles,
             include_collimation=include_collimation,
+            wakefield_zmax=wakefield_zmax,
         )
 
         input = state.to_input(

@@ -817,6 +817,7 @@ class ImpactZ(CommandWrapper):
         write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
         include_collimation: bool = False,
         integrator_type: IntegratorType = IntegratorType.linear_map,
+        wakefield_zmax: float | None = None,
         workdir: str | pathlib.Path | None = None,
         output: Any | None = None,  # TODO
         alias: dict[str, str] | None = None,
@@ -912,6 +913,11 @@ class ImpactZ(CommandWrapper):
         initial_particles : ParticleGroup, optional
             Initial particles to use in the simulation, using the
             OpenPMD-beamphysics standard.
+        wakefield_zmax : float or None, optional
+            Largest trailing distance to tabulate short-range wakefields over,
+            in meters. IMPACT-Z indexes the wake table without bounds checking,
+            so this must reach at least the full length of the bunch. Defaults
+            to twice the extent of the initial particles.
 
         Returns
         -------
@@ -940,6 +946,7 @@ class ImpactZ(CommandWrapper):
             write_beam_eles=write_beam_eles,
             include_collimation=include_collimation,
             integrator_type=integrator_type,
+            wakefield_zmax=wakefield_zmax,
         )
         return cls(
             input=input,

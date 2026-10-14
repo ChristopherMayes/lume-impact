@@ -22,8 +22,10 @@ from typing import (
 import matplotlib.pyplot as plt
 import numpy as np
 from beamphysics import ParticleGroup
+from beamphysics.interfaces.impact import create_impact_z_wakefield_rfdata
 from beamphysics.particles import c_light
 from beamphysics.species import charge_state, mass_of
+from beamphysics.wakefields import Pseudomode, PseudomodeWakefield
 from pytao import Tao, TaoCommandError
 from typing_extensions import Literal, TypeAlias
 
@@ -49,6 +51,7 @@ from ..input import (
     IntegratorTypeSwitch,
     Multipole,
     Quadrupole,
+    RfcavityStructureWakefield,
     RotateBeam,
     Solenoid,
     SolenoidWithRFCavity,
@@ -858,6 +861,128 @@ def should_switch_integrator(ele: AnyInputElement) -> bool:
     return False
 
 
+# Rows in the `rfdata{N}.in` table written for `RfcavityStructureWakefield`.
+# IMPACT-Z accepts at most this many.
+WAKEFIELD_TABLE_ROWS = 5000
+
+# The wake table must reach at least the full length of the bunch, because
+# IMPACT-Z indexes it without bounds checking. This multiplies the observed
+# extent of the initial particles to give some headroom.
+WAKEFIELD_ZMAX_FACTOR = 2.0
+
+
+class WakefieldInfo(NamedTuple):
+    """A Bmad short-range longitudinal wake, ready for conversion."""
+
+    wakefield: PseudomodeWakefield
+    scale_with_length: bool
+
+
+def wakefield_from_tao(
+    tao: Tao,
+    ele_id: str | int,
+    which: Which = "model",
+) -> WakefieldInfo | None:
+    """
+    Read an element's short-range longitudinal wakefield from Tao.
+
+    Bmad writes a short-range wake as a sum of pseudo-modes
+
+        W(z) = A exp(d z) sin(2 pi phi + k z),   z <= 0
+
+    which is the form openPMD-beamphysics uses as well, apart from Bmad giving
+    the phase in units of 2 pi. The sign convention also agrees: a positive
+    longitudinal wake is energy-losing.
+
+    Parameters
+    ----------
+    tao : Tao
+        The Tao instance.
+    ele_id : str or int
+        Element ID (name or index) to query.
+    which : {"model", "base", "design"}, optional
+        Which Tao model to use, by default "model".
+
+    Returns
+    -------
+    WakefieldInfo or None
+        The wakefield, with `amp_scale` folded into the mode amplitudes, along
+        with the element's `scale_with_length` setting. None if the element has
+        no short-range longitudinal wake.
+
+    Raises
+    ------
+    NotImplementedError
+        If the element carries a tabulated (`z_long`) short-range wake, a
+        short-range transverse wake, a nonunit `z_scale`, or a mode with a
+        position dependence. IMPACT-Z reads a wake table that is a function of
+        the trailing distance alone.
+    """
+    try:
+        base = cast(dict, tao.ele_wake(ele_id, "base", which=which))
+    except TaoCommandError:
+        return None
+
+    # A tabulated `z_long` wake is reported separately from the pseudo-modes,
+    # and an element carrying one has an empty `sr_long_table`. Check for it
+    # before the early returns below so that it cannot be dropped silently.
+    # Both `has#sr_z_long` and the `sr_z_long_table` output are recent Tao
+    # additions, so treat their absence as "no such wake".
+    try:
+        z_long_table = cast(
+            np.ndarray, tao.ele_wake(ele_id, "sr_z_long_table", which=which)
+        )
+    except TaoCommandError:
+        z_long_table = np.empty(0)
+
+    if base.get("has#sr_z_long", False) or len(z_long_table):
+        raise NotImplementedError(
+            "Tabulated (`z_long`) short-range wakes are not supported by this "
+            "conversion; only the pseudo-mode form is"
+        )
+
+    if not base.get("has#sr_long", False):
+        return None
+
+    modes = cast(list, tao.ele_wake(ele_id, "sr_long_table", which=which))
+    if not modes:
+        return None
+
+    if cast(list, tao.ele_wake(ele_id, "sr_trans_table", which=which)):
+        raise NotImplementedError(
+            "Short-range transverse wakes are not supported by this conversion"
+        )
+
+    z_scale = float(base["sr%z_scale"])
+    if z_scale != 1.0:
+        raise NotImplementedError(
+            f"Short-range wake z_scale={z_scale} is not supported; only 1.0 is"
+        )
+
+    amp_scale = float(base["sr%amp_scale"])
+
+    pseudomodes = []
+    for amplitude, damping, wavenumber, phase, position_dependence in modes:
+        if str(position_dependence).lower() != "none":
+            raise NotImplementedError(
+                f"Short-range wake position_dependence={position_dependence!r} "
+                "is not supported; only 'none' is"
+            )
+        pseudomodes.append(
+            Pseudomode(
+                A=amp_scale * float(amplitude),
+                d=float(damping),
+                k=float(wavenumber),
+                phi=2.0 * np.pi * float(phase),
+            )
+        )
+
+    return WakefieldInfo(
+        wakefield=PseudomodeWakefield(pseudomodes),
+        scale_with_length=bool(base["sr%scale_with_length"]),
+    )
+
+
 def element_from_tao(
     tao: Tao,
     ele_id: str | int,
@@ -870,6 +995,7 @@ def element_from_tao(
     integrator_type: IntegratorType = IntegratorType.linear_map,
     rfdata_file_id: int = 500,
     file_data: dict[str, np.ndarray] | None = None,
+    wakefield_zmax: float | None = None,
 ) -> tuple[list[AnyInputElement], dict[str, np.ndarray]]:
     """
     Create beam elements from Tao data.
@@ -905,6 +1031,10 @@ def element_from_tao(
         Existing file data for the lattice, by default None.
         This function will reuse other elements' `file_data` when possible from
         this dictionary.
+    wakefield_zmax : float or None, optional
+        Largest trailing distance to tabulate for a short-range wakefield, in
+        meters. Required if the element carries a wake; the table must reach at
+        least the full length of the bunch.
 
     Returns
     -------
@@ -954,6 +1084,7 @@ def element_from_tao(
 
     inner_ele, rfdata = res
     data = {}
+    next_file_id = rfdata_file_id
 
     assert "bmad_sc" in inner_ele.metadata
     assert "bmad_csr" in inner_ele.metadata
@@ -972,9 +1103,71 @@ def element_from_tao(
                 inner_ele.file_id = int(existing_id)
                 break
         else:
-            logger.debug(f"Element {inner_ele.name} new rfdata {rfdata_file_id}")
-            inner_ele.file_id = rfdata_file_id
-            data[str(rfdata_file_id)] = rfdata
+            logger.debug(f"Element {inner_ele.name} new rfdata {next_file_id}")
+            inner_ele.file_id = next_file_id
+            data[str(next_file_id)] = rfdata
+            next_file_id += 1
+
+    wake_info = wakefield_from_tao(tao, ele_id, which=which)
+    if wake_info is not None:
+        if wakefield_zmax is None:
+            raise ValueError(
+                f"Element {name!r} (id={ele_id}) has a short-range wakefield, "
+                "so `wakefield_zmax` must be given"
+            )
+
+        # Bmad scales the kick by the element length when `scale_with_length` is
+        # set, matching the per-meter wake IMPACT-Z integrates over the element.
+        # A lumped Bmad wake has to be divided by the length to give the same
+        # total kick.
+        scale_factor = 1.0
+        if not wake_info.scale_with_length:
+            if inner_ele.length <= 0.0:
+                raise NotImplementedError(
+                    f"Element {name!r} (id={ele_id}) has a lumped wakefield "
+                    "(scale_with_length = False) but no length, so it cannot be "
+                    "expressed as the per-meter wake IMPACT-Z applies"
+                )
+            scale_factor = 1.0 / inner_ele.length
+
+        table = create_impact_z_wakefield_rfdata(
+            wake_info.wakefield,
+            zmax=wakefield_zmax,
+            n=WAKEFIELD_TABLE_ROWS,
+        )
+
+        for existing_id, existing_data in {**(file_data or {}), **data}.items():
+            if np.array_equal(existing_data, table):
+                logger.debug(
+                    f"Element {inner_ele.name} reusing wakefield from {existing_id}"
+                )
+                wake_file_id = int(existing_id)
+                break
+        else:
+            logger.debug(f"Element {inner_ele.name} new wakefield {next_file_id}")
+            wake_file_id = next_file_id
+            data[str(next_file_id)] = table
+            next_file_id += 1
+
+        # The -41 element is a switch: it enables the wake for everything that
+        # follows, so the element has to be bracketed by an on and an off.
+        leading_elements.append(
+            RfcavityStructureWakefield(
+                name=f"{inner_ele.name}_WAKE_ON",
+                file_id=wake_file_id,
+                scale_factor=scale_factor,
+                enable_wakefield=1.0,
+            )
+        )
+        trailing_elements.insert(
+            0,
+            RfcavityStructureWakefield(
+                name=f"{inner_ele.name}_WAKE_OFF",
+                file_id=wake_file_id,
+                scale_factor=scale_factor,
+                enable_wakefield=-1.0,
+            ),
+        )
 
     if should_switch_integrator(inner_ele):
         leading_elements.append(
@@ -1091,6 +1284,27 @@ class ConversionState:
     def n_particle(self) -> int:
         return len(self.initial_particles) if self.initial_particles else 0
 
+    def default_wakefield_zmax(self) -> float | None:
+        """
+        Trailing distance to tabulate a short-range wakefield over.
+
+        IMPACT-Z indexes the wake table without bounds checking, so it has to
+        reach at least the full length of the bunch. This takes the extent of
+        the initial particles with headroom.
+        """
+        P = self.initial_particles
+        if P is None:
+            return None
+
+        # The group may be in either z or t coordinates.
+        extent = max(
+            float(np.ptp(P["z"])),
+            float(np.ptp(P["t"])) * c_light,
+        )
+        if extent <= 0.0:
+            return None
+        return WAKEFIELD_ZMAX_FACTOR * extent
+
     def convert_lattice(
         self,
         tao: Tao,
@@ -1101,7 +1315,11 @@ class ConversionState:
         initial_write_full_id: int = 200,
         write_beam_eles: str | Sequence[str] = ("monitor::*", "marker::*"),
         include_collimation: bool = True,
+        wakefield_zmax: float | None = None,
     ) -> tuple[list[AnyInputElement], dict[str, np.ndarray]]:
+        if wakefield_zmax is None:
+            wakefield_zmax = self.default_wakefield_zmax()
+
         lattice: list[AnyInputElement] = [
             WriteFull(name="initial_particles", file_id=initial_particles_file_id),
         ]
@@ -1127,6 +1345,7 @@ class ConversionState:
                     integrator_type=self.integrator_type,
                     rfdata_file_id=rfdata_file_id,
                     file_data=file_data,
+                    wakefield_zmax=wakefield_zmax,
                 )
             except UnusableElementError as ex:
                 logger.debug("Skipping element: %s (%s)", ele_id, ex)
@@ -1268,6 +1487,13 @@ class ConversionState:
         )
         if self.global_csr_flag:
             input.space_charge_on(bunch_charge=float(self.beam_init["bunch_charge"]))
+
+        elif any(isinstance(ele, RfcavityStructureWakefield) for ele in lattice):
+            # IMPACT-Z skips its entire collective-effects section when the
+            # current is zero, and the wakefield is computed there. The Poisson
+            # solve stays off through the ToggleSpaceCharge element inserted by
+            # `convert_lattice`.
+            input.bunch_charge = float(self.beam_init["bunch_charge"])
 
         return input
 
