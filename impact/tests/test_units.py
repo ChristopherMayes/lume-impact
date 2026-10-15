@@ -17,7 +17,6 @@ from impact.parsers import (
     HEADER_UNITS,
 )
 
-
 # ----------
 # HEADER_UNITS
 # ----------

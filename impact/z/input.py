@@ -1,56 +1,57 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 import enum
 import logging
 import pathlib
 import shlex
 import types
 import typing
+from abc import abstractmethod
+from collections.abc import Iterable, Sequence
 from typing import (
     Any,
     ClassVar,
-    Iterable,
     Literal,
     NamedTuple,
     TypeVar,
     Union,
     cast,
 )
-from collections.abc import Sequence
 
 import h5py
 import matplotlib.axes
 import numpy as np
 import pydantic
 import pydantic.alias_generators
-from lume import tools as lume_tools
+from beamphysics import ParticleGroup
+from beamphysics.particles import c_light
 from scipy.constants import e
 from typing_extensions import Protocol, runtime_checkable
 
-from beamphysics import ParticleGroup
-from beamphysics.particles import c_light
+from lume import tools as lume_tools
 
-from ..impact import suggested_processor_domain
 from .. import tools
-from . import archive as _archive, parsers
+from ..impact import suggested_processor_domain
+from . import archive as _archive
+from . import parsers
 from .constants import (
     BoundaryType,
+    DiagnosticType,
     DistributionType,
     GPUFlag,
     IntegratorType,
     MultipoleType,
-    DiagnosticType,
     RFCavityCoordinateType,
     RFCavityDataMode,
     WigglerType,
 )
 from .errors import MultipleElementError, NoSuchElementError
 from .particles import ImpactZParticles, detect_species
-from .types import AnyPath, BaseModel, NonzeroFloat, NDArray, PydanticParticleGroup
+from .types import AnyPath, BaseModel, NDArray, NonzeroFloat, PydanticParticleGroup
 
 if typing.TYPE_CHECKING:
     from pytao import Tao
+
     from .interfaces.bmad import Which as TaoWhich
 
 
@@ -78,7 +79,7 @@ class HasOutputFile(Protocol):
     file_id: float
 
 
-InputElementMetadata = dict[str, Union[int, float, str, bool, NDArray]]
+InputElementMetadata = dict[str, int | float | str | bool | NDArray]
 
 
 class InputElement(BaseModel):
@@ -149,7 +150,7 @@ class InputElement(BaseModel):
     def to_line(
         self, *, with_description: bool = True, z_start: float | None = None
     ) -> str:
-        def as_string(v: float | int):
+        def as_string(v: float):
             if isinstance(v, (bool, float)):
                 return f"{v:.20g}"
             if isinstance(v, enum.IntEnum):
@@ -225,8 +226,10 @@ class Quadrupole(InputElement, element_id=1, has_input_file=True):
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
     k1 : float
-        The quadrupole strength, 1/m^2. (NOTE: the manual is actually wrong here, this
-        is not B1 in units of T/m)
+        The quadrupole strength. Its interpretation depends on `file_id`:
+        the magnetic field gradient B1 in T/m in the default mode
+        (`file_id` = 0 or > 0), or the MAD-style K1 = B1/(B rho) in 1/m^2
+        when `file_id` is between -10 and 0.
     file_id : float
         An ID for the input gradient file. Determines profile behavior:
         if greater than 0, a fringe field profile is read; if less than -10,
@@ -391,9 +394,9 @@ class Dipole(InputElement, element_id=4, has_input_file=True):
     e2 : float, optional
         Exit pole face angle [rad].
     entrance_curvature : float, optional
-        Curvature of entrance face [rad].
+        Curvature (1/radius) of entrance pole face [1/m].
     exit_curvature : float, optional
-        Curvature of exit face [rad].
+        Curvature (1/radius) of exit pole face [1/m].
     fint : float, optional
         Integrated fringe field K of entrance (Kf). Fringe field K of exit
         assumed to be equal (Kb = Kf).
@@ -538,9 +541,9 @@ class Wiggler(InputElement, element_id=6):
     wiggler_type : WigglerType, optional
         Wiggler type. Defaults to `WigglerType.planar`.
     max_field_strength : float, optional
-        The maximum strength of the magnetic field.  Units of T/m^n.
+        The maximum on-axis magnetic field, in Tesla.
     file_id : float, optional
-        File ID (unused?)
+        File ID for a read-in field profile.
     radius : float, optional
         Radius in meters.
     kx : float, optional
@@ -927,9 +930,9 @@ class TravelingWaveRFCavity(InputElement, element_id=106, has_input_file=True):
     rotation_error_x : float
         Rotation errors in x [rad].
     rotation_error_y : float
-        Rotation errors in x [rad].
+        Rotation errors in y [rad].
     rotation_error_z : float
-        Rotation errors in x [rad].
+        Rotation errors in z [rad].
     phase_diff : float
         Phase difference B and A (pi - beta * d).
     aperture_size_for_wakefield : float
@@ -1068,17 +1071,15 @@ class WriteFull(InputElement, element_id=-2, has_output_file=True):
         Unused.
     file_id : int
         The File ID.
-    unused_2 : float
-        Unused
     sample_frequency : int
         Write every Nth particle.
+    unused_2 : float
+        Unused
 
     Notes
     -----
     - The file written will not support N values of 5, 6, 24, 25, 26, 27, 29,
       30, or 32 when using Fortran code.
-    - The printed dataset uses sample frequency `10`, meaning every 10th
-      particle is output.
     - Particles recorded are dimensionless, in an IMPACT internal unit.
     - A positive sample frequency specifies magnitude in standard units; a
       negative implies adoption of the ImpactT format (z as delta z and pz as
@@ -1092,13 +1093,17 @@ class WriteFull(InputElement, element_id=-2, has_output_file=True):
         validation_alias=pydantic.AliasChoices("file_id", "map_steps"),
     )
     type_id: Literal[-2] = -2
-    unused_2: float = 0.0
     sample_frequency: int = 0
+    unused_2: float = 0.0
 
 
 class DensityProfileInput(InputElement, element_id=-3):
     """
-    Input element: density profile input parameters.
+    Write the accumulated density along R, X, and Y into files
+    RadDens.data, Xprof.data, and Yprof.data.
+
+    Note that IMPACT-Z v2.7 only reads `radius`, `xmax`, and `ymax`; the
+    momentum/longitudinal frame parameters are accepted but unused.
 
     Attributes
     ----------
@@ -1227,7 +1232,12 @@ class Projection2D(InputElement, element_id=-5):
 
 class Density3D(InputElement, element_id=-6):
     """
-    Input element: 3D density.
+    Write the 3D density into file fort.8.
+
+    Warning: IMPACT-Z v2.7.1 does not actually read this element's
+    parameters before using them (a missing getparam call in
+    AccSimulator.f90), so the frame ranges applied are stale values from a
+    previously processed element. Treat the parameters below as the intent.
 
     Attributes
     ----------
@@ -1273,14 +1283,27 @@ class WritePhaseSpaceInfo(InputElement, element_id=-7):
     Input element: write the 6D phase space information and local computation
     domain information.
 
-    Writes to files fort.1000, fort.1001, fort.1002, ...,
-    fort.(1000+Nprocessor-1). This function is used for restart purposes.
+    Writes to files fort.(file_id), fort.(file_id+1), ...,
+    fort.(file_id+Nprocessor-1), one per processor (file_id is typically
+    1000). This function is used for restart purposes.
+
+    Attributes
+    ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    file_id : int
+        The base file ID; processor `rank` writes to fort.(file_id+rank).
     """
 
     # TODO unsupported
     length: float = 0.0
     steps: int = 0
-    map_steps: int = 0
+    file_id: int = pydantic.Field(
+        default=0,
+        validation_alias=pydantic.AliasChoices("file_id", "map_steps"),
+    )
     type_id: Literal[-7] = -7
 
 
@@ -1369,6 +1392,40 @@ class ScaleMismatchParticle6DCoordinates(InputElement, element_id=-10):
     ptmis: float = 0.0
 
 
+class ExternalLinearMapKick(InputElement, element_id=-12):
+    """
+    Apply an instant kick using a 6x6 linear transfer map from an external file.
+
+    The map is read from ``fort.N``, where ``N`` is `file_id`. The file
+    contains the six rows of the matrix, one row per line. The matrix is
+    applied in ``(x [m], x' [rad], y [m], y' [rad], z [m], dp/p)``
+    coordinates.
+
+    Available in IMPACT-Z v2.7+.
+
+    Attributes
+    ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    file_id : int
+        The file ID N; the transfer matrix is read from ``fort.N``.
+    radius : float
+        Radius in meters (not used).
+    """
+
+    length: float = 0.0
+    steps: int = 0
+    file_id: int = pydantic.Field(
+        default=0,
+        validation_alias=pydantic.AliasChoices("file_id", "map_steps"),
+    )
+    type_id: Literal[-12] = -12
+
+    radius: float = 0.0
+
+
 class CollimateBeam(InputElement, element_id=-13):
     """
     Collimate the beam with transverse rectangular aperture sizes.
@@ -1432,6 +1489,72 @@ class ToggleSpaceCharge(InputElement, element_id=-14):
 
     unused: float = 0.0
     enable: float | bool = False
+
+
+class RotateBeamX(InputElement, element_id=-16):
+    """
+    Instantly rotate the beam about the horizontal x-axis.
+
+    Both positions and momenta are rotated, using the longitudinal momentum
+    of each particle.
+
+    Available in IMPACT-Z v2.7+.
+
+    Attributes
+    ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Unused.
+    radius : float
+        Radius in meters (not used).
+    angle : float
+        The rotation angle in radians (counter-clockwise for the beam, i.e.
+        clockwise for the reference coordinate system).
+    """
+
+    length: float = 0.0
+    steps: int = 0
+    map_steps: int = 0
+    type_id: Literal[-16] = -16
+
+    radius: float = 0.0
+    angle: float = 0.0
+
+
+class RotateBeamY(InputElement, element_id=-17):
+    """
+    Instantly rotate the beam about the vertical y-axis.
+
+    Both positions and momenta are rotated, using the longitudinal momentum
+    of each particle.
+
+    Available in IMPACT-Z v2.7+.
+
+    Attributes
+    ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Unused.
+    radius : float
+        Radius in meters (not used).
+    angle : float
+        The rotation angle in radians (counter-clockwise for the beam, i.e.
+        clockwise for the reference coordinate system).
+    """
+
+    length: float = 0.0
+    steps: int = 0
+    map_steps: int = 0
+    type_id: Literal[-17] = -17
+
+    radius: float = 0.0
+    angle: float = 0.0
 
 
 class RotateBeam(InputElement, element_id=-18):
@@ -1661,7 +1784,7 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     map_steps : int
         Number of "map steps". Each half-step involves computing a map for that
         half-element which is computed by numerical integration.
-    scale_factor : float
+    scale : float
         Scale factor applied to the wake read in from the file. IMPACT-Z
         multiplies the longitudinal and both transverse wakes by this value.
     file_id : float
@@ -1676,7 +1799,10 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     map_steps: int = 0
     type_id: Literal[-41] = -41
 
-    scale_factor: float = 1.0
+    scale: float = pydantic.Field(
+        default=1.0,
+        validation_alias=pydantic.AliasChoices("scale", "unused"),
+    )
     file_id: float = 0.0
     enable_wakefield: float = 0.0
 
@@ -1699,6 +1825,42 @@ class RfcavityStructureWakefield(InputElement, element_id=-41, has_input_file=Tr
     @property
     def transverse_wake_effects(self) -> bool:
         return self.enable_wakefield >= 10.0
+
+
+class ThinLensRFDeflector(InputElement, element_id=-44):
+    """
+    Apply a thin-lens RF deflecting cavity kick.
+
+    This is a transverse-longitudinal coupling (crab-cavity-like) kick: the
+    transverse momentum is kicked proportional to the longitudinal offset,
+    and the particle energy proportional to the transverse offset:
+    ``px [mc] += strength * z [m] * gamma*beta`` and
+    ``pt [mc^2] -= strength * x [m] * gamma`` (or ``y``/``py`` for vertical
+    deflection).
+
+    Available in IMPACT-Z v2.7+.
+
+    Attributes
+    ----------
+    length : float
+        Unused.
+    steps : int
+        Unused.
+    map_steps : int
+        Unused.
+    strength : float
+        The integrated deflecting strength in 1/m.
+    direction : float
+        Deflection direction switch: >= 0 for horizontal, < 0 for vertical.
+    """
+
+    length: float = 0.0
+    steps: int = 0
+    map_steps: int = 0
+    type_id: Literal[-44] = -44
+
+    strength: float = 0.0
+    direction: float = 0.0
 
 
 class EnergyModulation(InputElement, element_id=-52):
@@ -1822,8 +1984,11 @@ AnyInputElement = Union[
     WritePhaseSpaceInfo,
     WriteSliceInfo,
     ScaleMismatchParticle6DCoordinates,
+    ExternalLinearMapKick,
     CollimateBeam,
     ToggleSpaceCharge,
+    RotateBeamX,
+    RotateBeamY,
     RotateBeam,
     BeamShift,
     BeamEnergySpread,
@@ -1831,6 +1996,7 @@ AnyInputElement = Union[
     IntegratorTypeSwitch,
     BeamKickerByRFNonlinearity,
     RfcavityStructureWakefield,
+    ThinLensRFDeflector,
     EnergyModulation,
     KickBeamUsingMultipole,
     HaltExecution,

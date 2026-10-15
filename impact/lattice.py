@@ -1,10 +1,10 @@
 # import numpy as np
-from typing import Sequence
-
-from . import parsers
-from .parsers import itype_of, VALID_KEYS
+from collections.abc import Sequence
 
 import numpy as np
+
+from . import parsers
+from .parsers import VALID_KEYS, itype_of
 
 
 # -----------------------------------------------------------------

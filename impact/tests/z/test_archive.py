@@ -1,24 +1,24 @@
 from __future__ import annotations
+
 import json
 import pathlib
 import time
-import numpy as np
 import typing
 
 import h5py
-import pytest
+import numpy as np
 import pydantic
-
+import pytest
 from beamphysics import ParticleGroup
 
 from ... import z as IZ
-from ...z import ImpactZ, AnyInputElement
+from ...z import AnyInputElement, ImpactZ
 from ...z.archive import (
     pick_from_archive,
-    store_in_hdf5_file,
     restore_from_hdf5_file,
+    store_in_hdf5_file,
 )
-from .conftest import z_example2, test_artifacts
+from .conftest import test_artifacts, z_example2
 
 
 @pytest.fixture(scope="module")

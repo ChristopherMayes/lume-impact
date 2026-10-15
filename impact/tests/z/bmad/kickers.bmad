@@ -7,9 +7,10 @@ beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
 parameter[geometry] = open          ! Or closed
 parameter[particle] = electron      ! Reference particle.
 
-hkick1:       hkicker, l = 0.6
-vkick1:       vkicker, l = 0.6
-kick1:        kicker, l = 0.6
+hkick1:       hkicker, l = 0.6, bl_kick = 1e-3, num_steps = 10
+vkick1:       vkicker, l = 0.6, bl_kick = 1e-3, num_steps = 10
+kick1:        kicker, l = 0.6, bl_hkick = 1e-3, bl_vkick = -0.5e-3, num_steps = 10
+hkicker_tilt: hkicker, l = 0.6, bl_kick = 1e-3, tilt = 0.3, num_steps = 10
 
-lat: line = (hkick1, vkick1, kick1)
+lat: line = (hkick1, hkicker_tilt, vkick1, kick1)
 use, lat

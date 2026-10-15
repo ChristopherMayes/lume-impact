@@ -1,5 +1,6 @@
-from impact import Impact
 import os
+
+from impact import Impact
 
 
 def test_basic_init_run_archive():

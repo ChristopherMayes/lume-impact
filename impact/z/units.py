@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from beamphysics.units import e_charge, known_unit, mec2, pmd_unit
 from typing import Annotated
+
+from beamphysics.units import e_charge, known_unit, mec2, pmd_unit
+
 from .types import NDArray
 
 # Patch these into the lookup dict.

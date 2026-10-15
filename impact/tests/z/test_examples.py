@@ -7,7 +7,6 @@ from impact.z.particles import ImpactZParticles
 from ...z import ImpactZ, ImpactZInput
 from .conftest import z_example1, z_examples_root
 
-
 examples = pytest.mark.parametrize(
     ("example_input_file",),
     [

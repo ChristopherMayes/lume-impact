@@ -1,15 +1,13 @@
-from typing import Sequence
+from collections.abc import Sequence
 
-from beamphysics.units import nice_scale_prefix, plottable_array_and_units
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-from .lattice import ele_shape, remove_element_types, ele_bounds, ele_overlaps_s
-from .fieldmaps import lattice_field, FIELD_CALC_ELE_TYPES
 import numpy as np
-
 from beamphysics.labels import mathlabel as _mathlabel
+from beamphysics.units import nice_scale_prefix, plottable_array_and_units
+from matplotlib import patches
 
+from .fieldmaps import FIELD_CALC_ELE_TYPES, lattice_field
+from .lattice import ele_bounds, ele_overlaps_s, ele_shape, remove_element_types
 
 _label_hotfixes = {
     "loadbalance_min_n_particle",
@@ -17,7 +15,6 @@ _label_hotfixes = {
     "charge_state_n_particle",
     "neg_cov_z__gammabeta_z",
     "neg_cov_y__gammabeta_y",
-    "neg_cov_x__gammabeta_x",
     "neg_cov_x__gammabeta_x",
 }
 
@@ -355,7 +352,6 @@ def plot_stats_with_layout(
 
         # Make a line and point
         for key, dat in zip(keys, data):
-            #
             ii += 1
             color = "C" + str(ii)
 
@@ -390,7 +386,6 @@ def plot_stats_with_layout(
             ax.set_ylim(new_ylim)
         # Set limits, considering the scaling.
         if ix == 1 and ylim2:
-            pass
             # TODO
             if ylim2:
                 ymin2 = ylim2[0]

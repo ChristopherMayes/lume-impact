@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from distgen import Generator
-from impact.impact import Impact
-from lume.staged_model import StagedModel
 
-from lume.actions import Action
+from impact.impact import Impact
 from impact.model.config import VariableMappingConfig
 from impact.model.distgen.config import DistgenVariableMappingConfig
 from impact.model.distgen.model import LUMEDistgenModel
 from impact.model.model import LUMEImpactModel
+from lume.actions import Action
+from lume.staged_model import StagedModel
 
 
 class LUMEDistgenImpactModel(StagedModel):
@@ -42,7 +42,7 @@ class LUMEDistgenImpactModel(StagedModel):
         distgen_config: DistgenVariableMappingConfig | None = None,
         impact_config: VariableMappingConfig | None = None,
         **kwargs,
-    ) -> "LUMEDistgenImpactModel":
+    ) -> LUMEDistgenImpactModel:
         distgen_model = LUMEDistgenModel.from_generator(
             gen, distgen_config or DistgenVariableMappingConfig(), **kwargs
         )

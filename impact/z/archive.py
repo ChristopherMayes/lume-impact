@@ -2,11 +2,10 @@ from __future__ import annotations
 
 # NOTE: this could be merged with LUME-Genesis at some point (see
 # `genesis.version4.archive`)
-
 import json
 import logging
 import pathlib
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 import h5py
 import numpy as np
@@ -93,7 +92,7 @@ def _hdf5_dictify(
     raise NotImplementedError(type(data))
 
 
-def _hdf5_make_key_map(data) -> Tuple[Dict[str, str], Dict[str, str]]:
+def _hdf5_make_key_map(data) -> tuple[dict[str, str], dict[str, str]]:
     """
     Make a key map, since not all Python keys are valid HDF5 keys.
 
@@ -207,9 +206,7 @@ def store_in_hdf5_file(
     _hdf5_store_dict(h5, _hdf5_dictify(data, encoding=encoding), encoding=encoding)
 
 
-def _hdf5_restore_dict(
-    item: Union[h5py.Group, h5py.Dataset, Any], encoding: str, depth=0
-):
+def _hdf5_restore_dict(item: h5py.Group | h5py.Dataset | Any, encoding: str, depth=0):
     """
     Restore a Python dictionary or native type from the given group.
 
@@ -310,9 +307,9 @@ def _hdf5_restore_dict(
 
 def restore_from_hdf5_file(
     h5: h5py.Group,
-    workdir: Optional[pathlib.Path] = None,
+    workdir: pathlib.Path | None = None,
     encoding: str = "utf-8",
-) -> Optional[pydantic.BaseModel]:
+) -> pydantic.BaseModel | None:
     """
     Restore a Pydantic model instance from an HDF5 file stored using
     `store_in_hdf5_file`.

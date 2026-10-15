@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import enum
 from typing import Any, TypeVar
+
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 
@@ -66,11 +68,7 @@ def _pydantic_enum(enum_cls: type[E]) -> type[E]:
             serialization=core_schema.plain_serializer_function_ser_schema(serialize),
         )
 
-    setattr(
-        enum_cls,
-        "__get_pydantic_core_schema__",
-        classmethod(__get_pydantic_core_schema__),
-    )
+    enum_cls.__get_pydantic_core_schema__ = classmethod(__get_pydantic_core_schema__)
     return enum_cls
 
 

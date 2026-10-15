@@ -1,6 +1,6 @@
 site_name: LUME-Impact
-repo_url: https://github.com/ChristopherMayes/lume-impact
-repo_name: ChristopherMayeslume-impact
+repo_url: https://github.com/lume-science/lume-impact
+repo_name: lume-science/lume-impact
 
 nav:
   - Home: index.md
@@ -120,7 +120,7 @@ extra:
   generator: false
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/ChristopherMayes/lume-impact
+      link: https://github.com/lume-science/lume-impact
       name: LUME-Impact
 
 extra_css:

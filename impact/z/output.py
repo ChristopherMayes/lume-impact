@@ -3,30 +3,30 @@ from __future__ import annotations
 import logging
 import pathlib
 import typing
-from typing import Any, TypeVar
 from collections.abc import Generator, Sequence
+from typing import Any, TypeVar
 
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pydantic
 import pydantic.alias_generators
-
-from .particles import ImpactZParticles
 from beamphysics.units import pmd_unit
 from typing_extensions import override
 
+from . import archive as _archive
+from . import parsers
 from .constants import DiagnosticType
-from . import archive as _archive, parsers
 from .input import HasOutputFile, ImpactZInput, WriteSliceInfo
+from .particles import ImpactZParticles
 from .plot import plot_stats_with_layout
 from .types import (
     AnyPath,
     BaseModel,
+    NDArray,
     PydanticParticleGroup,
     PydanticPmdUnit,
     SequenceBaseModel,
-    NDArray,
 )
 from .units import (
     AmperesArray,
@@ -34,16 +34,16 @@ from .units import (
     DegreesArray,
     Meter_Rad,
     Meter_RadArray,
-    SecondsArray,
-    eVArray,
-    eV_c_Array,
     Meters,
-    MeV,
     MetersArray,
+    MeV,
     Radians,
     RadiansArray,
+    SecondsArray,
     Unitless,
     UnitlessArray,
+    eV_c_Array,
+    eVArray,
     known_unit,
     pmd_MeV,
 )
@@ -168,7 +168,7 @@ def load_stat_files_from_path(
 
 def _get_dict_key(
     dct: dict[str | int, Any],
-    file_id: int | float,
+    file_id: float,
     name: str,
 ) -> str | int:
     """Get an unused dictionary key for a file_id/element name."""
@@ -939,7 +939,7 @@ class FortranOutputFileData(SequenceBaseModel):
             file_number_to_cls[diagnostic_type][file_id] = cls
 
     @classmethod
-    def from_file(cls: type[T], filename: AnyPath) -> dict[str, np.ndarray]:
+    def from_file(cls, filename: AnyPath) -> dict[str, np.ndarray]:
         data = {attr: [] for attr in cls.model_fields}
         with open(filename) as fp:
             for line in fp.read().splitlines():
@@ -1383,11 +1383,11 @@ class ImpactZOutput(Mapping, BaseModel):
     key_to_unit: dict[str, PydanticPmdUnit] = pydantic.Field(default={}, repr=False)
 
     @override
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return BaseModel.__eq__(self, other)
 
     @override
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return BaseModel.__ne__(self, other)
 
     @override

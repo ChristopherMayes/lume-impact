@@ -1,0 +1,14 @@
+! Single kicker with both planes kicked, followed by a drift.
+no_digested
+beginning[beta_a] = 10.   ! m  a-mode beta function
+beginning[beta_b] = 10.   ! m  b-mode beta function
+beginning[e_tot] = 10e6   ! eV   Or can set beginning[p0c]
+
+parameter[geometry] = open          ! Or closed
+parameter[particle] = electron      ! Reference particle.
+
+kick1: kicker, l = 0.6, bl_hkick = 1e-3, bl_vkick = -0.5e-3, num_steps = 10
+d1:    drift, l = 0.4
+
+lat: line = (kick1, d1)
+use, lat

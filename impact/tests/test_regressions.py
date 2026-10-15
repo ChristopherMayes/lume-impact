@@ -1,9 +1,9 @@
-import pytest
 from pathlib import Path
 
-from impact import Impact
-import impact
+import pytest
 
+import impact
+from impact import Impact
 
 # For loading test files
 root = Path(impact.__file__).parent

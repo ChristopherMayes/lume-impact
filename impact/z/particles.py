@@ -3,21 +3,19 @@ from __future__ import annotations
 import io
 import logging
 import pathlib
-from typing import Generator, NamedTuple
+from collections.abc import Generator
+from typing import NamedTuple
 
 import numpy as np
-from beamphysics import ParticleGroup
 import polars as pl
-from pydantic import Field
-
-from scipy.constants import e
-
+from beamphysics import ParticleGroup
 from beamphysics.particles import c_light
 from beamphysics.species import MASS_OF, charge_state, mass_of
+from pydantic import Field
+from scipy.constants import e
 
 from .parsers import fix_line
 from .types import AnyPath, BaseModel, NDArray
-
 
 logger = logging.getLogger(__name__)
 

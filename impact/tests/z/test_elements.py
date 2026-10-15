@@ -1,6 +1,6 @@
 import pytest
-from ...z.input import InputElement, input_element_by_id
 
+from ...z.input import InputElement, input_element_by_id
 
 doc_test_cases = {
     0: [

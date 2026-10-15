@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 import pathlib
+
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
-
 from beamphysics import ParticleGroup
 from beamphysics.units import c_light
+from numpy.testing import assert_allclose
 
 from ...z.particles import ImpactZParticles
 

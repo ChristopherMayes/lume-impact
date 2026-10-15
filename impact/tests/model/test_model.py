@@ -7,7 +7,6 @@ from impact.model.actions import HeaderAction
 from impact.model.config import VariableMappingConfig
 from impact.model.model import LUMEImpactModel
 
-
 TESLA_INPUT = os.path.join(
     os.path.dirname(__file__), "..", "input", "tesla_9cell_cavity", "ImpactT.in"
 )

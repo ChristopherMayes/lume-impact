@@ -1,11 +1,13 @@
 from __future__ import annotations
+
 import pathlib
+
 import numpy as np
 import pytest
-
-from ... import z as IZ
 from beamphysics import single_particle
 from beamphysics.units import mec2
+
+from ... import z as IZ
 
 
 @pytest.mark.parametrize(

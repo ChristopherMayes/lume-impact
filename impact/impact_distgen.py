@@ -1,10 +1,10 @@
-from . import Impact, tools
-from .evaluate import default_impact_merit
-from distgen import Generator
+import os
 
+from distgen import Generator
 from h5py import File
 
-import os
+from . import Impact, tools
+from .evaluate import default_impact_merit
 
 
 def run_impact_with_distgen(
@@ -100,7 +100,7 @@ def evaluate_impact_with_distgen(
     else:
         output = default_impact_merit(I)
 
-    if "error" in output and output["error"]:
+    if output.get("error"):
         raise ValueError("run_impact_with_distgen returned error in output")
 
     # Recreate Generator object for fingerprint, proper archiving

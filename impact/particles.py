@@ -1,6 +1,5 @@
-from beamphysics.particles import single_particle
-
 import scipy.constants
+from beamphysics.particles import single_particle
 
 m_e = scipy.constants.value("electron mass energy equivalent in MeV") * 1e6
 m_p = scipy.constants.value("proton mass energy equivalent in MeV") * 1e6

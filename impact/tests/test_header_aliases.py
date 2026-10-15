@@ -14,7 +14,6 @@ from impact import Impact
 from impact.impact import _normalize_header_keys
 from impact.parsers import HEADER_ALIASES, HEADER_DEFAULT, header_bookkeeper
 
-
 # ----------
 # Aliases / defaults
 # ----------

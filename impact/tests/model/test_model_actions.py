@@ -1,9 +1,8 @@
 """Unit tests for impact.model.actions."""
 
-import pytest
 from unittest.mock import MagicMock
 
-from lume.actions import ActionModel
+import pytest
 
 from impact.model.actions import (
     BoolRunInfoAction,
@@ -13,6 +12,7 @@ from impact.model.actions import (
     ScalarRunInfoAction,
     StatAction,
 )
+from lume.actions import ActionModel
 
 
 @pytest.fixture

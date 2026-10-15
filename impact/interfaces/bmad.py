@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import typing
 import warnings
 from collections import Counter
@@ -40,7 +41,7 @@ def tao_unique_names(tao: Tao, ix_uni: int | str = "", ix_branch: int | str = ""
             )
         )
     )
-    ixs = list(sorted(ixs))
+    ixs = sorted(ixs)
 
     names = [tao.ele_head(ix)["name"] for ix in ixs]
 
@@ -483,31 +484,34 @@ def tao_create_impact_lattice_and_fieldmaps(
 
     Parameters
     ----------
-    tao: Tao object
+    tao : Tao
+        Initialized Tao object
 
-    emfield_cartesian_eles: str or list, default = "EM_FIELD::*"
-        Matching string or list of element names to be converted to Impact-T emfield_cartesian elements.
+    emfield_cartesian_eles : str or list[str], optional
+        Matching string or list of element names to be converted to Impact-T emfield_cartesian elements, by default = "EM_FIELD::*"
 
-    solrf_eles: str or list, default = 'E_GUN::*,SOLENOID::*,LCAVITY::*'
-        Matching string or list for element names to be converted to Impact-T solrf elements.
+    solrf_eles : str or list[str], optional
+        Matching string or list of element names to be converted to Impact-T solrf elements, by default = 'E_GUN::*,SOLENOID::*,LCAVITY::*'
 
-    quadrupole_eles: str or list, default = 'quad::*'
-         Matching string or list for element names to be converted to Impact-T quadrupole elements.
+    quadrupole_eles : str or list[str], optional
+        Matching string or list of element names to be converted to Impact-T quadrupole elements, by default = 'quad::*'
 
-    write_beam_eles: str or list, default = 'monitor::*'
-         Matching string or list for element names to be converted to Impact-T write beam elements.
-         Note that there is a limit to the number of these that can be created
+    write_beam_eles : str or list[str], optional
+        Matching string or list of element names to be converted to Impact-T write beam elements.
+        Note that there is a limit to the number of these that can be created.  By default = 'monitor::*'
 
-    fieldmap_style: str, default = 'fourier'
-        Style of fieldmap to create. One of: ('fourier', 'derivatives').
+    fieldmap_style : str, optional
+        Style of fieldmap to create. One of: ('fourier', 'derivatives'), by default = 'fourier'
 
-    n_coef: float
+    n_coef : int, optional
+        a number of fourier (?) coefficients, by default 30
 
     Returns
     -------
-    lattice: list of dict
+    lattice : list of dict
         List of element dicts that form the lattice
-    fieldmaps: dict of
+    fieldmaps : dict
+        Mapping of element name to fieldmap
 
     """
 

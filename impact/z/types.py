@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from inspect import isclass
 import pathlib
-from typing import Any, Union
 from collections.abc import Iterable, Sequence
+from inspect import isclass
+from typing import Annotated, Any, Literal, TypeAlias, Union
 
 import annotated_types
 import numpy as np
@@ -12,16 +12,14 @@ import pydantic_core
 from beamphysics import ParticleGroup
 from beamphysics.units import pmd_unit
 from rich.pretty import pretty_repr
-from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict, override
-from typing import Annotated
+from typing_extensions import NotRequired, TypedDict, override
 
 from ..repr import detailed_html_repr
 from . import tools
 
-
 NegativeFloat: TypeAlias = Annotated[float, annotated_types.Lt(0.0)]
 PositiveFloat: TypeAlias = Annotated[float, annotated_types.Gt(0.0)]
-NonzeroFloat: TypeAlias = Union[NegativeFloat, PositiveFloat]
+NonzeroFloat: TypeAlias = NegativeFloat | PositiveFloat
 
 
 class ReprTableData(TypedDict):
@@ -152,11 +150,11 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
         return detailed_html_repr(self)
 
     @override
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return _check_equality(self, other)
 
     @override
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not _check_equality(self, other)
 
     @override

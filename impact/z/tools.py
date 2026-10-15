@@ -13,18 +13,19 @@ import subprocess
 import sys
 import traceback
 import uuid
-from typing import Any, Union
 from collections.abc import Mapping, Sequence
+from typing import Any, Union
 
 import prettytable
 import pydantic
 import pydantic_settings
+
 from ..repr import rich_format
 
 try:
     from typing import Literal
 except ImportError:
-    from typing_extensions import Literal
+    from typing import Literal
 
 try:
     from types import UnionType

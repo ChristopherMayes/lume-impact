@@ -5,7 +5,6 @@ from typing import Any
 import numpy as np
 from pydantic import model_validator
 
-
 from impact.impact import Impact
 from lume.actions import ReadOnlyActionMixin, WritableActionMixin
 from lume.variables import (
@@ -107,7 +106,7 @@ class ParticleGroupAction(WritableActionMixin[Impact], ParticleGroupVariable):
     tool_name: str
 
     @model_validator(mode="after")
-    def _check_initial_particles(self) -> "ParticleGroupAction":
+    def _check_initial_particles(self) -> ParticleGroupAction:
         if self.tool_name != "initial_particles" and not self.read_only:
             raise ValueError(
                 f"Particle group '{self.tool_name}' is not writable; "

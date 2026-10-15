@@ -6,9 +6,9 @@ import platform
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from copy import deepcopy
 from hashlib import blake2b
-from typing import Sequence
 
 import numpy as np
 import psutil
@@ -66,7 +66,7 @@ def execute2(cmd, timeout=None, cwd=None):
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            universal_newlines=True,
+            text=True,
             timeout=timeout,
             cwd=cwd,
         )
@@ -103,8 +103,7 @@ def runs_script(runscript: Sequence[str] = (), dir=None, log_file=None, verbose=
         log.append(path)
     if log_file:
         with open(log_file, "w") as f:
-            for line in log:
-                f.write(line)
+            f.writelines(log)
 
     # Return to init dir
     os.chdir(init_dir)
@@ -209,7 +208,7 @@ class NpEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         else:
-            return super(NpEncoder, self).default(obj)
+            return super().default(obj)
 
 
 def fingerprint(keyed_data, digest_size=16):
@@ -235,13 +234,10 @@ def native_type(value):
     return getattr(value, "tolist", lambda: value)()
 
 
-"""UTC to ISO 8601 with Local TimeZone information without microsecond"""
-
-
 def isotime():
+    """UTC to ISO 8601 with Local TimeZone information without microsecond"""
     return (
-        datetime.datetime.utcnow()
-        .replace(tzinfo=datetime.timezone.utc)
+        datetime.datetime.now(tz=datetime.timezone.utc)
         .astimezone()
         .replace(microsecond=0)
         .isoformat()

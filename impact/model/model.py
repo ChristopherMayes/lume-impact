@@ -3,12 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from beamphysics import ParticleGroup
-from impact.impact import Impact
-from lume.actions import ActionModel
-from lume.staged_model import FinalParticlesMixIn, InitialParticlesMixIn
 
-from lume.actions import Action
+from impact.impact import Impact
 from impact.model.config import VariableMappingConfig, make_actions
+from lume.actions import Action, ActionModel
+from lume.staged_model import FinalParticlesMixIn, InitialParticlesMixIn
 
 
 class LUMEImpactModel(InitialParticlesMixIn, FinalParticlesMixIn, ActionModel[Impact]):
@@ -67,7 +66,7 @@ class LUMEImpactModel(InitialParticlesMixIn, FinalParticlesMixIn, ActionModel[Im
         impact: Impact,
         config: VariableMappingConfig | None = None,
         **kwargs,
-    ) -> "LUMEImpactModel":
+    ) -> LUMEImpactModel:
         """
         Generate class populated with variables from an existing Impact-T object. Variable inclusion and naming is configured
         through VariableMappingConfig.

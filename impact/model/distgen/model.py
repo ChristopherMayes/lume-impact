@@ -4,11 +4,10 @@ from typing import Any
 
 from beamphysics import ParticleGroup
 from distgen import Generator
-from lume.actions import ActionModel
-from lume.staged_model import FinalParticlesMixIn
 
-from lume.actions import Action
 from impact.model.distgen.config import DistgenVariableMappingConfig, make_actions
+from lume.actions import Action, ActionModel
+from lume.staged_model import FinalParticlesMixIn
 
 
 class LUMEDistgenModel(FinalParticlesMixIn, ActionModel[Generator]):
@@ -31,7 +30,7 @@ class LUMEDistgenModel(FinalParticlesMixIn, ActionModel[Generator]):
         gen: Generator,
         config: DistgenVariableMappingConfig | None = None,
         **kwargs,
-    ) -> "LUMEDistgenModel":
+    ) -> LUMEDistgenModel:
         if config is None:
             config = DistgenVariableMappingConfig()
         return cls(gen, make_actions(gen, config), **kwargs)

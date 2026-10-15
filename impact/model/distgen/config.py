@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from pydantic import BaseModel
+
 from distgen import Generator
+from pydantic import BaseModel
 
 from impact.model.distgen.actions import DistgenInputAction
 

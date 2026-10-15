@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 import polars as pl
 from beamphysics.species import mass_of
-from beamphysics.units import multiply_units, unit
+from beamphysics.units import multiply_units, pmd_unit
 
 from . import fieldmaps, tools
 from .particles import identify_species
@@ -363,7 +363,6 @@ def parse_header(lines):
     return d
 
 
-#
 def ix_lattice(lines):
     """
     Find index of beginning of lattice, end of header
@@ -827,7 +826,7 @@ def parse_solrf(line):
     d["zedge"] = parse_float(v[1])
     d["rf_field_scale"] = parse_float(v[2])
     d["rf_frequency"] = parse_float(v[3])
-    d["theta0_deg"] = parse_float(v[4])  #
+    d["theta0_deg"] = parse_float(v[4])
     d["filename"] = "rfdata" + str(int(parse_float(v[5])))
     d["radius"] = parse_float(v[6])
     d2 = parse_misalignments(v[7:12])
@@ -2382,11 +2381,11 @@ def _replace_bare_gammabeta_with_p(key, mc2):
         comp = key[10:]
         assert comp in ("x", "y", "z")
         newkey = f"p{comp}"
-        extraunits = unit("eV/c")
+        extraunits = pmd_unit("eV/c")
     else:
         factor = 1
         newkey = key
-        extraunits = unit("1")
+        extraunits = pmd_unit("1")
 
     return newkey, factor, extraunits
 
@@ -2460,7 +2459,7 @@ def load_stats(path, species="electron", types=FORT_STAT_TYPES, verbose=False):
             unit_string = "eV"
             k = newkey
 
-        u = unit(unit_string)
+        u = pmd_unit(unit_string)
 
         # Replace all gammabeta_{k} including cov_{k1}__{k2}
         newkey, factor, extraunits = _replace_all_gammabeta_with_p(k, mc2)
@@ -2512,6 +2511,6 @@ def load_slice_info(path, verbose=False):
     data1 = data[list(data)[0]]
     for k in data1:
         unit_string = UNITS[k]
-        units[k] = unit(unit_string)
+        units[k] = pmd_unit(unit_string)
 
     return data, units

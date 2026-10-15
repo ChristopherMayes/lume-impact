@@ -1,7 +1,8 @@
-from bokeh.plotting import figure
-from bokeh.models.sources import ColumnDataSource
-from bokeh.models import LabelSet, HoverTool
 from math import pi
+
+from bokeh.models import HoverTool, LabelSet
+from bokeh.models.sources import ColumnDataSource
+from bokeh.plotting import figure
 
 from .lattice import ele_shapes
 

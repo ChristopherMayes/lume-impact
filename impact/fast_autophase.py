@@ -1,18 +1,15 @@
 import numpy as np
-
+from beamphysics import single_particle
 from beamphysics.fields.analysis import (
     accelerating_voltage_and_phase,
     track_field_1df,
 )
-from scipy.optimize import brent
-
-from .fieldmaps import ele_field
 from beamphysics.units import mec2
 from scipy.constants import c
 from scipy.constants import e as e_charge
+from scipy.optimize import brent
 
-from beamphysics import single_particle
-
+from .fieldmaps import ele_field
 
 AUTOPHASE_ATTRS = ("theta0_deg", "dtheta0_deg")
 
@@ -188,7 +185,6 @@ def fast_autophase_ele(
 
     z1, pz1, dt = phase_f(final_phase_deg)
 
-    #
     found_rel_phase_deg = (final_phase_deg - acc_phase_deg + 180) % 360 - 180
 
     # print(f"{name}  {acc_phase_deg:.2f} {save_phase_deg:.2f} {found_rel_phase_deg:0.2f} deg")

@@ -1,51 +1,43 @@
+import os
 import pathlib
-from typing import Sequence
 import warnings
-from .parsers import (
-    parse_impact_input,
-    load_many_fort,
-    FORT_STAT_TYPES,
-    FORT_DIPOLE_STAT_TYPES,
-    FORT_PARTICLE_TYPES,
-    HEADER_ALIASES,
-    HEADER_UNITS,
-    ELE_UNITS,
-    header_str,
-    header_bookkeeper,
-    parse_impact_particles,
-    load_stats,
-    load_slice_info,
-    fort_files,
-)
-from . import archive, writers, fieldmaps, tools
-from .lattice import ele_dict_from, ele_str, get_stop, set_stop, insert_ele_by_s
-from .control import ControlGroup
-
-from .fieldmaps import lattice_field
-from .plot import plot_stat, plot_layout, plot_stats_with_layout
-from .particles import identify_species, track_to_s, track1_to_s
-from .fast_autophase import fast_autophase_impact
-
-from .interfaces.bmad import impact_from_tao
-
-
-from beamphysics import ParticleGroup
-from beamphysics.units import pmd_unit
-from beamphysics.interfaces.impact import impact_particles_to_particle_data
-
-from scipy.interpolate import interp1d
+from collections.abc import Sequence
+from copy import deepcopy
+from time import time
 
 import h5py
 import numpy as np
-
-
-import functools
-from time import time
-from copy import deepcopy
-import os
+from beamphysics import ParticleGroup
+from beamphysics.interfaces.impact import impact_particles_to_particle_data
+from beamphysics.units import pmd_unit
+from scipy.interpolate import interp1d
 
 from lume.base import CommandWrapper
 
+from . import archive, fieldmaps, tools, writers
+from .control import ControlGroup
+from .fast_autophase import fast_autophase_impact
+from .fieldmaps import lattice_field
+from .interfaces.bmad import impact_from_tao
+from .lattice import ele_dict_from, ele_str, get_stop, insert_ele_by_s, set_stop
+from .parsers import (
+    ELE_UNITS,
+    FORT_DIPOLE_STAT_TYPES,
+    FORT_PARTICLE_TYPES,
+    FORT_STAT_TYPES,
+    HEADER_ALIASES,
+    HEADER_UNITS,
+    fort_files,
+    header_bookkeeper,
+    header_str,
+    load_many_fort,
+    load_slice_info,
+    load_stats,
+    parse_impact_input,
+    parse_impact_particles,
+)
+from .particles import identify_species, track1_to_s, track_to_s
+from .plot import plot_layout, plot_stat, plot_stats_with_layout
 
 EXTRA_UNITS = {
     "Bz": pmd_unit("T"),
@@ -1078,8 +1070,41 @@ class Impact(CommandWrapper):
             self.configured = False
 
     @classmethod
-    @functools.wraps(impact_from_tao)
     def from_tao(cls, tao, fieldmap_style="fourier", n_coef=30, **kwargs):
+        """
+        Create a complete Impact object from a running Pytao Tao instance.
+
+        Wraps impact.interfaces.bmad.impact_from_tao
+
+        Parameters
+        ----------
+        tao : Tao
+            Initialized Tao object
+
+        fieldmap_style : str, optional
+            Style of fieldmap to create. One of: ('fourier', 'derivatives'), by default = 'fourier'
+
+        n_coef : int, optional
+            a number of fourier (?) coefficients, by default 30
+
+        emfield_cartesian_eles : str or list[str], optional
+            Matching string or list of element names to be converted to Impact-T emfield_cartesian elements, by default = "EM_FIELD::*"
+
+        solrf_eles : str or list[str], optional
+            Matching string or list of element names to be converted to Impact-T solrf elements, by default = 'E_GUN::*,SOLENOID::*,LCAVITY::*'
+
+        quadrupole_eles : str or list[str], optional
+            Matching string or list of element names to be converted to Impact-T quadrupole elements, by default = 'quad::*'
+
+        write_beam_eles : str or list[str], optional
+            Matching string or list of element names to be converted to Impact-T write beam elements.
+            Note that there is a limit to the number of these that can be created.  By default = 'monitor::*'
+
+        Returns
+        -------
+        Impact
+            Initialized Impact object
+        """
         return impact_from_tao(
             tao, fieldmap_style=fieldmap_style, n_coef=n_coef, **kwargs
         )
@@ -1227,10 +1252,8 @@ def suggested_processor_domain(nz, ny, nproc):
 
     nr = 2**pr
 
-    if nr < 1:
-        nr = 1
-    if nr > nproc:
-        nr = nproc
+    nr = max(nr, 1)
+    nr = min(nr, nproc)
 
     nc = nproc // nr
 

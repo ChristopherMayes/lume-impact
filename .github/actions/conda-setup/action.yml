@@ -42,17 +42,6 @@ runs:
           grep "python=" ${{ inputs.filename }}
         fi
 
-    - name: Set cache date
-      shell: bash -l {0}
-      run: |
-        echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-
-    - uses: actions/cache@v4
-      with:
-        path: ${{ env.CONDA }}/envs
-        key: conda-${{ hashFiles(inputs.filename) }}-${{ env.DATE }}
-      id: cache
-
     - name: Update environment
       shell: bash -e -l {0}
       run: |
@@ -62,7 +51,6 @@ runs:
           echo "No conda environment file found; skipping. Path: ${{ inputs.filename }}"
           mamba install -n ${{ inputs.env_name }} python=${{ inputs.python-version }}
         fi
-      if: steps.cache.outputs.cache-hit != 'true'
 
     - name: Install the package with pip
       shell: bash -e -l {0}

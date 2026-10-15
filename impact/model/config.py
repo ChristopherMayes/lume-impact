@@ -5,10 +5,8 @@ from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, model_validator
-from lume.actions import Action
 
-from impact.impact import Impact, RUN_INFO_UNITS, STAT_UNITS
-from impact.parsers import ELE_UNITS, HEADER_UNITS
+from impact.impact import RUN_INFO_UNITS, STAT_UNITS, Impact
 from impact.model.actions import (
     BoolRunInfoAction,
     HeaderAction,
@@ -19,6 +17,8 @@ from impact.model.actions import (
     StrEleAction,
     StrRunInfoAction,
 )
+from impact.parsers import ELE_UNITS, HEADER_UNITS
+from lume.actions import Action
 
 logger = logging.getLogger(__name__)
 

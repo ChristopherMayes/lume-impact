@@ -1,5 +1,5 @@
-from .parsers import header_lines
 from .lattice import lattice_lines
+from .parsers import header_lines
 
 
 def write_input_particles_from_file(src, dest, n_particles, skiprows=1):
@@ -31,5 +31,4 @@ def write_impact_input(filePath, header, eles):
 
     lines = header_lines(header) + lattice_lines(eles)
     with open(filePath, "w") as f:
-        for line in lines:
-            f.write(line + "\n")
+        f.writelines(line + "\n" for line in lines)

@@ -16,11 +16,12 @@ from typing import Any, ClassVar, NamedTuple
 
 import h5py
 import numpy as np
-from lume import tools as lume_tools
-from lume.base import CommandWrapper
 from beamphysics import ParticleGroup
 from beamphysics.units import pmd_unit
 from typing_extensions import override
+
+from lume import tools as lume_tools
+from lume.base import CommandWrapper
 
 from . import tools
 from . import units as units_mod
@@ -780,13 +781,13 @@ class ImpactZ(CommandWrapper):
         return ImpactZInput.from_file(path)
 
     @override
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, ImpactZ):
             return False
         return self.input == other.input and self.output == other.output
 
     @override
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         if not isinstance(other, ImpactZ):
             return False
         return self.input != other.input or self.output != other.output

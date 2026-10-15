@@ -4,7 +4,7 @@ Tools for using Impact-T and Impact-Z in LUME.
 
 **`Documentation`** |
 ------------------- |
-[![Documentation](https://img.shields.io/badge/impact-documentation-blue.svg)](https://christophermayes.github.io/lume-impact/)  |
+[![Documentation](https://img.shields.io/badge/impact-documentation-blue.svg)](https://lume-science.github.io/lume-impact/)  |
 
 
 

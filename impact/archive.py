@@ -1,20 +1,20 @@
 # import numpy as np
 
-from beamphysics.units import write_dataset_and_unit_h5, read_dataset_and_unit_h5
-from beamphysics import ParticleGroup, FieldMesh
+import warnings
 
-from .parsers import header_lines
-from .lattice import lattice_lines
+import numpy as np
+from beamphysics import FieldMesh, ParticleGroup
+from beamphysics.units import read_dataset_and_unit_h5, write_dataset_and_unit_h5
+
+from .control import ControlGroup
 from .fieldmaps import (
-    solrf_field_from_data,
     data_from_solrf_fieldmap,
+    solrf_field_from_data,
     upgrade_old_solenoid_fieldmap,
 )
+from .lattice import lattice_lines
+from .parsers import header_lines
 from .tools import fstr, isotime, native_type
-from .control import ControlGroup
-
-import warnings
-import numpy as np
 
 # ----------------------------
 # Basic archive metadata
@@ -199,7 +199,7 @@ def write_input_h5(h5, input, name="input", include_fieldmaps=True):
         g.attrs["original_input"] = input["original_input"]
 
     # particle filename
-    if "input_particle_file" in input and input["input_particle_file"]:
+    if input.get("input_particle_file"):
         g.attrs["input_particle_file"] = input["input_particle_file"]
 
     # Any fieldmaps

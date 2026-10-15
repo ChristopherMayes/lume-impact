@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from ...z.input import ImpactZInput, Quadrupole, WriteFull, Drift
+from ...z.input import Drift, ImpactZInput, Quadrupole, WriteFull
 from ...z.parsers import parse_input_line
-
 
 logger = logging.getLogger(__name__)
 z_tests = pathlib.Path(__file__).resolve().parent
@@ -116,7 +115,7 @@ def test_input_roundtrip(filename: pathlib.Path) -> None:
 def test_set_ncpu(filename: pathlib.Path) -> None:
     loaded = ImpactZInput.from_file(filename)
     loaded.verbose = True
-    for nproc in range(0, 30):
+    for nproc in range(30):
         loaded.nproc = nproc
         print("Set numprocs", nproc, loaded.ncpu_y, loaded.ncpu_z)
 

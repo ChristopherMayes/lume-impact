@@ -1,5 +1,5 @@
 import pathlib
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pytest
@@ -7,7 +7,7 @@ from beamphysics import single_particle
 from beamphysics.units import pmd_unit
 from pydantic import BaseModel, TypeAdapter
 
-from ...z.types import NDArray, PydanticPmdUnit, PydanticParticleGroup
+from ...z.types import NDArray, PydanticParticleGroup, PydanticPmdUnit
 
 test_path = pathlib.Path(__file__).resolve().parent
 

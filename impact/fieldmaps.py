@@ -1,14 +1,15 @@
-import numpy as np
-from numpy import cos, pi
 import os
-from .tools import safe_loadtxt
-from .control import ControlGroup
-from subprocess import Popen, PIPE
-from tempfile import TemporaryDirectory, NamedTemporaryFile
 import warnings
+from subprocess import PIPE, Popen
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
-from beamphysics.interfaces.impact import fourier_field_reconsruction
+import numpy as np
 from beamphysics import FieldMesh
+from beamphysics.interfaces.impact import fourier_field_reconsruction
+from numpy import cos, pi
+
+from .control import ControlGroup
+from .tools import safe_loadtxt
 
 
 def write_fieldmap(filePath, fieldmap):
@@ -486,7 +487,7 @@ def run_RFcoef(z, fz, n_coef=20, z0=0, exe="RFcoeflcls"):
     if not os.path.exists(exe):
         raise ValueError(f"Executable does not exist: {exe}")
     p = Popen([exe], stdin=PIPE, shell=True, cwd=workdir)
-    p.communicate(input=f"{n_coef}\n{nz}\n{z0}\n".encode("utf-8"))
+    p.communicate(input=f"{n_coef}\n{nz}\n{z0}\n".encode())
 
     output = {}
     for file in ("rfdatax", "rfdatax2", "rfdata.out"):

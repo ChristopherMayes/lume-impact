@@ -4,12 +4,11 @@ import pytest
 from distgen import Generator
 
 from impact import Impact
+from impact.model.actions import HeaderAction
 from impact.model.distgen.actions import DistgenInputAction
 from impact.model.distgen.config import DistgenVariableMappingConfig
 from impact.model.distgen.distgen_impact_model import LUMEDistgenImpactModel
 from impact.model.distgen.model import LUMEDistgenModel
-from impact.model.actions import HeaderAction
-
 
 DISTGEN_YAML = os.path.join(
     os.path.dirname(__file__),
