@@ -521,12 +521,13 @@ class Impact(CommandWrapper):
 
         self.vprint("Running Impact-T in " + self.path)
         self.vprint(runscript)
-        # Write input
-        self.write_input()
 
-        # Remove previous files
+        # Remove previous files. Input may also be fort.X, so this comes first.
         for f in fort_files(self.path):
             os.remove(f)
+
+        # Write input
+        self.write_input()
 
         if timeout:
             res = tools.execute2(runscript.split(), timeout=timeout, cwd=self.path)
@@ -1099,6 +1100,11 @@ class Impact(CommandWrapper):
         write_beam_eles : str or list[str], optional
             Matching string or list of element names to be converted to Impact-T write beam elements.
             Note that there is a limit to the number of these that can be created.  By default = 'monitor::*'
+
+        wakefield_zmax : float, optional
+            Largest trailing distance to tabulate short-range wakes over [m].
+            Impact-T extrapolates beyond the table, so this should cover the
+            full bunch length. Defaults to the natural range of each wake model.
 
         Returns
         -------

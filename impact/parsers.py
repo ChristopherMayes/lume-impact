@@ -1274,6 +1274,10 @@ def parse_wakefield(line):
     The V6 has to less than 0.
     Each line of the fort.Bmpstp contains longitudinal wake function (V/m) and transverse wake function (V/m/m).
 
+    The wake is applied while the bunch centroid lies between V3 and V4, and only
+    when the beam current is nonzero. A spacecharge element switched off
+    suppresses the Poisson solve but not the wake.
+
     """
     x = line.split()
     Bnseg = int(x[1])
@@ -1284,7 +1288,8 @@ def parse_wakefield(line):
 
     if Bnseg > 0:
         d["method"] = "from_file"
-        d["filename"] = "fort." + str(Bnseg)
+        d["filename"] = "fort." + x[2]
+        d["table_length"] = parse_float(v[7])
     else:
         d["method"] = "analytical"
         a = parse_float(v[5])
@@ -1313,6 +1318,9 @@ def wakefield_v(ele):
 
     if ele["method"] == "analytical":
         v += [ele["iris_radius"], ele["gap"], ele["period"]]
+    else:
+        # V5 is overwritten with the row count; V6 <= 0 selects the read-in table.
+        v += [0, -1, ele["table_length"]]
 
     return v
 
@@ -1322,6 +1330,7 @@ ELE_DEFAULTS["wakefield"] = {
     "s": 0,
     "method": "analytical",
     "filename": "fort.99",
+    "table_length": 0,
     "iris_radius": 0,
     "gap": 0,
     "period": 0,
@@ -1510,6 +1519,7 @@ fieldmap_parsers = {
     "solenoid": fieldmaps.read_solenoid_fieldmap,
     "emfield_cylindrical": fieldmaps.read_emfield_cylindrical_fieldmap,  # TODO: better parsing
     "emfield_cartesian": fieldmaps.read_emfield_cartesian_fieldmap,
+    "wakefield": fieldmaps.read_fieldmap_rfdata,
 }
 
 
@@ -1528,6 +1538,8 @@ def load_fieldmaps(eles, dir):
         if name in fmapdata:
             continue
         type = ele["type"]
+        if type == "wakefield" and ele.get("method") != "from_file":
+            continue
 
         # Pick parser
         if type in fieldmap_parsers:

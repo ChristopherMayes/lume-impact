@@ -8,11 +8,17 @@ from copy import deepcopy
 import numpy as np
 from beamphysics import FieldMesh
 from beamphysics.fields.analysis import accelerating_voltage_and_phase
+from beamphysics.interfaces.impact import create_impact_t_wakefield_data
 
 from ..lattice import new_write_beam
 
 if typing.TYPE_CHECKING:
     from pytao import Tao
+
+# fort.N units for read-in wake tables. IMPACT-T writes its own output to units
+# below 100 (per bunch from 40, 50, 60 and 70) and at 188-288, and write_beam
+# elements take units from 71 upward.
+WAKEFIELD_UNITS = range(300, 400)
 
 
 def tao_unique_names(tao: Tao, ix_uni: int | str = "", ix_branch: int | str = ""):
@@ -468,6 +474,105 @@ def tao_create_impact_quadrupole_ele(tao, ele_id, *, default_radius=0.01, name=N
     return {"ele": ele, "line": line}
 
 
+def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
+    """
+    Create Impact-T wakefield elements from the short-range wakes in a Tao lattice.
+
+    Each Bmad element carrying a short-range longitudinal wake becomes a
+    wakefield (-6) element spanning that element, which reads its wake from a
+    fort.N table. Elements with identical wakes share a table.
+
+    Parameters
+    ----------
+    tao : Tao
+        Initialized Tao object.
+    zmax : float, optional
+        Largest trailing distance to tabulate [m]. IMPACT-T extrapolates the
+        table linearly beyond its last row, so this should cover the full
+        length of the bunch. Defaults to the natural range of each wake model.
+    n : int, optional
+        Number of table rows. Defaults to the number the model needs, clamped to
+        the 1000 rows IMPACT-T reads.
+    which : {"model", "base", "design"}, optional
+        Which Tao model to use, by default "model".
+
+    Returns
+    -------
+    lattice : list of dict
+        Wakefield element dicts.
+    fieldmaps : dict
+        Mapping of fort.N filename to wake table.
+
+    Raises
+    ------
+    NotImplementedError
+        If an element carries a wake that IMPACT-T cannot represent, as described
+        in `wakefield_from_tao`, or a lumped wake on a zero-length element.
+
+    Notes
+    -----
+    Impact-T convolves the wake with the bunch on its longitudinal mesh, so the
+    mesh cell, the bunch length divided by header["Nz"], must be well below the
+    shortest length scale of the wake.
+    """
+    # impact.z imports impact.impact, which imports this module.
+    from ..z.interfaces.bmad import wakefield_from_tao
+
+    unique_name = tao_unique_names(tao)
+    ixs = tao.lat_list("*", "ele.ix_ele", flags="-array_out -no_slaves")
+
+    lattice = []
+    fieldmaps = {}
+    table_lengths = {}
+    units = iter(WAKEFIELD_UNITS)
+    for ix_ele in ixs:
+        info = wakefield_from_tao(tao, ix_ele, which=which)
+        if info is None:
+            continue
+
+        edat = ele_info(tao, ix_ele, which=which)
+        name = unique_name[ix_ele]
+        data, length = create_impact_t_wakefield_data(info.wakefield, zmax=zmax, n=n)
+
+        # Impact-T applies the table per meter between V3 and V4, so a lumped
+        # Bmad wake is spread over the element length.
+        if not info.scale_with_length:
+            if edat["L"] <= 0:
+                raise NotImplementedError(
+                    f"Element {name} has a lumped wakefield (scale_with_length = False) "
+                    "but no length, so it cannot be expressed as the per-meter wake "
+                    "Impact-T applies"
+                )
+            data = data / edat["L"]
+
+        for filename, fmap in fieldmaps.items():
+            if table_lengths[filename] == length and np.array_equal(fmap["data"], data):
+                break
+        else:
+            unit = next(units, None)
+            if unit is None:
+                raise NotImplementedError(
+                    f"More than {len(WAKEFIELD_UNITS)} distinct wakefield tables"
+                )
+            filename = f"fort.{unit}"
+            fieldmaps[filename] = {"info": {"format": "rfdata"}, "data": data}
+            table_lengths[filename] = length
+
+        lattice.append(
+            {
+                "type": "wakefield",
+                "name": f"{name}_wakefield",
+                "s_begin": edat["s_begin"],
+                "s": edat["s"],
+                "method": "from_file",
+                "filename": filename,
+                "table_length": length,
+            }
+        )
+
+    return lattice, fieldmaps
+
+
 def tao_create_impact_lattice_and_fieldmaps(
     tao,
     emfield_cartesian_eles="EM_FIELD::*",
@@ -476,6 +581,7 @@ def tao_create_impact_lattice_and_fieldmaps(
     write_beam_eles="monitor::*",
     fieldmap_style="fourier",
     n_coef=30,
+    wakefield_zmax=None,
 ):
     """
     Create an Impact-T style lattice and fieldmaps from a running PyTao Tao instance.
@@ -505,6 +611,10 @@ def tao_create_impact_lattice_and_fieldmaps(
 
     n_coef : int, optional
         a number of fourier (?) coefficients, by default 30
+
+    wakefield_zmax : float, optional
+        Largest trailing distance to tabulate short-range wakes over [m]. See
+        `tao_create_impact_wakefield_eles`.
 
     Returns
     -------
@@ -609,6 +719,10 @@ def tao_create_impact_lattice_and_fieldmaps(
         )  # ref_eles will ensure that there are no naming conflicts
         lattice.append(ele)
 
+    wake_eles, wake_tables = tao_create_impact_wakefield_eles(tao, zmax=wakefield_zmax)
+    lattice += wake_eles
+    fieldmaps.update(wake_tables)
+
     # must sort!
     def get_s(ele):
         if "zedge" in ele:
@@ -632,6 +746,7 @@ def impact_from_tao(
     solrf_eles="E_GUN::*,SOLENOID::*,LCAVITY::*",
     quadrupole_eles="quad::*",
     write_beam_eles="monitor::*",
+    wakefield_zmax=None,
 ):
     """
     Create a complete Impact object from a running Pytao Tao instance.
@@ -656,6 +771,11 @@ def impact_from_tao(
          Matching string or list for element names to be converted to Impact-T write beam elements.
          Note that there is a limit to the number of these that can be created
 
+    wakefield_zmax: float, optional
+         Largest trailing distance to tabulate short-range wakes over [m].
+         Impact-T extrapolates beyond the table, so this should cover the full
+         bunch length. Defaults to the natural range of each wake model.
+
     Returns
     -------
     impact_object: Impact
@@ -670,6 +790,7 @@ def impact_from_tao(
         solrf_eles=solrf_eles,
         quadrupole_eles=quadrupole_eles,
         write_beam_eles=write_beam_eles,
+        wakefield_zmax=wakefield_zmax,
     )
 
     # Create blank object
@@ -686,6 +807,19 @@ def impact_from_tao(
     I.ele["stop_1"]["s"] = tao.lat_list("*", "ele.s").max()
     I.header["Bcurr"] = 0  # Turn off SC
     I.header["Flagerr"] = 1  # Allow offsets
+
+    # Impact-T applies wakes only at nonzero current, so space charge is
+    # switched off by an element instead.
+    if any(ele["type"] == "wakefield" for ele in lattice):
+        I.total_charge = float(tao.beam_init(0)["bunch_charge"])
+        if I.total_charge == 0:
+            warnings.warn(
+                "The lattice has wakefields but the Tao bunch_charge is zero, "
+                "so they will have no effect"
+            )
+        lattice = [
+            {"type": "spacecharge", "name": "spacecharge_off", "s": 0, "is_on": False}
+        ] + lattice
 
     # Check for cathode start
     if len(tao.lat_list("e_gun::*", "ele.ix_ele")) > 0:

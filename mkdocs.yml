@@ -36,6 +36,7 @@ nav:
               - examples/elements/tesla_9cell_cavity.ipynb
               - examples/elements/traveling_wave_cavity.ipynb
               - examples/elements/wakefield.ipynb
+              - examples/elements/wakefield-bmad.ipynb
               - examples/elements/3d_field.ipynb
               - examples/elements/awa_flatbeam.ipynb
 
