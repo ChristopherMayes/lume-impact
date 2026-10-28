@@ -1034,9 +1034,10 @@ def should_switch_integrator(ele: AnyInputElement) -> bool:
 # IMPACT-Z accepts at most this many.
 WAKEFIELD_TABLE_ROWS = 5000
 
-# The wake table must reach at least the full length of the bunch, because
-# IMPACT-Z indexes it without bounds checking. This multiplies the observed
-# extent of the initial particles to give some headroom.
+# The wake table must reach at least the full length of the bunch. Past the last
+# row IMPACT-Z 2.7.9 extrapolates linearly, and earlier versions read past the
+# end of the table. This multiplies the observed extent of the initial
+# particles to give some headroom.
 WAKEFIELD_ZMAX_FACTOR = 2.0
 
 
@@ -1463,9 +1464,9 @@ class ConversionState:
         """
         Trailing distance to tabulate a short-range wakefield over.
 
-        IMPACT-Z indexes the wake table without bounds checking, so it has to
-        reach at least the full length of the bunch. This takes the extent of
-        the initial particles with headroom.
+        The table has to reach at least the full length of the bunch, since
+        IMPACT-Z cannot evaluate the wake accurately past its last row. This
+        takes the extent of the initial particles with headroom.
         """
         P = self.initial_particles
         if P is None:
