@@ -555,6 +555,13 @@ class Impact(CommandWrapper):
             self.vprint("Finished.")
         self.log = log
 
+        if any("greater than the readin wake field range" in line for line in log):
+            warnings.warn(
+                "Impact-T reported that the bunch was longer than a wakefield table "
+                "and extrapolated beyond its last row. Tabulate the wake over a "
+                "longer range, for example with `wakefield_zmax`."
+            )
+
         # Load output
         self.load_output()
 
@@ -627,12 +634,11 @@ class Impact(CommandWrapper):
 
     def check_wakefields(self):
         """
-        Warn when a read-in wake table cannot represent the wake on the initial bunch.
+        Warn when the mesh is too coarse to resolve a read-in wake on the initial bunch.
 
-        Impact-T extrapolates the table linearly beyond its last row, so the table
-        must cover the full bunch. It also convolves the wake with the bunch on its
-        longitudinal mesh, so a mesh cell must be well below the shortest length
-        scale of the wake, estimated here from the table as max|W| / max|dW/ds|.
+        Impact-T convolves the wake with the bunch on its longitudinal mesh, so a
+        mesh cell must be well below the shortest length scale of the wake,
+        estimated here from the table as max|W| / max|dW/ds|.
         """
         P = self.initial_particles
         extent = max(np.ptp(P.z), np.ptp(P.t) * c_light)
@@ -645,16 +651,8 @@ class Impact(CommandWrapper):
             if "data" not in fmap:
                 continue
 
-            length = ele["table_length"]
-            if extent > length:
-                warnings.warn(
-                    f"Wakefield {ele['name']}: the bunch extends {extent:.3e} m but "
-                    f"the table covers {length:.3e} m. Impact-T extrapolates beyond "
-                    "the last row."
-                )
-
             W = np.atleast_2d(fmap["data"])[:, 0]
-            ds = length / (len(W) - 1)
+            ds = ele["table_length"] / (len(W) - 1)
             scale = np.max(np.abs(W)) / np.max(np.abs(np.gradient(W, ds)))
             if cell > 0.5 * scale:
                 warnings.warn(

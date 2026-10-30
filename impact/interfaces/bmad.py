@@ -526,6 +526,8 @@ def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
     table_lengths = {}
     units = iter(WAKEFIELD_UNITS)
     for ix_ele in ixs:
+        if not tao.ele_head(ix_ele, which=which)["has#wake"]:
+            continue
         info = wakefield_from_tao(tao, ix_ele, which=which)
         if info is None:
             continue

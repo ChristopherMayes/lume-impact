@@ -130,12 +130,11 @@ def test_wakefield_warns_coarse_mesh():
     assert wakefield_warnings(I) == []
 
 
-def test_wakefield_warns_short_table():
+def test_short_table_warns_at_run_time():
+    # The default bunch spans about 700 um, well past a 200 um table.
     I = table_impact(zmax=2e-4)
-    I.header["Nz"] = 256
-    I.initial_particles = gaussian_bunch()
-    messages = wakefield_warnings(I)
-    assert len(messages) == 1 and "table covers" in messages[0]
+    with pytest.warns(UserWarning, match="longer than a wakefield table"):
+        I.run()
 
 
 def test_run_keeps_wakefield_table():
