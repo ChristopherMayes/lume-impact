@@ -9,7 +9,7 @@ import h5py
 import numpy as np
 from beamphysics import ParticleGroup
 from beamphysics.interfaces.impact import impact_particles_to_particle_data
-from beamphysics.units import c_light, pmd_unit
+from beamphysics.units import pmd_unit
 from scipy.interpolate import interp1d
 
 from lume.base import CommandWrapper
@@ -632,35 +632,6 @@ class Impact(CommandWrapper):
                 self.vprint(f"Setting total charge to {charge} C")
                 self.total_charge = charge
 
-    def check_wakefields(self):
-        """
-        Warn when the mesh is too coarse to resolve a read-in wake on the initial bunch.
-
-        Impact-T convolves the wake with the bunch on its longitudinal mesh, so a
-        mesh cell must be well below the shortest length scale of the wake,
-        estimated here from the table as max|W| / max|dW/ds|.
-        """
-        P = self.initial_particles
-        extent = max(np.ptp(P.z), np.ptp(P.t) * c_light)
-        cell = extent / (self.header["Nz"] - 1)
-
-        for ele in self.lattice:
-            if ele["type"] != "wakefield" or ele["method"] != "from_file":
-                continue
-            fmap = self.input["fieldmaps"].get(ele["filename"], {})
-            if "data" not in fmap:
-                continue
-
-            W = np.atleast_2d(fmap["data"])[:, 0]
-            ds = ele["table_length"] / (len(W) - 1)
-            scale = np.max(np.abs(W)) / np.max(np.abs(np.gradient(W, ds)))
-            if cell > 0.5 * scale:
-                warnings.warn(
-                    f"Wakefield {ele['name']}: the longitudinal mesh cell is "
-                    f"{cell:.3e} m, too coarse for the {scale:.3e} m length scale "
-                    "of the wake. Increase header['Nz']."
-                )
-
     def write_input(self, input_filename="ImpactT.in", path=None):
         """
         Write all input.
@@ -695,8 +666,6 @@ class Impact(CommandWrapper):
                     f"set header['Nemission'] > 0. "
                     f"The current value is {self.header['Nemission']}."
                 )
-
-            self.check_wakefields()
 
         # Symlink
         elif self.header["Flagdist"] == 16:

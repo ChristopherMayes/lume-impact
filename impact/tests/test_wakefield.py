@@ -1,9 +1,7 @@
 import os
-import warnings
 
 import numpy as np
 import pytest
-from beamphysics import ParticleGroup
 from beamphysics.interfaces.impact import create_impact_t_wakefield_data
 from beamphysics.wakefields import ResistiveWallPseudomode
 from pytao import SubprocessTao as Tao
@@ -93,41 +91,6 @@ def test_wakefield_table_input_and_archive(tmp_path):
         K.ele["pipe_wakefield"]["table_length"]
         == I.ele["pipe_wakefield"]["table_length"]
     )
-
-
-def gaussian_bunch(sigma_z=100e-6, n=2000, pz=10e6):
-    rng = np.random.default_rng(0)
-    return ParticleGroup(
-        data={
-            "x": rng.normal(0, 1e-6, n),
-            "px": np.zeros(n),
-            "y": rng.normal(0, 1e-6, n),
-            "py": np.zeros(n),
-            "z": rng.normal(0, sigma_z, n),
-            "pz": np.full(n, pz),
-            "t": np.zeros(n),
-            "status": np.ones(n),
-            "weight": np.full(n, 1e-9 / n),
-            "species": "electron",
-        }
-    )
-
-
-def wakefield_warnings(I):
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        I.check_wakefields()
-    return [str(w.message) for w in caught if "Wakefield" in str(w.message)]
-
-
-def test_wakefield_warns_coarse_mesh():
-    I = table_impact()
-    I.initial_particles = gaussian_bunch()
-    messages = wakefield_warnings(I)
-    assert len(messages) == 1 and "mesh cell" in messages[0]
-
-    I.header["Nz"] = 256
-    assert wakefield_warnings(I) == []
 
 
 def test_short_table_warns_at_run_time():
