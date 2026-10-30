@@ -1082,19 +1082,10 @@ def wakefield_from_tao(
     except TaoCommandError:
         return None
 
-    # A tabulated `z_long` wake is reported separately from the pseudo-modes,
-    # and an element carrying one has an empty `sr_long_table`. Check for it
-    # before the early returns below so that it cannot be dropped silently.
-    # Both `has#sr_z_long` and the `sr_z_long_table` output are recent Tao
-    # additions, so treat their absence as "no such wake".
-    try:
-        z_long_table = cast(
-            np.ndarray, tao.ele_wake(ele_id, "sr_z_long_table", which=which)
-        )
-    except TaoCommandError:
-        z_long_table = np.empty(0)
-
-    if base.get("has#sr_z_long", False) or len(z_long_table):
+    # An element carrying a tabulated `z_long` wake has no pseudo-modes, so check
+    # for it before the early returns below. Tao versions that predate `z_long`
+    # wakes do not report the flag.
+    if base.get("has#sr_z_long", False):
         raise NotImplementedError(
             "Tabulated (`z_long`) short-range wakes are not supported by this "
             "conversion; only the pseudo-mode form is"
