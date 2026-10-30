@@ -1030,17 +1030,6 @@ def should_switch_integrator(ele: AnyInputElement) -> bool:
     return False
 
 
-# Rows in the `rfdata{N}.in` table written for `RfcavityStructureWakefield`.
-# IMPACT-Z accepts at most this many.
-WAKEFIELD_TABLE_ROWS = 5000
-
-# The wake table must reach at least the full length of the bunch. Past the last
-# row IMPACT-Z 2.7.9 extrapolates linearly, and earlier versions read past the
-# end of the table. This multiplies the observed extent of the initial
-# particles to give some headroom.
-WAKEFIELD_ZMAX_FACTOR = 2.0
-
-
 class WakefieldInfo(NamedTuple):
     """A Bmad short-range longitudinal wake, ready for conversion."""
 
@@ -1111,17 +1100,18 @@ def wakefield_from_tao(
             "conversion; only the pseudo-mode form is"
         )
 
+    # Checked before the early returns, as an element may carry only a transverse wake.
+    if cast(list, tao.ele_wake(ele_id, "sr_trans_table", which=which)):
+        raise NotImplementedError(
+            "Short-range transverse wakes are not supported by this conversion"
+        )
+
     if not base.get("has#sr_long", False):
         return None
 
     modes = cast(list, tao.ele_wake(ele_id, "sr_long_table", which=which))
     if not modes:
         return None
-
-    if cast(list, tao.ele_wake(ele_id, "sr_trans_table", which=which)):
-        raise NotImplementedError(
-            "Short-range transverse wakes are not supported by this conversion"
-        )
 
     z_scale = float(base["sr%z_scale"])
     if z_scale != 1.0:
@@ -1203,8 +1193,7 @@ def element_from_tao(
         this dictionary.
     wakefield_zmax : float or None, optional
         Largest trailing distance to tabulate for a short-range wakefield, in
-        meters. Required if the element carries a wake; the table must reach at
-        least the full length of the bunch.
+        meters. Defaults to the natural range of the wake model.
 
     Returns
     -------
@@ -1294,14 +1283,10 @@ def element_from_tao(
                 leading_elements.append(RotateBeam(tilt=ref_tilt))
                 trailing_elements.insert(0, RotateBeam(tilt=-ref_tilt))
 
-    wake_info = wakefield_from_tao(tao, ele_id, which=which)
+    wake_info = None
+    if info.get("has#wake"):
+        wake_info = wakefield_from_tao(tao, ele_id, which=which)
     if wake_info is not None:
-        if wakefield_zmax is None:
-            raise ValueError(
-                f"Element {name!r} (id={ele_id}) has a short-range wakefield, "
-                "so `wakefield_zmax` must be given"
-            )
-
         # Bmad scales the kick by the element length when `scale_with_length` is
         # set, matching the per-meter wake IMPACT-Z integrates over the element.
         # A lumped Bmad wake has to be divided by the length to give the same
@@ -1318,9 +1303,7 @@ def element_from_tao(
             scale = 1.0 / length
 
         table = create_impact_z_wakefield_rfdata(
-            wake_info.wakefield,
-            zmax=wakefield_zmax,
-            n=WAKEFIELD_TABLE_ROWS,
+            wake_info.wakefield, zmax=wakefield_zmax
         )
 
         for existing_id, existing_data in {**(file_data or {}), **data}.items():
@@ -1460,27 +1443,6 @@ class ConversionState:
     def n_particle(self) -> int:
         return len(self.initial_particles) if self.initial_particles else 0
 
-    def default_wakefield_zmax(self) -> float | None:
-        """
-        Trailing distance to tabulate a short-range wakefield over.
-
-        The table has to reach at least the full length of the bunch, since
-        IMPACT-Z cannot evaluate the wake accurately past its last row. This
-        takes the extent of the initial particles with headroom.
-        """
-        P = self.initial_particles
-        if P is None:
-            return None
-
-        # The group may be in either z or t coordinates.
-        extent = max(
-            float(np.ptp(P["z"])),
-            float(np.ptp(P["t"])) * c_light,
-        )
-        if extent <= 0.0:
-            return None
-        return WAKEFIELD_ZMAX_FACTOR * extent
-
     def convert_lattice(
         self,
         tao: Tao,
@@ -1493,9 +1455,6 @@ class ConversionState:
         include_collimation: bool = True,
         wakefield_zmax: float | None = None,
     ) -> tuple[list[AnyInputElement], dict[str, np.ndarray]]:
-        if wakefield_zmax is None:
-            wakefield_zmax = self.default_wakefield_zmax()
-
         lattice: list[AnyInputElement] = [
             WriteFull(name="initial_particles", file_id=initial_particles_file_id),
         ]

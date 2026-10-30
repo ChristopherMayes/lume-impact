@@ -2717,9 +2717,9 @@ class ImpactZInput(BaseModel):
             Runge-Kutta depending on IMPACT-Z run requirements.
         wakefield_zmax : float or None, optional
             Largest trailing distance to tabulate short-range wakefields over,
-            in meters. IMPACT-Z cannot evaluate the wake accurately past the
-            last row, so this must reach at least the full length of the bunch.
-            Defaults to twice the extent of the initial particles.
+            in meters. IMPACT-Z extrapolates beyond the last row, so this
+            should cover the bunch wherever it is longest. Defaults to the
+            natural range of each wake model.
 
         Returns
         -------
@@ -3170,7 +3170,22 @@ class ImpactZInput(BaseModel):
         return items[0]
 
     def space_charge_off(self) -> None:
-        self.average_current = 0.0
+        """
+        Turn off the space-charge calculation.
+
+        IMPACT-Z evaluates wakefields only at nonzero current, so when the
+        lattice has any, the current is kept and the Poisson solve is switched
+        off with `ToggleSpaceCharge` elements instead.
+        """
+        if not any(isinstance(ele, RfcavityStructureWakefield) for ele in self.lattice):
+            self.average_current = 0.0
+            return
+
+        toggles = [ele for ele in self.lattice if isinstance(ele, ToggleSpaceCharge)]
+        for ele in toggles:
+            ele.enable = False
+        if not toggles:
+            self.lattice.insert(0, ToggleSpaceCharge(enable=False))
 
     def space_charge_on(self, bunch_charge: float | None = None) -> None:
         if bunch_charge is None:

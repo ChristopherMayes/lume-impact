@@ -9,6 +9,7 @@ import shlex
 import shutil
 import traceback
 import typing
+import warnings
 from collections.abc import Sequence
 from contextlib import contextmanager
 from time import monotonic
@@ -421,6 +422,13 @@ class ImpactZ(CommandWrapper):
                 run_time=end_time - start_time,
                 output_log=execute_result["log"].replace("\x00", ""),
             )
+
+            if "over the readin wake function range" in run_info.output_log:
+                warnings.warn(
+                    "IMPACT-Z reported that the bunch was longer than a wakefield "
+                    "table and extrapolated beyond its last row. Tabulate the wake "
+                    "over a longer range, for example with `wakefield_zmax`."
+                )
 
             success_or_failure = "Success" if not execute_result["error"] else "Failure"
             self.vprint(
@@ -916,9 +924,9 @@ class ImpactZ(CommandWrapper):
             OpenPMD-beamphysics standard.
         wakefield_zmax : float or None, optional
             Largest trailing distance to tabulate short-range wakefields over,
-            in meters. IMPACT-Z cannot evaluate the wake accurately past the
-            last row, so this must reach at least the full length of the bunch.
-            Defaults to twice the extent of the initial particles.
+            in meters. IMPACT-Z extrapolates beyond the last row, so this
+            should cover the bunch wherever it is longest. Defaults to the
+            natural range of each wake model.
 
         Returns
         -------
