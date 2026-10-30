@@ -1077,40 +1077,32 @@ def wakefield_from_tao(
         position dependence. IMPACT-Z reads a wake table that is a function of
         the trailing distance alone.
     """
-    try:
-        base = cast(dict, tao.ele_wake(ele_id, "base", which=which))
-    except TaoCommandError:
+    wake = tao.ele(ele_id, which=which, defaults=False, wake=True).wake
+    if wake is None:
         return None
 
     # An element carrying a tabulated `z_long` wake has no pseudo-modes, so check
-    # for it before the early returns below. Tao versions that predate `z_long`
-    # wakes do not report the flag.
-    if base.get("has#sr_z_long", False):
+    # for it before the early returns below.
+    if wake.has_sr_z_long:
         raise NotImplementedError(
             "Tabulated (`z_long`) short-range wakes are not supported by this "
             "conversion; only the pseudo-mode form is"
         )
 
-    # Checked before the early returns, as an element may carry only a transverse wake.
-    if cast(list, tao.ele_wake(ele_id, "sr_trans_table", which=which)):
+    # Also checked early, as an element may carry only a transverse wake.
+    if wake.sr_trans.table:
         raise NotImplementedError(
             "Short-range transverse wakes are not supported by this conversion"
         )
 
-    if not base.get("has#sr_long", False):
-        return None
-
-    modes = cast(list, tao.ele_wake(ele_id, "sr_long_table", which=which))
+    modes = wake.sr_long.table
     if not modes:
         return None
 
-    z_scale = float(base["sr%z_scale"])
-    if z_scale != 1.0:
+    if wake.sr_z_scale != 1.0:
         raise NotImplementedError(
-            f"Short-range wake z_scale={z_scale} is not supported; only 1.0 is"
+            f"Short-range wake z_scale={wake.sr_z_scale} is not supported; only 1.0 is"
         )
-
-    amp_scale = float(base["sr%amp_scale"])
 
     pseudomodes = []
     for amplitude, damping, wavenumber, phase, position_dependence in modes:
@@ -1121,7 +1113,7 @@ def wakefield_from_tao(
             )
         pseudomodes.append(
             Pseudomode(
-                A=amp_scale * float(amplitude),
+                A=wake.sr_amp_scale * float(amplitude),
                 d=float(damping),
                 k=float(wavenumber),
                 phi=2.0 * np.pi * float(phase),
@@ -1130,7 +1122,7 @@ def wakefield_from_tao(
 
     return WakefieldInfo(
         wakefield=PseudomodeWakefield(pseudomodes),
-        scale_with_length=bool(base["sr%scale_with_length"]),
+        scale_with_length=bool(wake.sr_scale_with_length),
     )
 
 
