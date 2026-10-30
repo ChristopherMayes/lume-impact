@@ -39,7 +39,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "pytest-xdist", "pytao"]
+dev = ["pytest", "pytest-cov", "pytest-xdist", "pytao>=1.2.4"]
 doc = [
   "mkdocs",
   "mkdocs-jupyter",
