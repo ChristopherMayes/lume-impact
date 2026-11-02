@@ -3,7 +3,7 @@ name: lume-impact-dev
 channels:
   - conda-forge
 dependencies:
-  - python>=3.10
+  - python>=3.11
   - bokeh
   - distgen
   - impact-t=*=mpi_openmpi*
