@@ -41,13 +41,13 @@ def make_tao(tmp_path: pathlib.Path, contents: str) -> Tao:
     return Tao(lattice_file=str(lattice), noplot=True)
 
 
-def set_beam(tao: Tao, n_particle: int = 5000) -> None:
+def set_beam(tao: Tao, n_particle: int = 5000, sig_z: float = 10e-6) -> None:
     BeamInit(
         bunch_charge=1e-9,
         n_particle=n_particle,
         a_norm_emit=1e-9,
         b_norm_emit=1e-9,
-        sig_z=10e-6,
+        sig_z=sig_z,
         sig_pz=1e-6,
     ).set(tao)
 
@@ -108,6 +108,18 @@ def test_table_range_comes_from_the_wake_model(wake_input: ImpactZInput) -> None
     assert s[0] == 0.0
     # Tao reports the mode parameters to about nine significant digits.
     assert s[-1] == pytest.approx(WAKE.default_zmax, rel=1e-6)
+
+
+@pytest.mark.parametrize("factor", [0.1, 3.0])
+def test_wakefield_zmax_only_extends_the_table(
+    tmp_path: pathlib.Path, factor: float
+) -> None:
+    zmax = factor * WAKE.default_zmax
+    with make_tao(tmp_path, LATTICE) as tao:
+        set_beam(tao)
+        I = ImpactZInput.from_tao(tao, wakefield_zmax=zmax)
+    s = I.file_data["500"][:, 0]
+    assert s[-1] == pytest.approx(max(zmax, WAKE.default_zmax), rel=1e-6)
 
 
 def test_wakes_keep_the_current_with_space_charge_off(
@@ -179,9 +191,10 @@ def test_energy_loss_matches_bmad(tmp_path: pathlib.Path) -> None:
 
 def test_short_table_warns_at_run_time(tmp_path: pathlib.Path) -> None:
     with make_tao(tmp_path, LATTICE) as tao:
-        set_beam(tao, n_particle=1000)
+        # The bunch is far longer than the natural range of the wake.
+        set_beam(tao, n_particle=1000, sig_z=200e-6)
         tao.track_beam()
-        I = ImpactZ.from_tao(tao, wakefield_zmax=5e-6)
+        I = ImpactZ.from_tao(tao)
 
     with pytest.warns(UserWarning, match="longer than a wakefield table"):
         I.run()

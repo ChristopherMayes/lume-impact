@@ -923,10 +923,10 @@ class ImpactZ(CommandWrapper):
             Initial particles to use in the simulation, using the
             OpenPMD-beamphysics standard.
         wakefield_zmax : float or None, optional
-            Largest trailing distance to tabulate short-range wakefields over,
-            in meters. IMPACT-Z extrapolates beyond the last row, so this
-            should cover the bunch wherever it is longest. Defaults to the
-            natural range of each wake model.
+            Smallest trailing distance to tabulate short-range wakefields over,
+            in meters. Each table covers at least the natural range of its wake
+            model; IMPACT-Z extrapolates beyond the last row, so set this when
+            the bunch is longer than that range.
 
         Returns
         -------
