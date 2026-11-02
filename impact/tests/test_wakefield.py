@@ -152,7 +152,7 @@ def wake_tao(tmp_path):
 
 
 def test_from_tao_wakefield_elements(wake_tao):
-    I = Impact.from_tao(wake_tao, wakefield_zmax=2e-4)
+    I = Impact.from_tao(wake_tao)
 
     wakes = [ele for ele in I.lattice if ele["type"] == "wakefield"]
     assert [(ele["s_begin"], ele["s"]) for ele in wakes] == [(0.0, 1.0), (1.5, 2.5)]
@@ -164,12 +164,20 @@ def test_from_tao_wakefield_elements(wake_tao):
     assert I.ele["spacecharge_off"]["is_on"] is False
 
 
+@pytest.mark.parametrize("factor", [None, 0.1, 3.0])
+def test_wakefield_zmax_only_extends_the_table(wake_tao, factor):
+    zmax = None if factor is None else factor * WAKE.default_zmax
+    I = Impact.from_tao(wake_tao, wakefield_zmax=zmax)
+    (length,) = {ele["table_length"] for ele in I.lattice if ele["type"] == "wakefield"}
+    assert length == pytest.approx(max(zmax or 0, WAKE.default_zmax), rel=1e-6)
+
+
 def test_from_tao_wakefield_matches_bmad(wake_tao):
     wake_tao.track_beam()
     P0 = wake_tao.particles("BEGINNING")
     P1 = wake_tao.particles("END")
 
-    I = Impact.from_tao(wake_tao, wakefield_zmax=2e-4)
+    I = Impact.from_tao(wake_tao)
     P = P0.copy()
     P.drift_to_t()
     I.initial_particles = P

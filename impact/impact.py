@@ -1109,9 +1109,10 @@ class Impact(CommandWrapper):
             Note that there is a limit to the number of these that can be created.  By default = 'monitor::*'
 
         wakefield_zmax : float, optional
-            Largest trailing distance to tabulate short-range wakes over [m].
-            Impact-T extrapolates beyond the table, so this should cover the
-            full bunch length. Defaults to the natural range of each wake model.
+            Smallest trailing distance to tabulate short-range wakes over [m].
+            Each table covers at least the natural range of its wake model;
+            Impact-T extrapolates beyond the table, so set this when the bunch
+            is longer than that range.
 
         Returns
         -------

@@ -487,9 +487,10 @@ def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
     tao : Tao
         Initialized Tao object.
     zmax : float, optional
-        Largest trailing distance to tabulate [m]. IMPACT-T extrapolates the
-        table linearly beyond its last row, so this should cover the full
-        length of the bunch. Defaults to the natural range of each wake model.
+        Smallest trailing distance to tabulate [m]. Each table covers at least
+        the natural range of its wake model, so this only extends it. IMPACT-T
+        extrapolates the table linearly beyond its last row, so set this when
+        the bunch is longer than that range.
     n : int, optional
         Number of table rows. Defaults to the number the model needs, clamped to
         the 1000 rows IMPACT-T reads.
@@ -534,7 +535,12 @@ def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
 
         edat = ele_info(tao, ix_ele, which=which)
         name = unique_name[ix_ele]
-        data, length = create_impact_t_wakefield_data(info.wakefield, zmax=zmax, n=n)
+        wake_zmax = info.wakefield.default_zmax
+        if zmax is not None:
+            wake_zmax = max(wake_zmax, zmax)
+        data, length = create_impact_t_wakefield_data(
+            info.wakefield, zmax=wake_zmax, n=n
+        )
 
         # Impact-T applies the table per meter between V3 and V4, so a lumped
         # Bmad wake is spread over the element length.
@@ -615,7 +621,7 @@ def tao_create_impact_lattice_and_fieldmaps(
         a number of fourier (?) coefficients, by default 30
 
     wakefield_zmax : float, optional
-        Largest trailing distance to tabulate short-range wakes over [m]. See
+        Smallest trailing distance to tabulate short-range wakes over [m]. See
         `tao_create_impact_wakefield_eles`.
 
     Returns
@@ -774,9 +780,10 @@ def impact_from_tao(
          Note that there is a limit to the number of these that can be created
 
     wakefield_zmax: float, optional
-         Largest trailing distance to tabulate short-range wakes over [m].
-         Impact-T extrapolates beyond the table, so this should cover the full
-         bunch length. Defaults to the natural range of each wake model.
+         Smallest trailing distance to tabulate short-range wakes over [m].
+         Each table covers at least the natural range of its wake model;
+         Impact-T extrapolates beyond the table, so set this when the bunch is
+         longer than that range.
 
     Returns
     -------
