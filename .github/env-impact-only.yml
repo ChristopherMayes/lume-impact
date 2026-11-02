@@ -5,7 +5,7 @@ channels:
 dependencies:
   # python gets pulled in via bmad -> xraylib -> numpy anyway,
   # set this up so CI can control it at least
-  - python>=3.10
+  - python>=3.11
   # ...and since that python is the one on PATH, it needs pip for the
   # workflow's `python -m pip install` steps
   - pip
