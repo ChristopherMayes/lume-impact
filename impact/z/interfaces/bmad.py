@@ -1175,8 +1175,9 @@ def element_from_tao(
         This function will reuse other elements' `file_data` when possible from
         this dictionary.
     wakefield_zmax : float or None, optional
-        Largest trailing distance to tabulate for a short-range wakefield, in
-        meters. Defaults to the natural range of the wake model.
+        Smallest trailing distance to tabulate a short-range wakefield over, in
+        meters. The table always covers at least the natural range of the wake
+        model, so this only extends it.
 
     Returns
     -------
@@ -1285,9 +1286,10 @@ def element_from_tao(
                 )
             scale = 1.0 / length
 
-        table = create_impact_z_wakefield_rfdata(
-            wake_info.wakefield, zmax=wakefield_zmax
-        )
+        zmax = wake_info.wakefield.default_zmax
+        if wakefield_zmax is not None:
+            zmax = max(zmax, wakefield_zmax)
+        table = create_impact_z_wakefield_rfdata(wake_info.wakefield, zmax=zmax)
 
         for existing_id, existing_data in {**(file_data or {}), **data}.items():
             if np.array_equal(existing_data, table):
