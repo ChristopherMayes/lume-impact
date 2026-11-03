@@ -9,6 +9,7 @@ from beamphysics.wakefields import ResistiveWallPseudomode, TabularWakefield
 from pytao import SubprocessTao as Tao
 from pytao.model import BeamInit
 
+from ...wakefields import rebin_tabular_wakefield
 from ...z import ImpactZ, ImpactZInput
 from ...z.input import Drift, RfcavityStructureWakefield, ToggleSpaceCharge
 
@@ -31,6 +32,17 @@ d1: drift, L = 0.5
 p2: p1
 p3: pipe, L = 2, sr_wake = {WAKE.to_bmad(scale_with_length=False)}
 lat: line = (p1, d1, p2, p3)
+use, lat
+"""
+
+# The same wake as a z_long table at 0.5 um spacing, per meter and lumped.
+ZLONG = TabularWakefield.from_wakefield(WAKE, zmax=2e-4, n=401)
+ZLONG_BMAD = ZLONG.to_bmad()
+ZLONG_LATTICE = f"""{HEADER}
+p1: pipe, L = 1, sr_wake = {ZLONG_BMAD}
+d1: drift, L = 0.5
+p3: pipe, L = 2, sr_wake = {ZLONG.to_bmad(scale_with_length=False)}
+lat: line = (p1, d1, p3)
 use, lat
 """
 
@@ -149,9 +161,29 @@ def test_space_charge_off_without_wakes_zeroes_the_current() -> None:
     "sr_wake, match",
     [
         pytest.param(
-            TabularWakefield.from_wakefield(WAKE, zmax=2e-4, n=401).to_bmad(),
-            "z_long",
-            id="tabulated",
+            ZLONG_BMAD.replace("z_long = {", "z_long = {smoothing_sigma = 1e-6, "),
+            "smoothing_sigma",
+            id="smoothing",
+        ),
+        pytest.param(
+            ZLONG_BMAD.replace(
+                "z_long = {", "z_long = {position_dependence = x_leading, "
+            ),
+            "position_dependence",
+            id="position-dependence",
+        ),
+        pytest.param(
+            ZLONG_BMAD.replace("z_long = {", "z_long = {time_based = T, "),
+            "Time-based",
+            id="time-based",
+        ),
+        pytest.param(
+            ZLONG_BMAD.replace(
+                "z_long = {",
+                "longitudinal = {1e15, 26e3, 1.4e5, 0.25, none}, z_long = {",
+            ),
+            "both",
+            id="table-and-modes",
         ),
         pytest.param(
             "{transverse = {1e14, 26e3, 1.4e5, 0.25, none, leading}}",
@@ -211,3 +243,66 @@ def test_long_table_does_not_warn(tmp_path: pathlib.Path) -> None:
         I.run()
     assert not any("wakefield table" in str(w.message) for w in caught)
     assert np.all(np.isfinite(I.output.particles["final_particles"]["energy"]))
+
+
+def zlong_input(tmp_path: pathlib.Path, **kwargs) -> ImpactZInput:
+    with make_tao(tmp_path, ZLONG_LATTICE) as tao:
+        set_beam(tao)
+        return ImpactZInput.from_tao(tao, **kwargs)
+
+
+def wake_tables(input: ImpactZInput) -> dict[str, np.ndarray]:
+    """The wake table of each element, by element name."""
+    return {
+        ele.name.removesuffix("_WAKE_ON"): input.file_data[str(int(ele.file_id))]
+        for ele in input.lattice
+        if isinstance(ele, RfcavityStructureWakefield) and ele.enable_wakefield > 0
+    }
+
+
+def test_zlong_table_keeps_its_rows(tmp_path: pathlib.Path) -> None:
+    input = zlong_input(tmp_path)
+    assert list(input.file_data) == ["500"]
+    table = input.file_data["500"]
+    # Tao reports the table to about nine significant digits.
+    np.testing.assert_allclose(table[:, 0], -ZLONG.z_data[::-1], rtol=1e-6, atol=1e-15)
+    np.testing.assert_allclose(table[:, 1], ZLONG.W_data[::-1], rtol=1e-6)
+
+    scale = {
+        ele.name: ele.scale
+        for ele in input.lattice
+        if isinstance(ele, RfcavityStructureWakefield)
+    }
+    assert scale["P1_WAKE_ON"] == 1.0
+    assert scale["P3_WAKE_ON"] == pytest.approx(0.5)
+
+
+def test_zlong_table_is_rebinned(tmp_path: pathlib.Path) -> None:
+    table = zlong_input(tmp_path, wakefield_dz=2e-6).file_data["500"]
+    expected = rebin_tabular_wakefield(ZLONG, dz=2e-6)
+    np.testing.assert_allclose(np.diff(table[:, 0]), 2e-6, rtol=1e-9)
+    np.testing.assert_allclose(table[:, 1], expected.W_data[::-1], rtol=1e-6)
+
+
+def test_wakefield_dz_per_element(tmp_path: pathlib.Path) -> None:
+    tables = wake_tables(zlong_input(tmp_path, wakefield_dz={"P1": 2e-6}))
+    assert np.diff(tables["P1"][:2, 0]) == pytest.approx(2e-6)
+    assert np.diff(tables["P3"][:2, 0]) == pytest.approx(0.5e-6)
+
+    with pytest.raises(ValueError, match="P9"):
+        zlong_input(tmp_path, wakefield_dz={"P9": 2e-6})
+
+
+def test_zlong_energy_loss_matches_bmad(tmp_path: pathlib.Path) -> None:
+    with make_tao(tmp_path, ZLONG_LATTICE) as tao:
+        set_beam(tao)
+        tao.track_beam()
+        P0 = tao.particles("BEGINNING")
+        P1 = tao.particles("END")
+        I = ImpactZ.from_tao(tao)
+
+    I.run()
+    P2 = I.output.particles["final_particles"]
+    bmad_loss = P0["mean_energy"] - P1["mean_energy"]
+    impact_loss = P0["mean_energy"] - P2["mean_energy"]
+    assert impact_loss == pytest.approx(bmad_loss, rel=0.03)
