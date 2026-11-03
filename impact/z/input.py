@@ -7,7 +7,7 @@ import shlex
 import types
 import typing
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     Any,
     ClassVar,
@@ -2652,6 +2652,7 @@ class ImpactZInput(BaseModel):
         include_collimation: bool = True,
         integrator_type: IntegratorType = IntegratorType.linear_map,
         wakefield_zmax: float | None = None,
+        wakefield_dz: float | Mapping[str, float] | None = None,
     ) -> ImpactZInput:
         """
         Create an ImpactZInput object from a Tao instance's lattice.
@@ -2720,6 +2721,14 @@ class ImpactZInput(BaseModel):
             in meters. Each table covers at least the natural range of its wake
             model; IMPACT-Z extrapolates beyond the last row, so set this when
             the bunch is longer than that range.
+        wakefield_dz : float, dict of str to float, or None, optional
+            Spacing to rebin tabulated (`z_long`) wakes to, in meters, given
+            once or per element name. It should equal the longitudinal mesh
+            width IMPACT-Z bins the bunch at in that element, which follows
+            from the bunch length there and `nz`. A bin-averaged table is only
+            correct at that width. If None, each table keeps its Bmad spacing,
+            which is exact when the table was built at the IMPACT-Z mesh
+            width. See `impact.wakefields.rebin_tabular_wakefield`.
 
         Returns
         -------
@@ -2748,6 +2757,7 @@ class ImpactZInput(BaseModel):
             write_beam_eles=write_beam_eles,
             include_collimation=include_collimation,
             wakefield_zmax=wakefield_zmax,
+            wakefield_dz=wakefield_dz,
         )
 
         input = state.to_input(
