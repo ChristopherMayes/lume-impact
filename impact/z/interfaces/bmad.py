@@ -25,6 +25,7 @@ from beamphysics.particles import c_light
 from beamphysics.species import charge_state, mass_of
 from beamphysics.wakefields import Pseudomode, PseudomodeWakefield
 from pytao import Tao, TaoCommandError
+from pytao.model import ElementHead
 from typing_extensions import NotRequired
 
 from ...interfaces.bmad import ele_info, tao_unique_names
@@ -1268,7 +1269,8 @@ def element_from_tao(
                 trailing_elements.insert(0, RotateBeam(tilt=-ref_tilt))
 
     wake_info = None
-    if info.get("has#wake"):
+    # Validated from the head already in `info`, avoiding another Tao call.
+    if ElementHead.model_validate(info).has_wake:
         wake_info = wakefield_from_tao(tao, ele_id, which=which)
     if wake_info is not None:
         # Bmad scales the kick by the element length when `scale_with_length` is
