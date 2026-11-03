@@ -1114,6 +1114,13 @@ class Impact(CommandWrapper):
             Impact-T extrapolates beyond the table, so set this when the bunch
             is longer than that range.
 
+        wakefield_dz : float or dict of str to float, optional
+            Spacing to rebin tabulated (`z_long`) wakes to [m], once or per
+            element name: the IMPACT-T mesh width at that element, the bunch
+            length there divided by header["Nz"] - 1. A bin-averaged table is
+            only correct at that width. If omitted, each table keeps its Bmad
+            spacing.
+
         Returns
         -------
         Impact

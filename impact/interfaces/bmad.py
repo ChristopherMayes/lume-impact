@@ -474,7 +474,7 @@ def tao_create_impact_quadrupole_ele(tao, ele_id, *, default_radius=0.01, name=N
     return {"ele": ele, "line": line}
 
 
-def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
+def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model", dz=None):
     """
     Create Impact-T wakefield elements from the short-range wakes in a Tao lattice.
 
@@ -493,9 +493,15 @@ def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
         the bunch is longer than that range.
     n : int, optional
         Number of table rows. Defaults to the number the model needs, clamped to
-        the 1000 rows IMPACT-T reads.
+        the 1000 rows IMPACT-T reads. A tabulated (`z_long`) wake keeps its
+        spacing, so for it this only limits the rows.
     which : {"model", "base", "design"}, optional
         Which Tao model to use, by default "model".
+    dz : float or dict of str to float, optional
+        Spacing to rebin tabulated (`z_long`) wakes to [m], given once or per
+        element name: the IMPACT-T mesh width at that element. A bin-averaged
+        table is only correct at that width. If omitted, each table keeps its
+        Bmad spacing. See `impact.wakefields.rebin_tabular_wakefield`.
 
     Returns
     -------
@@ -509,17 +515,31 @@ def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
     NotImplementedError
         If an element carries a wake that IMPACT-T cannot represent, as described
         in `wakefield_from_tao`, or a lumped wake on a zero-length element.
+    ValueError
+        If `dz` names an unknown element.
 
     Notes
     -----
-    Impact-T convolves the wake with the bunch on its longitudinal mesh, so the
-    mesh cell, the bunch length divided by header["Nz"], must be well below the
-    shortest length scale of the wake.
+    Impact-T convolves the wake with the bunch on its longitudinal mesh. The
+    mesh cell, the bunch length divided by header["Nz"] - 1, must be well below
+    the shortest length scale of the wake. IMPACT-T recomputes it every step, so
+    a rebinned table matches it only where the bunch length is as assumed.
     """
+    from beamphysics.interfaces.impact import IMPACT_T_MAX_WAKEFIELD_ROWS
+    from beamphysics.wakefields import TabularWakefield
+    from pytao.model import ElementHead
+
+    from ..wakefields import (
+        check_wakefield_dz_names,
+        rebin_tabular_wakefield,
+        wakefield_dz_for,
+    )
+
     # impact.z imports impact.impact, which imports this module.
     from ..z.interfaces.bmad import wakefield_from_tao
 
     unique_name = tao_unique_names(tao)
+    check_wakefield_dz_names(dz, set(unique_name.values()))
     ixs = tao.lat_list("*", "ele.ix_ele", flags="-array_out -no_slaves")
 
     lattice = []
@@ -527,7 +547,7 @@ def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
     table_lengths = {}
     units = iter(WAKEFIELD_UNITS)
     for ix_ele in ixs:
-        if not tao.ele_head(ix_ele, which=which)["has#wake"]:
+        if not ElementHead.model_validate(tao.ele_head(ix_ele, which=which)).has_wake:
             continue
         info = wakefield_from_tao(tao, ix_ele, which=which)
         if info is None:
@@ -535,12 +555,23 @@ def tao_create_impact_wakefield_eles(tao, zmax=None, n=None, which="model"):
 
         edat = ele_info(tao, ix_ele, which=which)
         name = unique_name[ix_ele]
-        wake_zmax = info.wakefield.default_zmax
-        if zmax is not None:
-            wake_zmax = max(wake_zmax, zmax)
-        data, length = create_impact_t_wakefield_data(
-            info.wakefield, zmax=wake_zmax, n=n
-        )
+        if isinstance(info.wakefield, TabularWakefield):
+            wakefield = rebin_tabular_wakefield(
+                info.wakefield,
+                dz=wakefield_dz_for(dz, name),
+                zmax=zmax,
+                max_rows=IMPACT_T_MAX_WAKEFIELD_ROWS if n is None else n,
+            )
+            data, length = create_impact_t_wakefield_data(
+                wakefield, n=len(wakefield.z_data)
+            )
+        else:
+            wake_zmax = info.wakefield.default_zmax
+            if zmax is not None:
+                wake_zmax = max(wake_zmax, zmax)
+            data, length = create_impact_t_wakefield_data(
+                info.wakefield, zmax=wake_zmax, n=n
+            )
 
         # Impact-T applies the table per meter between V3 and V4, so a lumped
         # Bmad wake is spread over the element length.
@@ -590,6 +621,7 @@ def tao_create_impact_lattice_and_fieldmaps(
     fieldmap_style="fourier",
     n_coef=30,
     wakefield_zmax=None,
+    wakefield_dz=None,
 ):
     """
     Create an Impact-T style lattice and fieldmaps from a running PyTao Tao instance.
@@ -623,6 +655,10 @@ def tao_create_impact_lattice_and_fieldmaps(
     wakefield_zmax : float, optional
         Smallest trailing distance to tabulate short-range wakes over [m]. See
         `tao_create_impact_wakefield_eles`.
+
+    wakefield_dz : float or dict of str to float, optional
+        Spacing to rebin tabulated (`z_long`) wakes to [m], once or per element
+        name. See `tao_create_impact_wakefield_eles`.
 
     Returns
     -------
@@ -727,7 +763,9 @@ def tao_create_impact_lattice_and_fieldmaps(
         )  # ref_eles will ensure that there are no naming conflicts
         lattice.append(ele)
 
-    wake_eles, wake_tables = tao_create_impact_wakefield_eles(tao, zmax=wakefield_zmax)
+    wake_eles, wake_tables = tao_create_impact_wakefield_eles(
+        tao, zmax=wakefield_zmax, dz=wakefield_dz
+    )
     lattice += wake_eles
     fieldmaps.update(wake_tables)
 
@@ -755,6 +793,7 @@ def impact_from_tao(
     quadrupole_eles="quad::*",
     write_beam_eles="monitor::*",
     wakefield_zmax=None,
+    wakefield_dz=None,
 ):
     """
     Create a complete Impact object from a running Pytao Tao instance.
@@ -785,6 +824,12 @@ def impact_from_tao(
          Impact-T extrapolates beyond the table, so set this when the bunch is
          longer than that range.
 
+    wakefield_dz: float or dict of str to float, optional
+         Spacing to rebin tabulated (`z_long`) wakes to [m], once or per element
+         name: the IMPACT-T mesh width at that element, the bunch length there
+         divided by header["Nz"] - 1. If omitted, each table keeps its Bmad
+         spacing. See `tao_create_impact_wakefield_eles`.
+
     Returns
     -------
     impact_object: Impact
@@ -800,6 +845,7 @@ def impact_from_tao(
         quadrupole_eles=quadrupole_eles,
         write_beam_eles=write_beam_eles,
         wakefield_zmax=wakefield_zmax,
+        wakefield_dz=wakefield_dz,
     )
 
     # Create blank object

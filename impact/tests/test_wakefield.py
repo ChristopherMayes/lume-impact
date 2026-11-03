@@ -1,15 +1,17 @@
 import os
+from contextlib import contextmanager
 
 import numpy as np
 import pytest
 from beamphysics.interfaces.impact import create_impact_t_wakefield_data
-from beamphysics.wakefields import ResistiveWallPseudomode
+from beamphysics.wakefields import ResistiveWallPseudomode, TabularWakefield
 from pytao import SubprocessTao as Tao
 from pytao.model import BeamInit
 
 from impact import Impact
 from impact.lattice import ele_line
 from impact.parsers import parse_ele
+from impact.wakefields import rebin_tabular_wakefield
 
 WAKE = ResistiveWallPseudomode.from_material("copper-slac-pub-10707", radius=0.0045)
 
@@ -187,3 +189,124 @@ def test_from_tao_wakefield_matches_bmad(wake_tao):
     bmad_loss = P0["mean_energy"] - P1["mean_energy"]
     impact_loss = P0["mean_energy"] - P2["mean_energy"]
     assert impact_loss == pytest.approx(bmad_loss, rel=0.03)
+
+
+HEADER = """
+no_digested
+beginning[beta_a] = 1
+beginning[beta_b] = 1
+parameter[geometry] = open
+parameter[e_tot] = 100e6
+parameter[particle] = electron
+"""
+
+
+def zlong_lattice(table, lumped=False):
+    """A pipe carrying table as a z_long wake, and optionally a lumped copy."""
+    p3 = f"p3: pipe, L = 2, sr_wake = {table.to_bmad(scale_with_length=False)}\n"
+    return f"""{HEADER}
+p1: pipe, L = 1, sr_wake = {table.to_bmad()}
+d1: drift, L = 0.5
+{p3 if lumped else ""}lat: line = (p1, d1{", p3" if lumped else ""})
+use, lat
+"""
+
+
+@contextmanager
+def tao_for(tmp_path, contents, sig_z=10e-6):
+    lattice = tmp_path / "zlong.bmad"
+    lattice.write_text(contents)
+    with Tao(lattice_file=str(lattice), noplot=True) as tao:
+        BeamInit(
+            bunch_charge=1e-9,
+            n_particle=5000,
+            a_norm_emit=1e-9,
+            b_norm_emit=1e-9,
+            sig_z=sig_z,
+            sig_pz=1e-6,
+        ).set(tao)
+        yield tao
+
+
+def wake_tables(I):
+    """The wake table and its length for each wakefield element."""
+    return {
+        ele["name"].removesuffix("_wakefield"): (
+            I.input["fieldmaps"][ele["filename"]]["data"],
+            ele["table_length"],
+        )
+        for ele in I.lattice
+        if ele["type"] == "wakefield"
+    }
+
+
+# A smooth wake as a z_long table at 0.5 um spacing.
+ZLONG = TabularWakefield.from_wakefield(WAKE, zmax=2e-4, n=401)
+
+
+def test_zlong_table_keeps_its_rows(tmp_path):
+    with tao_for(tmp_path, zlong_lattice(ZLONG, lumped=True)) as tao:
+        tables = wake_tables(Impact.from_tao(tao))
+
+    data, length = tables["P1"]
+    assert length == pytest.approx(2e-4, rel=1e-6)
+    # Tao reports the table to about nine significant digits.
+    np.testing.assert_allclose(data[:, 0], ZLONG.W_data[::-1], rtol=1e-6)
+    # Impact-T applies the table per meter, so the lumped wake is spread over 2 m.
+    np.testing.assert_allclose(tables["P3"][0], data / 2)
+
+
+def test_zlong_table_is_rebinned(tmp_path):
+    with tao_for(tmp_path, zlong_lattice(ZLONG, lumped=True)) as tao:
+        tables = wake_tables(Impact.from_tao(tao, wakefield_dz={"P1": 2e-6}))
+        with pytest.raises(ValueError, match="P9"):
+            Impact.from_tao(tao, wakefield_dz={"P9": 2e-6})
+
+    data, length = tables["P1"]
+    expected = rebin_tabular_wakefield(ZLONG, dz=2e-6)
+    assert length == pytest.approx(expected.default_zmax, rel=1e-9)
+    np.testing.assert_allclose(data[:, 0], expected.W_data[::-1], rtol=1e-6)
+    # P3 keeps the Bmad spacing.
+    assert len(tables["P3"][0]) == 401
+
+
+def test_zlong_row_limit_shortens_the_range(tmp_path):
+    fine = TabularWakefield.from_wakefield(WAKE, zmax=2e-4, n=1601)
+    with tao_for(tmp_path, zlong_lattice(fine)) as tao:
+        data, length = wake_tables(Impact.from_tao(tao))["P1"]
+        with pytest.warns(UserWarning, match="shorter than wakefield_zmax"):
+            Impact.from_tao(tao, wakefield_zmax=2e-4)
+
+    assert len(data) == 1000
+    assert length == pytest.approx(999 * 1.25e-7, rel=1e-6)
+
+
+def test_rebinned_singular_wake_matches_bmad(tmp_path):
+    # A bin-averaged table of w(s) = A / sqrt(s) at 1.5 um, which Bmad applies
+    # at its own spacing and Impact-T at its mesh width of about 12 um.
+    A, delta, n = 1e13, 1.5e-6, 1000
+    K = np.diff(2 * A * np.sqrt((np.arange(n) + 0.5) * delta), prepend=0.0) / delta
+    K[0] *= 2
+    table = TabularWakefield(-delta * np.arange(n)[::-1], K[::-1], kind="linear")
+    nz = 128
+
+    with tao_for(tmp_path, zlong_lattice(table), sig_z=0.2e-3) as tao:
+        tao.track_beam()
+        P0 = tao.particles("BEGINNING")
+        P1 = tao.particles("END")
+        P = P0.copy()
+        P.drift_to_t()
+
+        losses = {}
+        for name, dz in (("resampled", None), ("rebinned", np.ptp(P.z) / (nz - 1))):
+            I = Impact.from_tao(tao, wakefield_dz=dz, wakefield_zmax=2e-3)
+            I.header["Nz"] = nz
+            I.initial_particles = P
+            I.run()
+            losses[name] = (
+                P0["mean_energy"] - I.particles["final_particles"]["mean_energy"]
+            )
+
+    bmad_loss = P0["mean_energy"] - P1["mean_energy"]
+    assert losses["rebinned"] == pytest.approx(bmad_loss, rel=0.02)
+    assert losses["resampled"] > 1.1 * bmad_loss
